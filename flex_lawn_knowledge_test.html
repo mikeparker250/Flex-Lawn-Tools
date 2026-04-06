@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Flex Lawn Care — Knowledge Test</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap');
+
+  :root {
+    --green: #2d6a2d;
+    --green-dark: #1a4a1a;
+    --green-light: #3d8b3d;
+    --yellow: #f5c842;
+    --cream: #f8f5ee;
+    --brown: #3a2a1a;
+    --gray: #666;
+    --light-gray: #e8e4dc;
+    --red: #c0392b;
+    --red-light: #fdedec;
+    --pass-green: #1e8449;
+    --pass-light: #eafaf1;
+    --white: #ffffff;
+    --shadow: 0 4px 20px rgba(0,0,0,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--green-dark);
+    min-height: 100vh;
+    color: var(--brown);
+  }
+
+  header {
+    background: var(--green-dark);
+    padding: 16px 20px 12px;
+    text-align: center;
+    border-bottom: 3px solid var(--yellow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  header h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 26px;
+    color: var(--yellow);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  header p {
+    color: #a0c8a0;
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  .progress-bar-wrap {
+    background: rgba(255,255,255,0.1);
+    height: 6px;
+    margin-top: 10px;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: var(--yellow);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+
+  .progress-text {
+    color: #a0c8a0;
+    font-size: 11px;
+    margin-top: 4px;
+    text-align: right;
+  }
+
+  .container {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  /* INTRO SCREEN */
+  .intro-card {
+    background: var(--cream);
+    border-radius: 12px;
+    padding: 24px 20px;
+    margin-top: 8px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+
+  .intro-card h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: var(--green-dark);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .intro-card p {
+    font-size: 14px;
+    color: var(--brown);
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+
+  .rule-list {
+    background: white;
+    border-radius: 8px;
+    padding: 14px;
+    margin: 16px 0;
+    text-align: left;
+  }
+
+  .rule-item {
+    display: flex;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--brown);
+    padding: 6px 0;
+    border-bottom: 1px solid var(--light-gray);
+    line-height: 1.4;
+  }
+
+  .rule-item:last-child { border-bottom: none; }
+
+  .rule-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+  }
+
+  .start-btn {
+    width: 100%;
+    padding: 18px;
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(45,106,45,0.4);
+    margin-top: 8px;
+  }
+
+  .start-btn:active { background: var(--green-dark); transform: scale(0.98); }
+
+  /* QUESTION SCREEN */
+  .question-screen { display: none; }
+
+  .q-card {
+    background: var(--cream);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+  }
+
+  .q-number {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .q-category {
+    display: inline-block;
+    background: var(--green);
+    color: white;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'Barlow Condensed', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+
+  .q-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--brown);
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+
+  .answer-btn {
+    width: 100%;
+    padding: 14px 16px;
+    background: white;
+    border: 2px solid var(--light-gray);
+    border-radius: 8px;
+    text-align: left;
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--brown);
+    cursor: pointer;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: border-color 0.15s, background 0.15s;
+    line-height: 1.4;
+  }
+
+  .answer-btn:active { transform: scale(0.99); }
+
+  .answer-btn.selected { border-color: var(--green); background: #f0f8f0; }
+  .answer-btn.correct { border-color: var(--pass-green); background: var(--pass-light); }
+  .answer-btn.wrong { border-color: var(--red); background: var(--red-light); }
+  .answer-btn.reveal-correct { border-color: var(--pass-green); background: var(--pass-light); }
+  .answer-btn:disabled { cursor: default; }
+
+  .answer-letter {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--light-gray);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--gray);
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .answer-btn.selected .answer-letter { background: var(--green); color: white; }
+  .answer-btn.correct .answer-letter { background: var(--pass-green); color: white; }
+  .answer-btn.wrong .answer-letter { background: var(--red); color: white; }
+  .answer-btn.reveal-correct .answer-letter { background: var(--pass-green); color: white; }
+
+  .feedback-box {
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    display: none;
+    line-height: 1.4;
+  }
+
+  .feedback-box.correct { background: var(--pass-light); color: var(--pass-green); border: 2px solid var(--pass-green); }
+  .feedback-box.wrong { background: var(--red-light); color: var(--red); border: 2px solid var(--red); }
+
+  .next-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    margin-top: 10px;
+    display: none;
+    box-shadow: 0 4px 12px rgba(45,106,45,0.3);
+  }
+
+  .next-btn:active { background: var(--green-dark); }
+
+  /* RESULTS SCREEN */
+  .results-screen { display: none; }
+
+  .result-card {
+    background: var(--cream);
+    border-radius: 12px;
+    padding: 24px 20px;
+    margin-bottom: 14px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+
+  .score-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin: 0 auto 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 6px solid;
+  }
+
+  .score-circle.pass { border-color: var(--pass-green); background: var(--pass-light); }
+  .score-circle.fail { border-color: var(--red); background: var(--red-light); }
+
+  .score-number {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 36px;
+    line-height: 1;
+  }
+
+  .score-circle.pass .score-number { color: var(--pass-green); }
+  .score-circle.fail .score-number { color: var(--red); }
+
+  .score-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .score-circle.pass .score-label { color: var(--pass-green); }
+  .score-circle.fail .score-label { color: var(--red); }
+
+  .result-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 26px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .pass-title { color: var(--pass-green); }
+  .fail-title { color: var(--red); }
+
+  .result-subtitle {
+    font-size: 14px;
+    color: var(--gray);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .stat-box {
+    background: white;
+    border-radius: 8px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+
+  .stat-number {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 24px;
+    color: var(--green-dark);
+  }
+
+  .stat-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .missed-section {
+    background: var(--cream);
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+    margin-bottom: 14px;
+    text-align: left;
+  }
+
+  .missed-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--red);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--red);
+  }
+
+  .missed-item {
+    background: white;
+    border-left: 4px solid var(--red);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+
+  .missed-item .mq { font-weight: 600; color: var(--brown); margin-bottom: 4px; line-height: 1.4; }
+  .missed-item .ma { color: var(--pass-green); font-weight: 600; font-size: 12px; }
+  .missed-item .mw { color: var(--red); font-size: 12px; }
+
+  .retry-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(45,106,45,0.3);
+    margin-bottom: 20px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌱 Flex Lawn Care</h1>
+  <p>Technician Knowledge Test — Required Before Independent Spraying</p>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+  <div class="progress-text" id="progressText">0 / 50</div>
+</header>
+
+<div class="container">
+
+  <!-- INTRO -->
+  <div id="introScreen">
+    <div class="intro-card">
+      <h2>Before You Spray</h2>
+      <p>This test covers everything in the Flex Lawn Care training. You must pass before you are authorized to spray on your own.</p>
+      <div class="rule-list">
+        <div class="rule-item"><span class="rule-icon">📋</span><span>50 questions covering equipment, products, rounds, heat rules, and field protocols</span></div>
+        <div class="rule-item"><span class="rule-icon">✅</span><span>You must score <strong>80% or higher (40/50)</strong> to pass</span></div>
+        <div class="rule-item"><span class="rule-icon">📱</span><span>You can see which questions you missed at the end</span></div>
+        <div class="rule-item"><span class="rule-icon">🔄</span><span>If you fail, review the Trainual and retake the test</span></div>
+        <div class="rule-item"><span class="rule-icon">⚠️</span><span>No guessing — wrong answers on job will damage lawns and cost Flex money</span></div>
+      </div>
+      <button class="start-btn" onclick="startTest()">Start Test</button>
+    </div>
+  </div>
+
+  <!-- QUESTION -->
+  <div class="question-screen" id="questionScreen">
+    <div class="q-card">
+      <div class="q-number" id="qNumber">Question 1 of 50</div>
+      <div class="q-category" id="qCategory">Equipment</div>
+      <div class="q-text" id="qText"></div>
+      <div id="answersContainer"></div>
+      <div class="feedback-box" id="feedbackBox"></div>
+    </div>
+    <button class="next-btn" id="nextBtn" onclick="nextQuestion()">Next Question →</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results-screen" id="resultsScreen"></div>
+
+</div>
+
+<script>
+const QUESTIONS = [
+  // EQUIPMENT (10)
+  {
+    cat: 'Equipment',
+    q: 'What is the Toro SprayMaster calibrated to deliver per 1,000 sqft?',
+    opts: ['0.25 gal', '0.34 gal', '0.50 gal', '1.14 gal'],
+    ans: 1,
+    exp: '0.34 gallons per 1,000 sqft at 5 MPH with purple tips at 40 PSI. These three settings never change.'
+  },
+  {
+    cat: 'Equipment',
+    q: 'What spray tip does Flex use on the Toro SprayMaster?',
+    opts: ['Green tips — flat fan', 'Yellow tips — hollow cone', 'Purple tips — air induction (TeeJet AIXR11003VP)', 'Red tips — full cone'],
+    ans: 2,
+    exp: 'Purple air-induction tips only. They produce coarse, heavy droplets that reduce drift. No seasonal changes, no substitutions.'
+  },
+  {
+    cat: 'Equipment',
+    q: 'What PSI does the Toro SprayMaster run at?',
+    opts: ['25 PSI', '30 PSI', '40 PSI', '50 PSI'],
+    ans: 2,
+    exp: '40 PSI — locked. Never adjust PSI. Never change speed. Never swap tips.'
+  },
+  {
+    cat: 'Equipment',
+    q: 'What speed does the tech drive the Toro SprayMaster?',
+    opts: ['3.0 MPH', '4.0 MPH', '5.0 MPH', '6.0 MPH'],
+    ans: 2,
+    exp: '5.0 MPH — locked. Driving faster to finish early is one of the most common and most costly mistakes.'
+  },
+  {
+    cat: 'Equipment',
+    q: 'The Power Spray Rig delivers how much carrier volume per 1,000 sqft?',
+    opts: ['0.34 gal', '0.75 gal', '1.14 gal', '2.0 gal'],
+    ans: 2,
+    exp: '1.14 gallons per 1,000 sqft at 3.0 MPH walking pace with a 6 ft spray width. Much higher volume than the Toro.'
+  },
+  {
+    cat: 'Equipment',
+    q: 'What is the FlowZone backpack used for at Flex?',
+    opts: ['All spot weed spraying', 'Fertilizer applications when Toro is too aggressive', 'Rock bed glyphosate weed control only', 'Fungicide applications in summer'],
+    ans: 2,
+    exp: 'FlowZone is dedicated to rock bed glyphosate (Ranger Pro) applications only. The mix rate is sharpied on the backpack. B&G handles all lawn spot weed spraying.'
+  },
+  {
+    cat: 'Equipment',
+    q: 'What is the B&G 1-gallon hand sprayer used for?',
+    opts: ['Rock bed glyphosate only', 'All herbicide spot spraying on lawns — every round', 'Fungicide spot treatments only', 'Liquid fertilizer touch-ups'],
+    ans: 1,
+    exp: 'B&G = ALL herbicide spot spraying on lawns, every round, warm and cool season. Herbicides never go in the Toro from Round 3 onward (except Round 7).'
+  },
+  {
+    cat: 'Equipment',
+    q: 'What does the 65-gallon fresh water tank on the truck contain?',
+    opts: ['Pre-mixed herbicide backup', 'Clean water only — used for Toro field refills', 'Diluted fertilizer at half rate', 'Emergency tank — anything needed'],
+    ans: 1,
+    exp: 'Clean water only. It is used exclusively for Toro field refills when the tanks run dry mid-route. No chemistry ever goes in the fresh water tank.'
+  },
+  {
+    cat: 'Equipment',
+    q: 'What are Toro Tank A and Tank B used for from Round 3 onward?',
+    opts: ['Tank A = fertilizer, Tank B = herbicides', 'Both tanks carry identical fertilizer / fungicide / iron — no herbicides', 'Tank A = fertilizer only, Tank B = fungicide only', 'Tank A = warm-season products, Tank B = cool-season products'],
+    ans: 1,
+    exp: 'From Round 3 onward both tanks carry identical products: fertilizer, fungicide, and/or iron. Herbicides never go in either tank (except Round 7 which is an herbicide-only round).'
+  },
+  {
+    cat: 'Equipment',
+    q: 'When the Toro will not fit through a gate or on a steep hill, what is the backup?',
+    opts: ['Skip the area and note it', 'Use FlowZone backpack to blanket spray', 'Use Power Spray Rig — drag hose to the area', 'Use B&G to blanket spray'],
+    ans: 2,
+    exp: 'Power Spray Rig with hose drag. Tech walks at 3.0 MPH with 6 ft spray width using the day\'s warm-season mix rates. The property must have a Red Note in FieldRoutes flagging the hose drag requirement.'
+  },
+
+  // TANK RULES & CHEMISTRY (8)
+  {
+    cat: 'Tank Rules',
+    q: 'What happens if herbicides are accidentally mixed into the fertilizer tanks on the Toro?',
+    opts: ['It reduces efficacy slightly', 'It can kill an entire lawn in one spray pass', 'Nothing — the dilution makes it safe', 'It only affects stressed turf'],
+    ans: 1,
+    exp: 'Cross-contamination can KILL AN ENTIRE LAWN in one spray. This is a non-negotiable rule. Herbicides never go in the fertilizer tanks from Round 3 onward.'
+  },
+  {
+    cat: 'Tank Rules',
+    q: 'What glyphosate rule applies to any 41% active ingredient product regardless of brand?',
+    opts: ['1 oz per gallon', '2 oz per gallon', '3 oz per gallon', '4 oz per gallon'],
+    ans: 1,
+    exp: '2 oz per gallon for any 41% AI glyphosate — Ranger Pro, Eraser, Roundup Pro, or any other brand. If the AI percentage is 41%, the rate is always 2 oz/gal.'
+  },
+  {
+    cat: 'Tank Rules',
+    q: 'What dye rate is used in the FlowZone rock bed glyphosate mix?',
+    opts: ['0.3 oz per gallon', '0.3 oz per 2 gallons', '0.3 oz per 4 gallons', '1 oz per 4 gallons'],
+    ans: 2,
+    exp: '0.3 oz of dye per 4 gallons — one full FlowZone backpack. The dye marks treated areas so you can see where you\'ve sprayed and confirm no weeds were missed.'
+  },
+  {
+    cat: 'Tank Rules',
+    q: 'Atrazine may only be added to the Round 1 warm-season mix when?',
+    opts: ['Any time during Round 1 dates', 'Only between January 25 and March 10 AND only if bermuda is fully dormant (100% brown)', 'Only after soil temp drops below 40°F', 'Only on the first application of the season regardless of date'],
+    ans: 1,
+    exp: 'Hard cutoff is March 10. After March 10, Atrazine is NEVER added regardless of turf appearance. Before March 10, tech must visually confirm 100% brown dormant bermuda — any green visible means skip Atrazine entirely.'
+  },
+  {
+    cat: 'Tank Rules',
+    q: 'Simazine is used in which round and on which turf type?',
+    opts: ['Round 1 — warm-season only', 'Round 2 — both turf types', 'Round 7 — warm-season only', 'Round 7 — cool-season only'],
+    ans: 2,
+    exp: 'Round 7 warm-season only. Simazine NEVER touches cool-season turf. This is one of the most critical cross-contamination rules in the entire program.'
+  },
+  {
+    cat: 'Tank Rules',
+    q: 'A tech finishes a warm-season herbicide route and needs to switch tanks for a cool-season route tomorrow. What must happen?',
+    opts: ['Agitate for 2 minutes and proceed', 'Drain and triple rinse all tanks and lines before adding any cool-season product', 'Add cool-season products on top of the remaining warm-season mix', 'The tanks can sit overnight if the same product is being used'],
+    ans: 1,
+    exp: 'Different product OR different turf type = drain and rinse. No exceptions. Warm-season herbicides on cool-season turf can cause serious damage.'
+  },
+  {
+    cat: 'Tank Rules',
+    q: 'What is the Round 3 deep clean procedure before mixing any fertilizer?',
+    opts: ['Triple rinse only', 'Water rinse → Dawn soap rinse (1.5 oz per tank) → final water rinse until crystal clear with zero bubbles', 'Run clean water through the boom for 30 seconds', 'Drain tanks and let dry overnight'],
+    ans: 1,
+    exp: 'Water rinse → Dawn rinse (1.5 oz per tank, agitate 2 minutes, flush all lines) → final water rinse until completely clear, no bubbles, no color, no odor. Document "Round 3 deep clean complete" in FieldRoutes before mixing.'
+  },
+  // ROUNDS & PRODUCTS
+  {
+    cat: 'Rounds',
+    q: 'In Round 2, the Toro is used on warm-season turf and the Power Spray Rig is used on cool-season turf. Why are the Triad Select per-gallon rates different between the two?',
+    opts: ['They are not different — the rate per gallon is identical for both', 'The Toro delivers more carrier volume so it needs a higher concentration per gallon', 'The Power Spray Rig delivers more carrier volume (1.14 gal/1,000 sqft) than the Toro (0.34 gal/1,000 sqft) — so the per-gallon concentration is lower to hit the same application rate per 1,000 sqft', 'Cool-season turf is more sensitive so a lower rate is used'],
+    ans: 2,
+    exp: 'Same product hitting the lawn at the same rate per 1,000 sqft — but the Power Spray Rig carries 3x more water per 1,000 sqft than the Toro. More carrier volume = lower product concentration per gallon. The per-1,000-sqft rate is what matters, not the per-gallon rate.'
+  },
+  {
+    cat: 'Rounds',
+    q: 'Round 3 is primarily a granular round. What fertilizer product is used and at what rate for bermuda?',
+    opts: ['Lesco 28-0-0 at 2.5 lbs/1,000 sqft', 'Lesco 32-0-0 PolyPlus OPTI45 at 3.13 lbs/1,000 sqft', 'Terra Ally 22-0-0 at 15 fl oz/1,000 sqft', 'Lesco 5-0-25 at 4.0 lbs/1,000 sqft'],
+    ans: 1,
+    exp: 'Lesco 32-0-0 with 20% PolyPlus OPTI45 at 3.13 lbs per 1,000 sqft for warm-season turf. Fescue gets 2.5 lbs/1,000 sqft of the same product.'
+  },
+  {
+    cat: 'Rounds',
+    q: 'What is the hard stop date for fertilizing tall fescue in spring?',
+    opts: ['March 15', 'April 1', 'May 1', 'May 31'],
+    ans: 2,
+    exp: 'University of Arkansas Extension: do not fertilize tall fescue after May 1 in spring. After May 1, fescue accounts get weed control only until fall fertilization in Round 6.'
+  },
+  {
+    cat: 'Rounds',
+    q: 'What fungicide is used in Round 4 and what FRAC group is it?',
+    opts: ['Propiconazole 14.3 — FRAC Group 3', 'Artavia SC (Azoxystrobin) — FRAC Group 11', 'Myclobutanil — FRAC Group 3', 'Banner Maxx II — FRAC Group 3'],
+    ans: 1,
+    exp: 'Artavia SC (azoxystrobin) — FRAC Group 11. It\'s a preventative fungicide applied to every lawn in Round 4 to protect turf heading into peak summer heat.'
+  },
+  {
+    cat: 'Rounds',
+    q: 'Round 5 uses TWO fungicides together. What are they and why?',
+    opts: ['Artavia SC + Daconil — for broader disease coverage', 'Artavia SC (FRAC 11) + Propiconazole 14.3 (FRAC 3) — to rotate FRAC groups and prevent resistance', 'Myclobutanil + Heritage TL — for summer patch control', 'Two applications of Artavia SC — for stronger coverage'],
+    ans: 1,
+    exp: 'FRAC 11 and FRAC 3 together. Using the same FRAC group back to back (Round 4 and 5 both FRAC 11) builds resistance. Rotating groups prevents fungal diseases from adapting to the chemistry.'
+  },
+  {
+    cat: 'Rounds',
+    q: 'What is the Propiconazole 14.3 hard rate limit on bermudagrass?',
+    opts: ['2 fl oz per 1,000 sqft per 30 days', '4 fl oz per 1,000 sqft per 30 days', '6 fl oz per 1,000 sqft per 30 days', 'No specific limit for bermuda'],
+    ans: 1,
+    exp: 'Never exceed 4 fl oz per 1,000 sqft every 30 days on any variety of bermudagrass. Bermuda is sensitive to Propiconazole and over-application causes injury.'
+  },
+  {
+    cat: 'Rounds',
+    q: 'Round 6 warm-season fertilizer — what product and rate?',
+    opts: ['Lesco 32-0-0 at 3.13 lbs/1,000 sqft', 'Lesco 28-0-0 at 3.57 lbs/1,000 sqft', 'Lesco 5-0-25 w/10% Fe at 4.0 lbs/1,000 sqft', 'Terra Ally 22-0-0 at 15 fl oz/1,000 sqft'],
+    ans: 2,
+    exp: 'Lesco 5-0-25 with 10% Fe at 4.0 lbs per 1,000 sqft. This potassium-heavy fertilizer builds root hardiness and cold tolerance heading into fall dormancy.'
+  },
+  {
+    cat: 'Rounds',
+    q: 'What products go in the Toro tanks for Round 7 warm-season turf?',
+    opts: ['Terra Ally + Artavia SC + Surfactant', 'Prodiamine + Triad Select', 'Specticle + Simazine + Three-Way + 90/10 Surfactant', 'Celsius + Quin-Way + Ambition'],
+    ans: 2,
+    exp: 'Round 7 is an herbicide broadcast round for warm-season — Specticle + Simazine + Three-Way + 90/10 Surfactant. This is the one round exception where both Toro tanks carry herbicides.'
+  },
+  {
+    cat: 'Rounds',
+    q: 'Why is a fungicide application critical for bermuda lawns in Round 7?',
+    opts: ['To prevent dollar spot in fall', 'Fall is when spring dead spot fungus infects roots — fungicide must be applied before dormancy to prevent spring symptoms', 'To protect against brown patch in cool weather', 'Fungicide is not needed in Round 7 for bermuda'],
+    ans: 1,
+    exp: 'Spring dead spot infects roots in fall when soil temps are 60-80°F. By the time symptoms appear in spring it\'s too late. University of Arkansas research confirms fall application (approximately 1 month before dormancy) is the only effective window.'
+  },
+  {
+    cat: 'Rounds',
+    q: 'What weed control is used for dallisgrass on warm-season turf?',
+    opts: ['Three-Way at standard rate in B&G', 'Celsius alone in the B&G', 'Manuscript + MSO (Adigor) in the B&G — spot spray clumps only', 'Quin-Way + Ambition in the B&G'],
+    ans: 2,
+    exp: 'Manuscript + MSO (Adigor) in the B&G, spot spray dallisgrass clumps only. MSO is a required adjuvant with Manuscript — do not use Manuscript without it.'
+  },
+  {
+    cat: 'Rounds',
+    q: 'The Power Spray Rig is used for hose drag on warm-season accounts. What mix rates does it use?',
+    opts: ['Cool-season mix rates for safety', 'Warm-season mix rates — routes are turf-type dedicated', 'A 50/50 blend of warm and cool-season rates', 'The same rates as the Toro since it\'s the same turf'],
+    ans: 1,
+    exp: 'Since routes are now turf-type dedicated (no more mixed routes), the Power Spray Rig carries warm-season mix rates on warm-season days and cool-season rates on cool-season days. No cross-turf mixing.'
+  },
+  {
+    cat: 'Rounds',
+    q: 'How is the rock bed FlowZone coverage rate calculated?',
+    opts: ['4 gallons per 5,000 sqft', '1 gallon per 1,000 sqft', '1 gallon per 1,625 sqft', '2 gallons per 1,000 sqft'],
+    ans: 2,
+    exp: '1 gallon covers approximately 1,625 sqft based on field data. Rock bed sqft ÷ 1,625 = gallons needed (round up). Pre-mix the full amount at the office before leaving.'
+  },
+
+  // HEAT & WEATHER RULES (7)
+  {
+    cat: 'Heat Rules',
+    q: 'When do heat rules activate?',
+    opts: ['When the actual temp exceeds 90°F', 'When the forecasted high for the day is 90°F or hotter', 'When soil temperature exceeds 85°F', 'After 10 AM regardless of temperature'],
+    ans: 1,
+    exp: 'The forecasted high — not the actual temp. If the forecast says 90°F or above, heat rules are active for the entire day. Check the forecast every morning before leaving.'
+  },
+  {
+    cat: 'Heat Rules',
+    q: 'Why does Flex use 9:30 AM as the herbicide cutoff on 90°+ days?',
+    opts: ['It\'s an arbitrary company rule', 'By mid-morning leaf temperatures rise faster than air temps, turf loses ability to safely absorb chemicals, and burn risk increases quickly', 'The herbicide label requires it', 'Insurance requirements'],
+    ans: 1,
+    exp: '9:30 AM provides a safety buffer before leaf temperatures become dangerously high. Turf loses its ability to safely process chemistry as the morning progresses. This rule protects lawns and Flex\'s reputation.'
+  },
+  {
+    cat: 'Heat Rules',
+    q: 'On a 90°+ day after 9:30 AM, which products are still allowed?',
+    opts: ['No products at all — skip the lawn', 'Granular fertilizer only', 'Fungicides, iron, low-rate liquid fertilizer, sedge control, spot spray weeds with safe products', 'Broadleaf herbicides at reduced rates only'],
+    ans: 2,
+    exp: 'Fungicides, iron (Ferromec AC), low-rate liquid fertilizer (max 0.25 lb N/1,000 sqft), sedge control (halosulfuron only), spot spray weeds with approved products. Broadcast herbicides stop after 9:30 AM.'
+  },
+  {
+    cat: 'Heat Rules',
+    q: 'What are the signs of heat or drought stress to check before spraying?',
+    opts: ['Turf color is dark green and dense', 'Grass appears gray or blue, footprints remain visible, wilting, no irrigation, dry cracked soil', 'Turf is actively growing and mowing frequently', 'Dew is present on the grass blades'],
+    ans: 1,
+    exp: 'Gray or blue color, visible footprints, wilting or thin turf, no irrigation system, dry cracked soil. Any of these signs = switch to protection mode immediately.'
+  },
+  {
+    cat: 'Heat Rules',
+    q: 'What is the Flex standard when turf is heat or drought stressed?',
+    opts: ['Skip the lawn and come back in better conditions', 'Do nothing so you don\'t risk damage', 'Change the approach — protect turf first. Apply fungicide, iron, or spot spray weeds. Never leave without doing something safe.', 'Apply everything at half rates to reduce risk'],
+    ans: 2,
+    exp: 'We never skip a lawn. We change what we do. At minimum apply fungicide, iron, or spot spray weeds with safe products. Document the stress conditions in FieldRoutes. Protection over perfection.'
+  },
+  {
+    cat: 'Heat Rules',
+    q: 'When is broadcast weed control allowed in summer?',
+    opts: ['Never — spot spray only all summer', 'Only when ALL conditions are met: forecasted high below 85°F, turf not stressed, completed before 9:30 AM, wind minimal', 'Anytime before 9:30 AM regardless of temperature', 'Only with the FlowZone — never with the Toro boom'],
+    ans: 1,
+    exp: 'ALL four conditions must be met: below 85°F forecast, healthy turf, before 9:30 AM, minimal wind. If any condition is not met — spot spray only. Broadcast in summer is the exception, not the rule.'
+  },
+  {
+    cat: 'Heat Rules',
+    q: 'When is granular fertilizer NOT allowed?',
+    opts: ['Only when temperature exceeds 100°F', 'When no rain or irrigation is expected within 7 days, turf is heat or drought stressed, or consistently 90°+ with no irrigation', 'Granular is always allowed — it can\'t burn', 'Only during Round 4 and 5'],
+    ans: 1,
+    exp: 'Granular without moisture delays uptake, increases stress, and creates uneven results. If rain or irrigation is not guaranteed within 7 days — switch to liquid fertilizer.'
+  },
+
+  // TURF IDENTIFICATION (5)
+  {
+    cat: 'Turf ID',
+    q: 'If the turf type is unknown, what is the Flex non-negotiable rule?',
+    opts: ['Treat as bermuda — it\'s the most common turf', 'Treat as tall fescue — it\'s the safest default', 'Ask the customer before spraying anything', 'Skip the lawn and come back with more information'],
+    ans: 1,
+    exp: 'If turf type is UNKNOWN → TREAT AS TALL FESCUE. It\'s the safest default because fescue-labeled products are least likely to damage unknown turf. Never guess.'
+  },
+  {
+    cat: 'Turf ID',
+    q: 'How do you identify bermudagrass?',
+    opts: ['Grows in clumps, medium-wide blades, dark green, stays green in winter', 'Very fine blades, aggressive runners everywhere, bright green in summer, brown and dormant in winter', 'Stiff thick blades, dense carpet look, slow spreading', 'Very wide blades, thick flat runners, blue-green color'],
+    ans: 1,
+    exp: 'Bermuda: very fine blades, aggressive runners (stolons and rhizomes), bright green in summer, goes fully brown/dormant in winter. The aggressive runners are the most distinctive ID feature.'
+  },
+  {
+    cat: 'Turf ID',
+    q: 'Which turf type is the most sensitive to herbicides and requires extreme caution?',
+    opts: ['Bermudagrass', 'Zoysiagrass', 'St. Augustinegrass', 'Tall Fescue'],
+    ans: 2,
+    exp: 'St. Augustinegrass — many common broadleaf herbicides are NOT labeled for it, including Triad Select which is NEVER used on St. Augustine. If you see St. Augustine, stop and verify every product before spraying.'
+  },
+  {
+    cat: 'Turf ID',
+    q: 'Turf ID happens at what point in the service workflow?',
+    opts: ['After mixing the tank at the office', 'After arriving at the property but before selecting any products or mixing anything', 'While spraying if something looks different', 'Only on new accounts — not needed on recurring customers'],
+    ans: 1,
+    exp: 'Turf ID comes BEFORE product selection. Product selection comes BEFORE mixing. Mixing comes BEFORE spraying. Getting this order wrong is how lawns get damaged.'
+  },
+  {
+    cat: 'Turf ID',
+    q: 'How do you identify tall fescue?',
+    opts: ['Grows in clumps, medium-wide blades, dark green, stays green in fall and winter', 'Fine blades, aggressive runners, dormant in winter', 'Light green, sparse, slow growth', 'Stiff blades, dense carpet look'],
+    ans: 0,
+    exp: 'Tall fescue: grows in clumps (NOT runners), medium-wide blades, dark green, stays green late fall and winter. It\'s the safest unknown turf default because most broadleaf herbicides are labeled for it.'
+  },
+
+  // FIELD PROTOCOLS & SOPs (10)
+  {
+    cat: 'Field Protocols',
+    q: 'What is the first step in the daily prep SOP before leaving the office?',
+    opts: ['Mix all tank chemicals for the day', 'Review the route in FieldRoutes, check all Red Notes, calculate adjusted sqft, then determine what to mix', 'Load all chemical products on the truck', 'Call the office to confirm the schedule'],
+    ans: 1,
+    exp: 'Review the route, check ALL Red Notes for every property, identify hose drag accounts and rock bed accounts, calculate adjusted sqft (total minus power spray minus rock beds minus 5,000 sqft buffer), then mix accordingly.'
+  },
+  {
+    cat: 'Field Protocols',
+    q: 'How is the Toro mix quantity calculated for the day?',
+    opts: ['Total route sqft ÷ 2,941 (rounded up to nearest gallon)', 'Total route sqft minus power spray sqft, minus rock bed sqft, minus 5,000 sqft buffer — then calculate gallons needed', 'Just fill both tanks to 12 gallons every day', 'Based on how many stops are on the route'],
+    ans: 1,
+    exp: 'Deduct power spray sqft + rock bed sqft + 5,000 sqft buffer from total, then calculate Toro gallons. The 5,000 sqft buffer prevents end-of-day waste from reschedules. Use the mix calculator for exact product amounts.'
+  },
+  {
+    cat: 'Field Protocols',
+    q: 'A property has a Red Note saying "rock bed — FlowZone glyphosate." What does the tech do with the sqft listed for that property?',
+    opts: ['Add it to the Toro sqft calculation', 'Deduct it from the total and pre-mix a separate FlowZone batch based on rock bed sqft ÷ 1,625', 'Include it in the Power Sprayer calculation', 'Skip it — rock beds don\'t count toward sqft'],
+    ans: 1,
+    exp: 'Rock bed sqft is deducted from the total spray sqft. A separate FlowZone batch is pre-mixed at the office based on rock bed sqft ÷ 1,625 = gallons needed, with 2 oz Ranger Pro and 0.3 oz dye per gallon.'
+  },
+
+  {
+    cat: 'Field Protocols',
+    q: 'What is the property access rule when a gate is locked?',
+    opts: ['Skip the service and reschedule', 'Treat the front yard at minimum and document why full service was not completed', 'Only bill for the front yard', 'Wait at the property until the customer opens the gate'],
+    ans: 1,
+    exp: 'Front yard is the minimum acceptable service. Treat everything that is safely accessible, document exactly what was treated and why the full service couldn\'t be completed, Slack the office, mark service complete. Revenue protection is mandatory.'
+  },
+  {
+    cat: 'Field Protocols',
+    q: 'How are new customer catch-up treatments scheduled?',
+    opts: ['Added to the first available regular route', 'Booked on the dedicated weekly Lawn Care Initial day — every new customer gets pre-emergent + broadleaf blanket regardless of join date', 'Scheduled whenever the tech has a slow day', 'Only if the customer specifically requests it'],
+    ans: 1,
+    exp: 'Every new customer gets a dedicated Initial appointment on the weekly Lawn Care Initial day. Pre-emergent + broadleaf blanket every time regardless of when they sign up. The 2-week wait is auto-enforced in FieldRoutes before their first regular service.'
+  },
+  {
+    cat: 'Field Protocols',
+    q: 'What note type is used for permanent property conditions like "hose drag required"?',
+    opts: ['Appointment Note on every future visit', 'Red Note — permanent account flag in FieldRoutes', 'Slack message each time', 'Nothing — tech is expected to remember it'],
+    ans: 1,
+    exp: 'Red Note = permanent property flag. Hose drag required, rock bed accounts, any permanent physical access issue. Appointment Notes are used for one-time instructions like catch-up treatment specifics.'
+  },
+  {
+    cat: 'Field Protocols',
+    q: 'After completing a service, what must the tech do before leaving the property?',
+    opts: ['Just drive to the next stop', 'Add service notes documenting what was done, upload backyard treatment photo, verify payment processed, and mark service complete', 'Call the office with a verbal report', 'Send a text to Mike'],
+    ans: 1,
+    exp: 'Service notes (what was treated, any conditions observed), personal property note if needed, backyard treatment photo uploaded, mark service complete and verify payment auto-processed. If payment failed — notify office immediately via Slack.'
+  },
+  {
+    cat: 'Field Protocols',
+    q: 'What does "adding more water to the tank" do to product coverage?',
+    opts: ['It stretches the product to cover more lawn', 'It reduces drift and is always beneficial', 'Nothing — water is the carrier only. Product controls coverage. More water does not treat more lawn.', 'It dilutes the mix and reduces burn risk on hot days'],
+    ans: 2,
+    exp: 'Water is ONLY the carrier. Coverage is determined by how much product is applied per 1,000 sqft — not how much water. Adding more water does not stretch product, does not treat more lawn, and does not reduce application rates.'
+  },
+  {
+    cat: 'Field Protocols',
+    q: 'What is the minimum passing score for this knowledge test?',
+    opts: ['70% — 35/50 questions correct', '75% — 37/50 questions correct', '80% — 40/50 questions correct', '90% — 45/50 questions correct'],
+    ans: 2,
+    exp: '80% — 40 out of 50 questions correct. If you do not pass, review the Trainual and retake. You are not authorized to spray independently until you pass.'
+  }
+];
+
+let currentQ = 0;
+let score = 0;
+let missed = [];
+let answered = false;
+
+function startTest() {
+  document.getElementById('introScreen').style.display = 'none';
+  document.getElementById('questionScreen').style.display = 'block';
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = QUESTIONS[currentQ];
+  answered = false;
+
+  document.getElementById('qNumber').textContent = `Question ${currentQ + 1} of ${QUESTIONS.length}`;
+  document.getElementById('qCategory').textContent = q.cat;
+  document.getElementById('qText').textContent = q.q;
+  document.getElementById('feedbackBox').style.display = 'none';
+  document.getElementById('feedbackBox').className = 'feedback-box';
+  document.getElementById('nextBtn').style.display = 'none';
+
+  const letters = ['A', 'B', 'C', 'D'];
+  const container = document.getElementById('answersContainer');
+  container.innerHTML = '';
+
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.onclick = () => selectAnswer(i);
+    btn.innerHTML = `<span class="answer-letter">${letters[i]}</span><span>${opt}</span>`;
+    container.appendChild(btn);
+  });
+
+  // Update progress
+  const pct = (currentQ / QUESTIONS.length) * 100;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `${currentQ} / ${QUESTIONS.length}`;
+}
+
+function selectAnswer(selected) {
+  if (answered) return;
+  answered = true;
+
+  const q = QUESTIONS[currentQ];
+  const btns = document.querySelectorAll('.answer-btn');
+  btns.forEach(b => b.disabled = true);
+
+  const feedback = document.getElementById('feedbackBox');
+
+  if (selected === q.ans) {
+    score++;
+    btns[selected].classList.add('correct');
+    feedback.className = 'feedback-box correct';
+    feedback.innerHTML = `✅ Correct! ${q.exp}`;
+  } else {
+    btns[selected].classList.add('wrong');
+    btns[q.ans].classList.add('reveal-correct');
+    feedback.className = 'feedback-box wrong';
+    feedback.innerHTML = `❌ Incorrect. Correct answer: <strong>${q.opts[q.ans]}</strong><br><br>${q.exp}`;
+    missed.push({ q: q.q, correct: q.opts[q.ans], selected: q.opts[selected] });
+  }
+
+  feedback.style.display = 'block';
+  document.getElementById('nextBtn').style.display = 'block';
+  document.getElementById('nextBtn').textContent = currentQ === QUESTIONS.length - 1 ? 'See Results →' : 'Next Question →';
+}
+
+function nextQuestion() {
+  currentQ++;
+  if (currentQ >= QUESTIONS.length) {
+    showResults();
+  } else {
+    renderQuestion();
+    window.scrollTo(0, 0);
+  }
+}
+
+function showResults() {
+  document.getElementById('questionScreen').style.display = 'none';
+  document.getElementById('progressBar').style.width = '100%';
+  document.getElementById('progressText').textContent = `${QUESTIONS.length} / ${QUESTIONS.length}`;
+
+  const pct = Math.round((score / QUESTIONS.length) * 100);
+  const pass = score >= 40;
+
+  const rs = document.getElementById('resultsScreen');
+  rs.style.display = 'block';
+
+  let missedHTML = '';
+  if (missed.length > 0) {
+    const items = missed.map(m => `
+      <div class="missed-item">
+        <div class="mq">${m.q}</div>
+        <div class="ma">✅ Correct: ${m.correct}</div>
+        <div class="mw">❌ Your answer: ${m.selected}</div>
+      </div>`).join('');
+    missedHTML = `
+      <div class="missed-section">
+        <div class="missed-title">Questions You Missed (${missed.length})</div>
+        ${items}
+      </div>`;
+  }
+
+  rs.innerHTML = `
+    <div class="result-card">
+      <div class="score-circle ${pass ? 'pass' : 'fail'}">
+        <div class="score-number">${pct}%</div>
+        <div class="score-label">${score}/50</div>
+      </div>
+      <div class="result-title ${pass ? 'pass-title' : 'fail-title'}">${pass ? '✅ Test Passed' : '❌ Test Failed'}</div>
+      <div class="result-subtitle">${pass
+        ? 'You are authorized to spray independently. Show this screen to your supervisor.'
+        : 'You scored below 80%. Review the Trainual and retake. You are NOT authorized to spray independently until you pass.'
+      }</div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-number" style="color:var(--pass-green)">${score}</div><div class="stat-label">Correct</div></div>
+        <div class="stat-box"><div class="stat-number" style="color:var(--red)">${50 - score}</div><div class="stat-label">Missed</div></div>
+        <div class="stat-box"><div class="stat-number">${pct}%</div><div class="stat-label">Score</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--gray);${pass ? '' : 'color:var(--red);font-weight:600;'}">
+        ${pass ? 'Passing score: 80% (40/50). You scored ' + pct + '%.' : 'Required: 80% (40/50). You need ' + (40 - score) + ' more correct answers to pass.'}
+      </div>
+    </div>
+    ${missedHTML}
+    <button class="retry-btn" onclick="retakeTest()">${pass ? '↺ Retake Test' : '↺ Retake Test'}</button>
+  `;
+
+  window.scrollTo(0, 0);
+}
+
+function retakeTest() {
+  currentQ = 0;
+  score = 0;
+  missed = [];
+  answered = false;
+  document.getElementById('resultsScreen').style.display = 'none';
+  document.getElementById('resultsScreen').innerHTML = '';
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('progressText').textContent = '0 / 50';
+  document.getElementById('questionScreen').style.display = 'block';
+  renderQuestion();
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>

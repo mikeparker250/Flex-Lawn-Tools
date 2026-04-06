@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Flex Mix Calculator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap');
+
+  :root {
+    --green: #2d6a2d;
+    --green-light: #3d8b3d;
+    --green-dark: #1a4a1a;
+    --yellow: #f5c842;
+    --yellow-dark: #d4a820;
+    --cream: #f8f5ee;
+    --brown: #3a2a1a;
+    --gray: #666;
+    --light-gray: #e8e4dc;
+    --red: #c0392b;
+    --white: #ffffff;
+    --shadow: 0 4px 20px rgba(0,0,0,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--green-dark);
+    min-height: 100vh;
+    color: var(--brown);
+  }
+
+  header {
+    background: var(--green-dark);
+    padding: 16px 20px 12px;
+    text-align: center;
+    border-bottom: 3px solid var(--yellow);
+  }
+
+  header h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    color: var(--yellow);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  header p {
+    color: #a0c8a0;
+    font-size: 13px;
+    margin-top: 2px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+
+  .container {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  .card {
+    background: var(--cream);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+  }
+
+  .card-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--green-dark);
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--green);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title .icon {
+    width: 22px;
+    height: 22px;
+    background: var(--green);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 11px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .field-group {
+    margin-bottom: 14px;
+  }
+
+  label {
+    display: block;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--green-dark);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  label span {
+    font-weight: 400;
+    color: var(--gray);
+    text-transform: none;
+    font-size: 12px;
+  }
+
+  input[type="number"], select {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid var(--light-gray);
+    border-radius: 8px;
+    font-size: 20px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    color: var(--brown);
+    background: white;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="number"]:focus, select:focus {
+    outline: none;
+    border-color: var(--green);
+  }
+
+  select {
+    font-size: 16px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%232d6a2d' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: var(--gray);
+    margin-top: 5px;
+    font-style: italic;
+  }
+
+  .calc-btn {
+    width: 100%;
+    padding: 18px;
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    box-shadow: 0 4px 12px rgba(45,106,45,0.4);
+    margin-bottom: 14px;
+  }
+
+  .calc-btn:active {
+    background: var(--green-dark);
+    transform: scale(0.98);
+  }
+
+  .reset-btn {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    color: var(--cream);
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 10px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    margin-bottom: 20px;
+  }
+
+  /* Results */
+  .results { display: none; }
+  .results.visible { display: block; }
+
+  .summary-bar {
+    background: var(--green-dark);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    border: 2px solid var(--yellow);
+  }
+
+  .summary-bar h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--yellow);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .summary-item {
+    background: rgba(255,255,255,0.08);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+
+  .summary-item .s-label {
+    font-size: 10px;
+    color: #a0c8a0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+
+  .summary-item .s-value {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: white;
+  }
+
+  .mix-block {
+    background: var(--cream);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .mix-header {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mix-header.toro { background: var(--green); }
+  .mix-header.power { background: #1a5276; }
+  .mix-header.flowzone { background: #7d6608; }
+  .mix-header.glypho { background: #6c3483; }
+
+  .mix-header h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    flex: 1;
+  }
+
+  .mix-header .badge {
+    background: rgba(255,255,255,0.25);
+    color: white;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Barlow Condensed', sans-serif;
+    white-space: nowrap;
+  }
+
+  .mix-body {
+    padding: 14px 16px;
+  }
+
+  .mix-meta {
+    font-size: 12px;
+    color: var(--gray);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+
+  .mix-meta strong {
+    color: var(--brown);
+  }
+
+  .product-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    background: white;
+    border-left: 4px solid var(--green);
+  }
+
+  .product-row.power-row { border-left-color: #1a5276; }
+  .product-row.flowzone-row { border-left-color: #7d6608; }
+  .product-row.glypho-row { border-left-color: #6c3483; }
+
+  .product-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--brown);
+    flex: 1;
+  }
+
+  .product-name small {
+    display: block;
+    font-weight: 400;
+    font-size: 11px;
+    color: var(--gray);
+    margin-top: 1px;
+  }
+
+  .product-amount {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: var(--green-dark);
+    text-align: right;
+    white-space: nowrap;
+    margin-left: 10px;
+  }
+
+  .product-amount.power-amt { color: #1a5276; }
+  .product-amount.flowzone-amt { color: #7d6608; }
+  .product-amount.glypho-amt { color: #6c3483; }
+
+  .product-amount small {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray);
+    text-align: right;
+  }
+
+  .warning-box {
+    background: #fdf2e9;
+    border: 2px solid #e59866;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: #784212;
+    font-weight: 500;
+  }
+
+  .warning-box strong { color: #922b21; }
+
+  .atrazine-gate {
+    background: #fdedec;
+    border: 2px solid var(--red);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--red);
+    font-weight: 600;
+  }
+
+  .na-box {
+    background: var(--light-gray);
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+    color: var(--gray);
+    font-size: 14px;
+    font-style: italic;
+  }
+
+  .step-tag {
+    display: inline-block;
+    background: var(--yellow);
+    color: var(--green-dark);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 800;
+    font-family: 'Barlow Condensed', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--light-gray);
+    margin: 12px 0;
+  }
+
+  .footer-note {
+    text-align: center;
+    color: rgba(255,255,255,0.4);
+    font-size: 11px;
+    padding-bottom: 30px;
+  }
+
+  /* Atrazine date warning */
+  .date-warning { display: none; }
+  .date-warning.show {
+    display: block;
+    background: #fdedec;
+    border: 2px solid var(--red);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: -8px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    color: var(--red);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌱 Flex Mix Calculator</h1>
+  <p>Morning tank mix — zero math required</p>
+</header>
+
+<div class="container">
+
+  <!-- INPUTS -->
+  <div class="card">
+    <div class="card-title"><div class="icon">1</div> Route Info</div>
+
+    <div class="field-group">
+      <label>Turf Type <span>(today's route)</span></label>
+      <select id="turfType" onchange="onTurfChange()">
+        <option value="">— Select —</option>
+        <option value="warm">Warm Season (Bermuda / Zoysia)</option>
+        <option value="cool">Cool Season (Tall Fescue)</option>
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label>Round <span>(from office schedule)</span></label>
+      <select id="round" onchange="onRoundChange()">
+        <option value="">— Select —</option>
+        <option value="1">Round 1 — Jan 25 – Feb 28</option>
+        <option value="2">Round 2 — Mar 1 – Apr 14</option>
+        <option value="3">Round 3 — Apr 15 – May 31</option>
+        <option value="4">Round 4 — Jun 1 – Jul 15</option>
+        <option value="5">Round 5 — Aug 1 – Sep 15</option>
+        <option value="6">Round 6 — Sep 16 – Oct 15</option>
+        <option value="7">Round 7 — Oct 16 – Nov 30</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><div class="icon">2</div> Square Footage</div>
+
+    <div class="field-group">
+      <label>Total Route Sqft <span>(from FieldRoutes)</span></label>
+      <input type="number" id="totalSqft" placeholder="e.g. 100000" inputmode="numeric">
+    </div>
+
+    <div class="field-group">
+      <label>Power Spray Sqft <span>(Red Note accounts)</span></label>
+      <input type="number" id="powerSqft" placeholder="0" inputmode="numeric" value="0">
+      <div class="hint">Add sqft of any account with "hose drag required" Red Note</div>
+    </div>
+
+    <div class="field-group">
+      <label>Rock Bed Sqft <span>(Red Note accounts)</span></label>
+      <input type="number" id="rockSqft" placeholder="0" inputmode="numeric" value="0">
+      <div class="hint">Add sqft of any account with "rock bed" Red Note — FlowZone glyphosate only</div>
+    </div>
+  </div>
+
+  <div id="atrazineWarning" class="date-warning">
+    ⛔ TODAY IS AFTER MARCH 10 — ATRAZINE IS NOT PERMITTED. Mix Stonewall + Three-Way + Surfactant only.
+  </div>
+
+  <button class="calc-btn" onclick="calculate()">Calculate My Mix</button>
+  <button class="reset-btn" onclick="resetAll()">↺ Start Over</button>
+
+  <!-- RESULTS -->
+  <div class="results" id="results">
+
+    <!-- Summary -->
+    <div class="summary-bar">
+      <h3>📊 Adjusted Sqft Breakdown</h3>
+      <div class="summary-grid">
+        <div class="summary-item">
+          <div class="s-label">Toro Mix</div>
+          <div class="s-value" id="sum-toro">—</div>
+        </div>
+        <div class="summary-item">
+          <div class="s-label">Power Spray Mix</div>
+          <div class="s-value" id="sum-power">—</div>
+        </div>
+        <div class="summary-item">
+          <div class="s-label">Rock Beds</div>
+          <div class="s-value" id="sum-rock">—</div>
+        </div>
+        <div class="summary-item">
+          <div class="s-label">Buffer Deducted</div>
+          <div class="s-value">5,000</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TORO block -->
+    <div class="mix-block" id="toro-block">
+      <div class="mix-header toro">
+        <h3>🚜 Toro SprayMaster</h3>
+        <div class="badge" id="toro-gal-badge">— gal</div>
+      </div>
+      <div class="mix-body">
+        <div class="step-tag">Fill tank to this gallon mark</div>
+        <div class="mix-meta">Calibration: <strong>0.34 gal / 1,000 sqft @ 5 MPH — Purple tips — 40 PSI</strong></div>
+        <div id="toro-products"></div>
+      </div>
+    </div>
+
+    <!-- POWER SPRAY block -->
+    <div class="mix-block" id="power-block">
+      <div class="mix-header power">
+        <h3>💧 Power Spray Rig</h3>
+        <div class="badge" id="power-gal-badge">— gal</div>
+      </div>
+      <div class="mix-body">
+        <div class="step-tag">Fill tank to this gallon mark</div>
+        <div class="mix-meta">Calibration: <strong>1.14 gal / 1,000 sqft @ 3.0 MPH — 6 ft spray width</strong></div>
+        <div id="power-products"></div>
+      </div>
+    </div>
+
+    <!-- B&G block -->
+    <div class="mix-block" id="bg-block">
+      <div class="mix-header flowzone">
+        <h3>🪣 B&G — Spot Weeds</h3>
+        <div class="badge">1 gal batch</div>
+      </div>
+      <div class="mix-body">
+        <div class="step-tag">Mix 1 gallon at a time — on Toro or on foot</div>
+        <div id="bg-products"></div>
+      </div>
+    </div>
+
+    <!-- ROCK BED block -->
+    <div class="mix-block" id="rock-block">
+      <div class="mix-header glypho">
+        <h3>🪨 FlowZone — Rock Beds</h3>
+        <div class="badge" id="rock-gal-badge">— gal</div>
+      </div>
+      <div class="mix-body">
+        <div class="step-tag">Mix at office — pre-mix full amount before leaving</div>
+        <div id="rock-products"></div>
+      </div>
+    </div>
+
+    <div class="footer-note">Flex Lawn Care · Mix Calculator v1.0<br>5,000 sqft buffer auto-applied to Toro mix</div>
+  </div>
+
+</div>
+
+<script>
+// ─── MIX DATA ───────────────────────────────────────────────────────────────
+// Toro: per-gallon rates (oz unless noted), coverage = 0.34 gal/1000sqft
+// Power: per-gallon rates, coverage = 1.14 gal/1000sqft
+
+const TORO_COV = 0.34;    // gal per 1000sqft
+const POWER_COV = 1.14;   // gal per 1000sqft
+const ROCK_COV = 1 / 1.625; // gal per 1000sqft (1 gal = ~1,625 sqft based on field data)
+
+// rounds: warm/cool, toro products, power products, flowzone products
+const ROUNDS = {
+  1: {
+    warm: {
+      toro: [
+        { name: 'Stonewall 4L', unit: 'oz', rate: 2.18, note: 'Pre-emergent' },
+        { name: 'Three-Way', unit: 'oz', rate: 4.32, note: 'Broadleaf' },
+        { name: '90/10 Surfactant', unit: 'oz', rate: 0.82, note: '' },
+        { name: 'Atrazine', unit: 'oz', rate: 3.24, note: 'DORMANT BERMUDA ONLY — see gate', atrazine: true },
+      ],
+      power: [
+        { name: 'Stonewall 4L', unit: 'oz', rate: 2.18, note: 'Pre-emergent' },
+        { name: 'Three-Way', unit: 'oz', rate: 4.32, note: 'Broadleaf' },
+        { name: '90/10 Surfactant', unit: 'oz', rate: 0.82, note: '' },
+        { name: 'Atrazine', unit: 'oz', rate: 3.24, note: 'DORMANT BERMUDA ONLY — see gate', atrazine: true },
+      ],
+      flowzone: null,
+      toroNote: 'Blanket application. Atrazine permitted Jan 25–Mar 10 ONLY on fully dormant (brown) bermuda.',
+      powerNote: 'Hose drag accounts. Same warm-season mix.',
+    },
+    cool: {
+      toro: null,
+      power: [
+        { name: 'Stonewall 4L', unit: 'oz', rate: 0.65, note: 'Pre-emergent' },
+        { name: 'Three-Way', unit: 'oz', rate: 1.29, note: 'Broadleaf' },
+        { name: '90/10 Surfactant', unit: 'oz', rate: 0.25, note: '' },
+      ],
+      flowzone: null,
+      powerNote: 'Cool-season blanket. NO Atrazine. NO Simazine. Ever.',
+      toroNote: null,
+    }
+  },
+  2: {
+    warm: {
+      toro: [
+        { name: 'Prodiamine (Stonewall 4FL)', unit: 'oz', rate: 1.03, note: 'Pre-emergent' },
+        { name: 'Triad Select (warm rate)', unit: 'oz', rate: 2.65, note: 'Broadleaf cleanup' },
+      ],
+      power: [
+        { name: 'Prodiamine (Stonewall 4FL)', unit: 'oz', rate: 1.03, note: 'Pre-emergent' },
+        { name: 'Triad Select (warm rate)', unit: 'oz', rate: 2.65, note: 'Broadleaf cleanup' },
+      ],
+      flowzone: null,
+      toroNote: 'Blanket. Finish spring pre-emergent barrier.',
+      powerNote: 'Hose drag accounts. Same warm-season mix.',
+    },
+    cool: {
+      toro: null,
+      power: [
+        { name: 'Prodiamine (Stonewall 4FL)', unit: 'oz', rate: 1.03, note: 'Pre-emergent' },
+        { name: 'Triad Select (COOL rate)', unit: 'oz', rate: 3.24, note: 'Higher rate for fescue' },
+      ],
+      flowzone: null,
+      powerNote: 'Cool-season dedicated tank. NO Atrazine. NO warm-season products.',
+      toroNote: null,
+    }
+  },
+  3: {
+    warm: {
+      toro: null, // granular round — Toro hopper spreader, not spray
+      power: null,
+      bg: [
+        { name: 'Three-Way', unit: 'oz', rate: 1.4, note: 'Broadleaf spot spray' },
+        { name: '90/10 Surfactant', unit: 'oz', rate: 0.25, note: '' },
+        { name: 'Revolver', unit: 'oz', rate: 0.6, note: 'Grassy weeds' },
+        { name: 'SedgeHammer', unit: 'g', rate: 0.9, note: 'Nutsedge / Kyllinga' },
+      ],
+      toroNote: 'GRANULAR ROUND — Toro hopper spreader. Lesco 32-0-0 PolyPlus OPTI45 at 3.13 lbs/1,000 sqft. No spray tanks for fertilizer.',
+      powerNote: null,
+      bgNote: 'B&G 1-gal — spot spray only where weeds are visible. Warm-season turf. Mix 1 gallon at a time.',
+      granular: true,
+    },
+    cool: {
+      toro: null,
+      power: null,
+      bg: [
+        { name: 'Three-Way', unit: 'oz', rate: 1.4, note: 'Broadleaf spot spray only' },
+      ],
+      toroNote: 'GRANULAR ROUND — Push spreader. Lesco 32-0-0 PolyPlus OPTI45 at 2.5 lbs/1,000 sqft.',
+      powerNote: null,
+      bgNote: 'B&G 1-gal — spot spray broadleaf weeds only. Cool-season turf. No surfactant unless directed.',
+      granular: true,
+    }
+  },
+  4: {
+    warm: {
+      toro: [
+        { name: 'Terra Ally TA 22-0-0', unit: 'fl oz', rate: 44.1, note: 'Liquid N — Tank A' },
+        { name: 'Artavia SC', unit: 'fl oz', rate: 2.25, note: 'Fungicide — Tank A' },
+        { name: 'Surfactant', unit: 'oz', rate: 0.82, note: 'Tank A' },
+      ],
+      power: [
+        { name: 'Terra Ally TA 22-0-0', unit: 'fl oz', rate: 44.1, note: 'Liquid N' },
+        { name: 'Artavia SC', unit: 'fl oz', rate: 2.25, note: 'Fungicide' },
+        { name: 'Surfactant', unit: 'oz', rate: 0.82, note: '' },
+      ],
+      bg: [
+        { name: 'Celsius', unit: 'oz', rate: 0.10, note: 'Warm-season weeds' },
+        { name: 'Momentum (Halosulfuron)', unit: 'g', rate: 0.9, note: 'Sedge' },
+        { name: 'Manuscript', unit: 'oz', rate: 0.44, note: 'Dallisgrass' },
+        { name: 'MSO (Adigor)', unit: 'oz', rate: 0.44, note: 'With Manuscript only' },
+      ],
+      toroNote: 'TANK A ONLY — health tank. No herbicides in Tank A. Spot weeds via B&G only.',
+      powerNote: 'Hose drag accounts. Same Tank A health mix.',
+      bgNote: 'B&G 1-gal — spot spray only. Heat rules apply — check time and temp before spraying.',
+    },
+    cool: {
+      toro: null,
+      power: [
+        { name: 'Terra Ally TA 22-0-0', unit: 'fl oz', rate: 44.1, note: 'Liquid N' },
+        { name: 'Artavia SC', unit: 'fl oz', rate: 2.25, note: 'Fungicide' },
+        { name: 'Surfactant', unit: 'oz', rate: 0.82, note: '' },
+      ],
+      bg: [
+        { name: 'Three-Way', unit: 'oz', rate: 1.4, note: 'Broadleaf spot spray' },
+        { name: 'Surfactant', unit: 'oz', rate: 0.25, note: '' },
+      ],
+      toroNote: null,
+      powerNote: 'Cool-season health tank. Same rates as warm-season.',
+      bgNote: 'B&G 1-gal — spot spray broadleaf weeds only. Cool-season turf.',
+    }
+  },
+  5: {
+    warm: {
+      toro: [
+        { name: 'Artavia SC', unit: 'fl oz', rate: 2.25, note: 'Fungicide FRAC 11 — Tank A' },
+        { name: 'Propiconazole 14.3', unit: 'fl oz', rate: 2.94, note: 'Fungicide FRAC 3 — Tank A. MAX 4 fl oz/1,000 sqft/30 days on bermuda' },
+      ],
+      power: [
+        { name: 'Artavia SC', unit: 'fl oz', rate: 2.25, note: 'Fungicide FRAC 11' },
+        { name: 'Propiconazole 14.3', unit: 'fl oz', rate: 2.94, note: 'Fungicide FRAC 3. MAX 4 fl oz/1,000 sqft/30 days on bermuda' },
+      ],
+      bg: [
+        { name: 'Celsius', unit: 'oz', rate: 0.10, note: 'Broadleaf / warm-season' },
+        { name: 'Quin-Way', unit: 'oz', rate: 1.45, note: 'Broadleaf' },
+        { name: 'Ambition', unit: 'oz', rate: 0.18, note: 'Broadleaf' },
+        { name: 'Manuscript', unit: 'oz', rate: 0.44, note: 'Dallisgrass only' },
+        { name: 'MSO (Adigor)', unit: 'oz', rate: 0.44, note: 'With Manuscript only' },
+      ],
+      toroNote: 'TANK A — dual fungicide blanket (FRAC 11 + FRAC 3 rotation). Granular fertilizer same visit: Lesco 28-0-0 (20% PolyPlus + 1.2% Fe) — Bermuda 3.57 lbs/1,000 sqft, Zoysia 2.75 lbs/1,000 sqft via Toro hopper. Do NOT exceed Propiconazole rate on bermuda.',
+      powerNote: 'Hose drag accounts — same dual fungicide mix. Do NOT exceed Propiconazole rate on bermuda.',
+      bgNote: 'B&G 1-gal — spot spray weeds only. Peak heat rules fully active.',
+    },
+    cool: {
+      toro: [
+        { name: 'Artavia SC', unit: 'fl oz', rate: 2.25, note: 'Fungicide FRAC 11 — Tank A' },
+        { name: 'Propiconazole 14.3', unit: 'fl oz', rate: 2.94, note: 'Fungicide FRAC 3 — Tank A' },
+      ],
+      power: null,
+      bg: [
+        { name: 'Quin-Way', unit: 'oz', rate: 1.45, note: 'Spot weeds' },
+        { name: 'Ambition', unit: 'oz', rate: 0.18, note: 'Spot weeds' },
+      ],
+      toroNote: 'Dual fungicide blanket via Toro Tank A (FRAC 11 + FRAC 3 rotation). Granular: 6-3-0 w/ 2% Fe at 3.0 lbs/1,000 sqft — push spreader ONLY.',
+      powerNote: null,
+      bgNote: 'B&G 1-gal — spot weeds only. Cool-season turf.',
+    }
+  },
+  6: {
+    warm: {
+      toro: [
+        { name: 'Celsius', unit: 'oz', rate: 0.10, note: 'Tank B — warm-season weeds' },
+        { name: 'Quin-Way', unit: 'oz', rate: 1.45, note: 'Tank B' },
+        { name: 'Ambition', unit: 'oz', rate: 0.18, note: 'Tank B' },
+      ],
+      power: [
+        { name: 'Celsius', unit: 'oz', rate: 0.10, note: 'Warm-season weeds' },
+        { name: 'Quin-Way', unit: 'oz', rate: 1.45, note: '' },
+        { name: 'Ambition', unit: 'oz', rate: 0.18, note: '' },
+      ],
+      bg: [
+        { name: 'Manuscript', unit: 'oz', rate: 0.44, note: 'Dallisgrass clumps ONLY' },
+        { name: 'MSO (Adigor)', unit: 'oz', rate: 0.44, note: 'With Manuscript only' },
+      ],
+      toroNote: 'TANK B spot weeds. Granular: Lesco 5-0-25 w/ 10% Fe at 4.0 lbs/1,000 sqft via Toro spreader.',
+      powerNote: 'Hose drag accounts. Same warm-season weed mix.',
+      bgNote: 'B&G 1-gal — Dallisgrass spot spray only. Separate from Tank B mix.',
+    },
+    cool: {
+      toro: null,
+      power: null,
+      bg: [
+        { name: 'Quin-Way', unit: 'oz', rate: 1.45, note: 'Spot weeds' },
+        { name: 'Ambition', unit: 'oz', rate: 0.18, note: 'Spot weeds' },
+      ],
+      toroNote: 'GRANULAR ONLY — 6-3-0 w/ 2% Fe at 3.0 lbs/1,000 sqft — push spreader only.',
+      powerNote: null,
+      bgNote: 'B&G 1-gal — cool-season spot weeds only.',
+      granular: true,
+    }
+  },
+  7: {
+    warm: {
+      toro: [
+        { name: 'Specticle', unit: 'oz', rate: 0.10, note: 'Winter annual pre-emergent' },
+        { name: 'Simazine', unit: 'oz', rate: 0.73, note: 'WARM-SEASON ONLY — never on fescue' },
+        { name: 'Three-Way', unit: 'oz', rate: 1.47, note: 'Fall broadleaf cleanup' },
+        { name: '90/10 Surfactant', unit: 'oz', rate: 0.28, note: '' },
+      ],
+      power: [
+        { name: 'Specticle', unit: 'oz', rate: 0.10, note: 'Winter annual pre-emergent' },
+        { name: 'Simazine', unit: 'oz', rate: 0.73, note: 'WARM-SEASON ONLY' },
+        { name: 'Three-Way', unit: 'oz', rate: 1.47, note: 'Fall broadleaf' },
+        { name: '90/10 Surfactant', unit: 'oz', rate: 0.28, note: '' },
+      ],
+      flowzone: null,
+      toroNote: 'Broadcast OK this round. No nitrogen. No fungicide. Simazine NEVER touches fescue.',
+      powerNote: 'Hose drag accounts. Same warm-season mix.',
+    },
+    cool: {
+      toro: null,
+      power: null,
+      bg: [
+        { name: 'Three-Way', unit: 'oz', rate: 1.4, note: 'Spot spray visible weeds' },
+        { name: 'Surfactant', unit: 'oz', rate: 0.25, note: '' },
+      ],
+      toroNote: 'GRANULAR ONLY — Lesco 32-0-0 PolyPlus OPTI45 at 3.13 lbs/1,000 sqft — push spreader ONLY.',
+      powerNote: null,
+      bgNote: 'B&G 1-gal — spot spray only. No Simazine. No warm-season products.',
+      granular: true,
+    }
+  }
+};
+
+// ─── HELPERS ────────────────────────────────────────────────────────────────
+
+function sqftToGalsToro(sqft) {
+  return sqft * TORO_COV / 1000;
+}
+
+function sqftToGalsPower(sqft) {
+  return sqft * POWER_COV / 1000;
+}
+
+function roundGals(g) {
+  // round up to nearest whole gallon, minimum 3
+  return Math.max(3, Math.ceil(g));
+}
+
+function fmtOz(val) {
+  if (val === 0) return '0';
+  if (val < 1) return val.toFixed(2);
+  if (val < 10) return val.toFixed(1);
+  return val.toFixed(0);
+}
+
+function fmtNum(n) {
+  return n.toLocaleString();
+}
+
+function isAfterMarch10() {
+  const now = new Date();
+  const cutoff = new Date(now.getFullYear(), 2, 10); // March 10
+  return now > cutoff;
+}
+
+function onTurfChange() { clearResults(); checkAtrazine(); }
+function onRoundChange() { clearResults(); checkAtrazine(); }
+
+function checkAtrazine() {
+  const r = document.getElementById('round').value;
+  const t = document.getElementById('turfType').value;
+  const el = document.getElementById('atrazineWarning');
+  if (r === '1' && t === 'warm' && isAfterMarch10()) {
+    el.classList.add('show');
+  } else {
+    el.classList.remove('show');
+  }
+}
+
+function clearResults() {
+  document.getElementById('results').classList.remove('visible');
+}
+
+function resetAll() {
+  document.getElementById('turfType').value = '';
+  document.getElementById('round').value = '';
+  document.getElementById('totalSqft').value = '';
+  document.getElementById('powerSqft').value = '0';
+  document.getElementById('rockSqft').value = '0';
+  document.getElementById('atrazineWarning').classList.remove('show');
+  clearResults();
+  window.scrollTo(0,0);
+}
+
+function makeProductRows(products, colorClass, amtClass, gals, atrazineBlocked) {
+  if (!products || products.length === 0) return '';
+  let html = '';
+  products.forEach(p => {
+    const isAtr = p.atrazine;
+    const blocked = isAtr && atrazineBlocked;
+    const total = p.rate * gals;
+    const display = blocked
+      ? `<span style="color:#c0392b;font-size:14px;font-weight:700;">SKIP — After Mar 10</span>`
+      : `${fmtOz(total)} <small>${p.unit}</small>`;
+    html += `
+      <div class="product-row ${colorClass}" style="${blocked ? 'opacity:0.6;' : ''}">
+        <div class="product-name">${p.name}${p.note ? `<small>${p.note}</small>` : ''}</div>
+        <div class="product-amount ${amtClass}">${display}</div>
+      </div>`;
+  });
+  return html;
+}
+
+// ─── CALCULATE ──────────────────────────────────────────────────────────────
+
+function calculate() {
+  const turf = document.getElementById('turfType').value;
+  const round = parseInt(document.getElementById('round').value);
+  const total = parseInt(document.getElementById('totalSqft').value) || 0;
+  const powerSqft = parseInt(document.getElementById('powerSqft').value) || 0;
+  const rockSqft = parseInt(document.getElementById('rockSqft').value) || 0;
+
+  if (!turf || !round || !total) {
+    alert('Please fill in Turf Type, Round, and Total Route Sqft.');
+    return;
+  }
+
+  const data = ROUNDS[round][turf];
+  const atrazineBlocked = isAfterMarch10();
+  const BUFFER = 5000;
+
+  // Sqft calc
+  const toroSqft = Math.max(0, total - powerSqft - rockSqft - BUFFER);
+  const actualPowerSqft = powerSqft;
+
+  // Gallons
+  const toroGals = roundGals(sqftToGalsToro(toroSqft));
+  const powerGals = roundGals(sqftToGalsPower(actualPowerSqft));
+
+  // Summary
+  document.getElementById('sum-toro').textContent = fmtNum(toroSqft) + ' sqft';
+  document.getElementById('sum-power').textContent = fmtNum(actualPowerSqft) + ' sqft';
+  document.getElementById('sum-rock').textContent = fmtNum(rockSqft) + ' sqft';
+
+  // ── TORO BLOCK ──
+  const toroBlock = document.getElementById('toro-block');
+  const toroBadge = document.getElementById('toro-gal-badge');
+  const toroProds = document.getElementById('toro-products');
+
+  if (data.toro && toroSqft > 0) {
+    toroBlock.style.display = 'block';
+    toroBadge.textContent = toroGals + ' gal';
+    let html = makeProductRows(data.toro, '', '', toroGals, atrazineBlocked);
+    if (data.toroNote) html += `<div class="warning-box">${data.toroNote}</div>`;
+    if (round === 1 && turf === 'warm' && !atrazineBlocked) {
+      html += `<div class="atrazine-gate">⚠️ ATRAZINE GATE: Visually confirm bermuda is fully dormant (100% brown, zero green tips) before mixing Atrazine. If ANY green is visible → skip Atrazine entirely.</div>`;
+    }
+    toroProds.innerHTML = html;
+  } else if (data.granular || data.toro === null) {
+    toroBlock.style.display = 'block';
+    toroBadge.textContent = 'N/A';
+    toroBadge.style.background = 'rgba(255,255,255,0.15)';
+    toroProds.innerHTML = `<div class="na-box">${data.toroNote || 'No spray mix this round.'}</div>`;
+  } else {
+    toroBlock.style.display = 'none';
+  }
+
+  // ── POWER BLOCK ──
+  const powerBlock = document.getElementById('power-block');
+  const powerBadge = document.getElementById('power-gal-badge');
+  const powerProds = document.getElementById('power-products');
+
+  if (data.power && actualPowerSqft > 0) {
+    powerBlock.style.display = 'block';
+    powerBadge.textContent = powerGals + ' gal';
+    let html = makeProductRows(data.power, 'power-row', 'power-amt', powerGals, atrazineBlocked);
+    if (data.powerNote) html += `<div class="warning-box">${data.powerNote}</div>`;
+    powerProds.innerHTML = html;
+  } else if (actualPowerSqft === 0) {
+    powerBlock.style.display = 'none';
+  } else {
+    powerBlock.style.display = 'block';
+    powerBadge.textContent = 'N/A';
+    powerProds.innerHTML = `<div class="na-box">${data.powerNote || 'Power spray rig not used this round.'}</div>`;
+  }
+
+  // ── B&G SPOT BLOCK ──
+  const bgBlock = document.getElementById('bg-block');
+  const bgProds = document.getElementById('bg-products');
+
+  if (data.bg) {
+    bgBlock.style.display = 'block';
+    let html = makeProductRows(data.bg, 'flowzone-row', 'flowzone-amt', 1, false);
+    if (data.bgNote) html += `<div class="warning-box">${data.bgNote}</div>`;
+    bgProds.innerHTML = html;
+  } else {
+    bgBlock.style.display = 'none';
+  }
+
+  // ── ROCK BED BLOCK ──
+  const rockBlock = document.getElementById('rock-block');
+  const rockBadge = document.getElementById('rock-gal-badge');
+  const rockProds = document.getElementById('rock-products');
+
+  if (rockSqft > 0) {
+    const rockGals = Math.max(1, Math.ceil(rockSqft / 1625));
+    rockBlock.style.display = 'block';
+    rockBadge.textContent = rockGals + ' gal';
+    const rpOz = (2 * rockGals).toFixed(1);
+    const dyeOz = (0.3 * rockGals).toFixed(1);
+    rockProds.innerHTML = `
+      <div class="mix-meta">Coverage: <strong>~1,625 sqft/gal · ${fmtNum(rockSqft)} sqft needs ${rockGals} gal</strong></div>
+      <div class="product-row glypho-row">
+        <div class="product-name">Ranger Pro (41% glyphosate)<small>or any 41% AI glyphosate brand</small></div>
+        <div class="product-amount glypho-amt">${rpOz} oz<small>total for ${rockGals} gal</small></div>
+      </div>
+      <div class="product-row glypho-row">
+        <div class="product-name">Dye (coloring agent)<small>marks treated areas</small></div>
+        <div class="product-amount glypho-amt">${dyeOz} oz<small>total for ${rockGals} gal</small></div>
+      </div>
+      <div class="divider"></div>
+      <div class="mix-meta" style="font-size:11px;">Per gallon reference: Ranger Pro 2 oz · Dye 0.3 oz</div>
+      <div class="warning-box">⚠️ Non-selective — kills everything it contacts. Keep off turf edges and ornamentals. Pre-mix full ${rockGals} gal at office before leaving.</div>`;
+  } else {
+    rockBlock.style.display = 'none';
+  }
+
+  // Show results
+  document.getElementById('results').classList.add('visible');
+  setTimeout(() => {
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+}
+</script>
+</body>
+</html>
