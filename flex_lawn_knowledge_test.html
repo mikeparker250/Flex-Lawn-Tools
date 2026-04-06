@@ -3,7 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Flex Lawn Care — Knowledge Test</title>
+<title>Flex Knowledge Test</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest-test.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Flex Test">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="icon-test-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-test-192.png">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap');
 
@@ -986,6 +996,122 @@ function retakeTest() {
   document.getElementById('questionScreen').style.display = 'block';
   renderQuestion();
   window.scrollTo(0, 0);
+}
+</script>
+
+<style>
+  .install-banner {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #00bfff;
+    padding: 14px 16px;
+    z-index: 999;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+  }
+  .install-banner.show { display: flex; }
+  .install-banner-text {
+    flex: 1;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: #000;
+    line-height: 1.3;
+  }
+  .install-banner-text small {
+    display: block;
+    font-weight: 400;
+    font-size: 12px;
+    color: #003a5c;
+    margin-top: 2px;
+  }
+  .install-btn {
+    background: #000;
+    color: #00bfff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .install-dismiss {
+    background: none;
+    border: none;
+    color: #000;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    opacity: 0.6;
+  }
+</style>
+
+<div class="install-banner" id="installBanner">
+  <div class="install-banner-text">
+    Add to Home Screen
+    <small>Works offline — no signal needed</small>
+  </div>
+  <button class="install-btn" id="installBtn">Install</button>
+  <button class="install-dismiss" id="dismissBtn">×</button>
+</div>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw-test.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW failed:', err));
+  });
+}
+
+let deferredPrompt = null;
+const banner = document.getElementById('installBanner');
+const installBtn = document.getElementById('installBtn');
+const dismissBtn = document.getElementById('dismissBtn');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!sessionStorage.getItem('testInstallDismissed')) {
+    banner.classList.add('show');
+  }
+});
+
+installBtn.addEventListener('click', () => {
+  banner.classList.remove('show');
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+  }
+});
+
+dismissBtn.addEventListener('click', () => {
+  banner.classList.remove('show');
+  sessionStorage.setItem('testInstallDismissed', '1');
+});
+
+window.addEventListener('appinstalled', () => {
+  banner.classList.remove('show');
+  deferredPrompt = null;
+});
+
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isInStandaloneMode = window.navigator.standalone === true;
+if (isIOS && !isInStandaloneMode && !sessionStorage.getItem('testInstallDismissed')) {
+  document.querySelector('.install-banner-text').innerHTML =
+    'Add to Home Screen<small>Tap the Share button → "Add to Home Screen"</small>';
+  installBtn.style.display = 'none';
+  banner.classList.add('show');
 }
 </script>
 </body>
