@@ -1,64 +1,64 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
+<!-- saved from url=(0059)file:///C:/Users/mikep/Downloads/flex_mix_calculator_3.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Flex Mix Calculator</title>
 
 <!-- PWA -->
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="file:///C:/Users/mikep/Downloads/manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Flex Mix">
-<meta name="theme-color" content="#1a4a1a">
-<link rel="apple-touch-icon" href="icon-192.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="file:///C:/Users/mikep/Downloads/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="file:///C:/Users/mikep/Downloads/icon-192.png">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap');
 
   :root {
-    --green: #2d6a2d;
-    --green-light: #3d8b3d;
-    --green-dark: #1a4a1a;
-    --yellow: #f5c842;
-    --yellow-dark: #d4a820;
-    --cream: #f8f5ee;
-    --brown: #3a2a1a;
-    --gray: #666;
-    --light-gray: #e8e4dc;
-    --red: #c0392b;
+    --green: #32ff64;
+    --green-dim: #1fcc4a;
+    --green-dark: #0a1a0d;
+    --black: #000000;
+    --card-bg: #111111;
+    --card-border: #1e1e1e;
     --white: #ffffff;
-    --shadow: 0 4px 20px rgba(0,0,0,0.15);
+    --gray: #888888;
+    --light-gray: #2a2a2a;
+    --red: #ff4444;
+    --red-light: #1a0000;
+    --shadow: 0 4px 24px rgba(0,0,0,0.6);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
   body {
     font-family: 'Barlow', sans-serif;
-    background: var(--green-dark);
+    background: var(--black);
     min-height: 100vh;
-    color: var(--brown);
+    color: var(--white);
   }
 
   header {
-    background: var(--green-dark);
+    background: var(--black);
     padding: 16px 20px 12px;
     text-align: center;
-    border-bottom: 3px solid var(--yellow);
+    border-bottom: 2px solid var(--green);
   }
 
   header h1 {
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 800;
     font-size: 28px;
-    color: var(--yellow);
+    color: var(--green);
     letter-spacing: 1px;
     text-transform: uppercase;
   }
 
   header p {
-    color: #a0c8a0;
+    color: var(--gray);
     font-size: 13px;
     margin-top: 2px;
     font-weight: 500;
@@ -72,7 +72,8 @@
   }
 
   .card {
-    background: var(--cream);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     border-radius: 12px;
     padding: 18px;
     margin-bottom: 14px;
@@ -85,10 +86,10 @@
     font-size: 16px;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: var(--green-dark);
+    color: var(--green);
     margin-bottom: 14px;
     padding-bottom: 8px;
-    border-bottom: 2px solid var(--green);
+    border-bottom: 1px solid var(--card-border);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -102,7 +103,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--black);
     font-size: 11px;
     font-weight: 800;
     flex-shrink: 0;
@@ -116,7 +117,7 @@
     display: block;
     font-weight: 600;
     font-size: 13px;
-    color: var(--green-dark);
+    color: var(--green);
     margin-bottom: 6px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -132,13 +133,13 @@
   input[type="number"], select {
     width: 100%;
     padding: 14px 16px;
-    border: 2px solid var(--light-gray);
+    border: 1px solid #333;
     border-radius: 8px;
     font-size: 20px;
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 600;
-    color: var(--brown);
-    background: white;
+    color: var(--white);
+    background: #0a0a0a;
     -webkit-appearance: none;
     appearance: none;
     transition: border-color 0.2s;
@@ -149,13 +150,18 @@
     border-color: var(--green);
   }
 
+  input[type="number"]::placeholder { color: #444; }
+
   select {
     font-size: 16px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%232d6a2d' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2332ff64' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 14px center;
     padding-right: 40px;
+    color: var(--white);
   }
+
+  select option { background: #111; color: var(--white); }
 
   .hint {
     font-size: 12px;
@@ -168,7 +174,7 @@
     width: 100%;
     padding: 18px;
     background: var(--green);
-    color: white;
+    color: var(--black);
     border: none;
     border-radius: 10px;
     font-family: 'Barlow Condensed', sans-serif;
@@ -178,12 +184,12 @@
     letter-spacing: 2px;
     cursor: pointer;
     transition: background 0.2s, transform 0.1s;
-    box-shadow: 0 4px 12px rgba(45,106,45,0.4);
+    box-shadow: 0 4px 20px rgba(50,255,100,0.3);
     margin-bottom: 14px;
   }
 
   .calc-btn:active {
-    background: var(--green-dark);
+    background: var(--green-dim);
     transform: scale(0.98);
   }
 
@@ -191,8 +197,8 @@
     width: 100%;
     padding: 12px;
     background: transparent;
-    color: var(--cream);
-    border: 2px solid rgba(255,255,255,0.3);
+    color: var(--gray);
+    border: 1px solid #333;
     border-radius: 10px;
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
@@ -208,18 +214,18 @@
   .results.visible { display: block; }
 
   .summary-bar {
-    background: var(--green-dark);
+    background: #0a0a0a;
+    border: 1px solid var(--green);
     border-radius: 10px;
     padding: 14px 16px;
     margin-bottom: 14px;
-    border: 2px solid var(--yellow);
   }
 
   .summary-bar h3 {
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
     font-size: 13px;
-    color: var(--yellow);
+    color: var(--green);
     text-transform: uppercase;
     letter-spacing: 1px;
     margin-bottom: 10px;
@@ -232,14 +238,15 @@
   }
 
   .summary-item {
-    background: rgba(255,255,255,0.08);
+    background: #111;
     border-radius: 6px;
     padding: 8px 10px;
+    border: 1px solid #222;
   }
 
   .summary-item .s-label {
     font-size: 10px;
-    color: #a0c8a0;
+    color: var(--gray);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-weight: 600;
@@ -249,11 +256,12 @@
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
     font-size: 18px;
-    color: white;
+    color: var(--white);
   }
 
   .mix-block {
-    background: var(--cream);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     border-radius: 12px;
     margin-bottom: 12px;
     overflow: hidden;
@@ -268,23 +276,25 @@
   }
 
   .mix-header.toro { background: var(--green); }
-  .mix-header.power { background: #1a5276; }
-  .mix-header.flowzone { background: #7d6608; }
-  .mix-header.glypho { background: #6c3483; }
+  .mix-header.power { background: #004488; }
+  .mix-header.flowzone { background: #333; border-bottom: 2px solid var(--green); }
+  .mix-header.glypho { background: #222; border-bottom: 2px solid var(--green); }
 
   .mix-header h3 {
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 800;
     font-size: 18px;
-    color: white;
     text-transform: uppercase;
     letter-spacing: 1px;
     flex: 1;
   }
 
+  .mix-header.toro h3 { color: var(--black); }
+  .mix-header.power h3 { color: var(--white); }
+  .mix-header.flowzone h3 { color: var(--white); }
+  .mix-header.glypho h3 { color: var(--white); }
+
   .mix-header .badge {
-    background: rgba(255,255,255,0.25);
-    color: white;
     border-radius: 20px;
     padding: 3px 10px;
     font-size: 12px;
@@ -292,6 +302,11 @@
     font-family: 'Barlow Condensed', sans-serif;
     white-space: nowrap;
   }
+
+  .mix-header.toro .badge { background: rgba(0,0,0,0.2); color: var(--black); }
+  .mix-header.power .badge { background: rgba(255,255,255,0.15); color: var(--white); }
+  .mix-header.flowzone .badge { background: rgba(50,255,100,0.15); color: var(--green); }
+  .mix-header.glypho .badge { background: rgba(50,255,100,0.15); color: var(--green); }
 
   .mix-body {
     padding: 14px 16px;
@@ -304,9 +319,7 @@
     font-weight: 500;
   }
 
-  .mix-meta strong {
-    color: var(--brown);
-  }
+  .mix-meta strong { color: var(--white); }
 
   .product-row {
     display: flex;
@@ -315,18 +328,18 @@
     padding: 10px 12px;
     border-radius: 8px;
     margin-bottom: 6px;
-    background: white;
-    border-left: 4px solid var(--green);
+    background: #0a0a0a;
+    border-left: 3px solid var(--green);
   }
 
-  .product-row.power-row { border-left-color: #1a5276; }
-  .product-row.flowzone-row { border-left-color: #7d6608; }
-  .product-row.glypho-row { border-left-color: #6c3483; }
+  .product-row.power-row { border-left-color: #4488ff; }
+  .product-row.flowzone-row { border-left-color: var(--green); }
+  .product-row.glypho-row { border-left-color: var(--green); }
 
   .product-name {
     font-weight: 600;
     font-size: 14px;
-    color: var(--brown);
+    color: var(--white);
     flex: 1;
   }
 
@@ -342,15 +355,15 @@
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 800;
     font-size: 22px;
-    color: var(--green-dark);
+    color: var(--green);
     text-align: right;
     white-space: nowrap;
     margin-left: 10px;
   }
 
-  .product-amount.power-amt { color: #1a5276; }
-  .product-amount.flowzone-amt { color: #7d6608; }
-  .product-amount.glypho-amt { color: #6c3483; }
+  .product-amount.power-amt { color: #4488ff; }
+  .product-amount.flowzone-amt { color: var(--green); }
+  .product-amount.glypho-amt { color: var(--green); }
 
   .product-amount small {
     display: block;
@@ -361,21 +374,21 @@
   }
 
   .warning-box {
-    background: #fdf2e9;
-    border: 2px solid #e59866;
+    background: #111;
+    border: 1px solid #333;
     border-radius: 8px;
     padding: 10px 12px;
     margin-top: 10px;
     font-size: 12px;
-    color: #784212;
+    color: var(--gray);
     font-weight: 500;
   }
 
-  .warning-box strong { color: #922b21; }
+  .warning-box strong { color: var(--white); }
 
   .atrazine-gate {
-    background: #fdedec;
-    border: 2px solid var(--red);
+    background: #1a0000;
+    border: 1px solid var(--red);
     border-radius: 8px;
     padding: 10px 12px;
     margin-top: 10px;
@@ -385,19 +398,20 @@
   }
 
   .na-box {
-    background: var(--light-gray);
+    background: #0a0a0a;
     border-radius: 8px;
     padding: 14px;
     text-align: center;
     color: var(--gray);
     font-size: 14px;
     font-style: italic;
+    border: 1px solid #222;
   }
 
   .step-tag {
     display: inline-block;
-    background: var(--yellow);
-    color: var(--green-dark);
+    background: rgba(50,255,100,0.15);
+    color: var(--green);
     border-radius: 4px;
     padding: 2px 8px;
     font-size: 10px;
@@ -410,23 +424,22 @@
 
   .divider {
     height: 1px;
-    background: var(--light-gray);
+    background: #222;
     margin: 12px 0;
   }
 
   .footer-note {
     text-align: center;
-    color: rgba(255,255,255,0.4);
+    color: #333;
     font-size: 11px;
     padding-bottom: 30px;
   }
 
-  /* Atrazine date warning */
   .date-warning { display: none; }
   .date-warning.show {
     display: block;
-    background: #fdedec;
-    border: 2px solid var(--red);
+    background: var(--red-light);
+    border: 1px solid var(--red);
     border-radius: 8px;
     padding: 10px 12px;
     margin-top: -8px;
@@ -435,12 +448,22 @@
     color: var(--red);
     font-weight: 600;
   }
+
+  .progress-bar-wrap {
+    background: #222;
+    height: 3px;
+    margin-top: 10px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-bar { height: 100%; background: var(--green); border-radius: 2px; transition: width 0.3s ease; width: 0%; }
+  .progress-text { color: var(--gray); font-size: 11px; margin-top: 4px; text-align: right; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>🌱 Flex Mix Calculator</h1>
+  <h1>⚡ FLEX MIX CALCULATOR</h1>
   <p>Morning tank mix — zero math required</p>
 </header>
 
@@ -557,7 +580,7 @@
     <!-- B&G block -->
     <div class="mix-block" id="bg-block">
       <div class="mix-header flowzone">
-        <h3>🪣 B&G — Spot Weeds</h3>
+        <h3>🪣 B&amp;G — Spot Weeds</h3>
         <div class="badge">1 gal batch</div>
       </div>
       <div class="mix-body">
@@ -1024,12 +1047,12 @@ function calculate() {
     bottom: 0;
     left: 0;
     right: 0;
-    background: var(--yellow);
+    background: var(--green);
     padding: 14px 16px;
     z-index: 999;
     align-items: center;
     gap: 12px;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+    box-shadow: 0 -4px 20px rgba(50,255,100,0.3);
   }
   .install-banner.show { display: flex; }
   .install-banner-text {
@@ -1037,19 +1060,19 @@ function calculate() {
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
     font-size: 15px;
-    color: var(--green-dark);
+    color: var(--black);
     line-height: 1.3;
   }
   .install-banner-text small {
     display: block;
     font-weight: 400;
     font-size: 12px;
-    color: var(--green);
+    color: #005520;
     margin-top: 2px;
   }
   .install-btn {
-    background: var(--green-dark);
-    color: white;
+    background: var(--black);
+    color: var(--green);
     border: none;
     border-radius: 8px;
     padding: 10px 16px;
@@ -1064,14 +1087,13 @@ function calculate() {
   .install-dismiss {
     background: none;
     border: none;
-    color: var(--green-dark);
+    color: var(--black);
     font-size: 22px;
     cursor: pointer;
     padding: 4px;
     line-height: 1;
     opacity: 0.6;
   }
-  /* Safe area padding for notched phones */
   .install-banner { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
 </style>
 
@@ -1141,5 +1163,6 @@ if (isIOS && !isInStandaloneMode && !sessionStorage.getItem('installDismissed'))
   banner.classList.add('show');
 }
 </script>
-</body>
-</html>
+
+
+</body></html>
