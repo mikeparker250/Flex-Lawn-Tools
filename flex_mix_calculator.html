@@ -879,10 +879,12 @@ async function readOneFile(file) {
       const b64 = e.target.result.split(',')[1];
       const mediaType = file.type || 'image/jpeg';
       try {
-        const resp = await fetch('https://flex-proxy.mike-8e3.workers.dev', {
+        const resp = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 800,
             messages: [{
               role: 'user',
               content: [
