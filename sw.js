@@ -1,9 +1,11 @@
-const CACHE_NAME = 'flex-mix-v1';
+const CACHE_NAME = 'flex-mix-v4';
+
 const ASSETS = [
   '/Flex-Lawn-Tools/flex_mix_calculator.html',
   '/Flex-Lawn-Tools/manifest.json'
 ];
 
+// Install — cache assets
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
@@ -11,6 +13,7 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
+// Activate — delete ALL old caches immediately
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -20,15 +23,24 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
+// Fetch — NETWORK FIRST, fall back to cache
+// This means the phone always tries to get the latest from GitHub first.
+// Only uses cache if offline.
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request).then(response => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+    fetch(event.request)
+      .then(response => {
+        // Got a fresh response — update the cache with it
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
         return response;
-      }).catch(() => caches.match('/Flex-Lawn-Tools/flex_mix_calculator.html'));
-    })
+      })
+      .catch(() => {
+        // Offline — serve from cache
+        return caches.match(event.request)
+          .then(cached => cached || caches.match('/Flex-Lawn-Tools/flex_mix_calculator.html'));
+      })
   );
 });
