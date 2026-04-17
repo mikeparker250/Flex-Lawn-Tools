@@ -317,6 +317,24 @@
   }
   .mode-logo { font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:28px; color:var(--green); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; text-align:center; }
   .mode-sub { font-size:13px; color:var(--muted); margin-bottom:40px; text-align:center; }
+  .install-inline-btn {
+    display:none; align-items:center; justify-content:center; gap:8px;
+    width:100%; max-width:420px; margin-top:6px;
+    background:none; border:1px solid rgba(50,255,100,0.3);
+    border-radius:10px; padding:12px 16px; cursor:pointer;
+    font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:15px;
+    color:var(--green); text-transform:uppercase; letter-spacing:0.5px;
+    transition:background 0.15s;
+  }
+  .install-inline-btn:hover { background:rgba(50,255,100,0.08); }
+  .install-inline-btn.show { display:flex; }
+  .install-inline-ios {
+    display:none; width:100%; max-width:420px; margin-top:6px;
+    background:rgba(50,255,100,0.06); border:1px solid rgba(50,255,100,0.2);
+    border-radius:10px; padding:12px 16px; font-size:12px;
+    color:var(--green); line-height:1.6; text-align:center;
+  }
+  .install-inline-ios.show { display:block; }
   .mode-btn { width:100%; max-width:420px; border-radius:14px; padding:22px 20px; margin-bottom:14px; cursor:pointer; border:none; text-align:left; display:flex; align-items:center; gap:16px; transition:opacity 0.15s; }
   .mode-btn:active { opacity:0.85; }
   .mode-btn-day { background:var(--green); color:var(--black); }
@@ -376,6 +394,13 @@
     </div>
     <div class="mode-arrow">›</div>
   </button>
+
+  <button class="install-inline-btn" id="installInlineBtn" onclick="triggerInstall()">
+    ⬇ Add to Home Screen
+  </button>
+  <div class="install-inline-ios" id="installInlineIos">
+    📲 To install: tap the <strong>Share</strong> button in Safari → <strong>"Add to Home Screen"</strong>
+  </div>
 </div>
 
 
@@ -1101,28 +1126,46 @@ if ('serviceWorker' in navigator) {
 
 // ─── PWA INSTALL ──────────────────────────────────────────────────────────
 let deferredPrompt = null;
-const banner = document.getElementById('installBanner');
-const installBtn = document.getElementById('installBtn');
-const dismissBtn = document.getElementById('dismissBtn');
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault(); deferredPrompt = e;
-  if (!sessionStorage.getItem('installDismissed')) banner.classList.add('show');
-});
-installBtn.addEventListener('click', () => {
-  banner.classList.remove('show');
-  if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then(() => { deferredPrompt = null; }); }
-});
-dismissBtn.addEventListener('click', () => {
-  banner.classList.remove('show');
-  sessionStorage.setItem('installDismissed', '1');
-});
-window.addEventListener('appinstalled', () => { banner.classList.remove('show'); deferredPrompt = null; });
+
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-const isStandalone = window.navigator.standalone === true;
-if (isIOS && !isStandalone && !sessionStorage.getItem('installDismissed')) {
-  document.querySelector('.install-banner-text').innerHTML = 'Add to Home Screen<small>Tap the Share button → "Add to Home Screen"</small>';
-  installBtn.style.display = 'none';
-  banner.classList.add('show');
+const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+
+// Android Chrome — capture the install prompt
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Show the inline install button on mode screen
+  document.getElementById('installInlineBtn').classList.add('show');
+});
+
+// iOS Safari — show manual instructions instead
+if (isIOS && !isStandalone) {
+  document.getElementById('installInlineIos').classList.add('show');
+}
+
+// Hide install UI once installed
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  document.getElementById('installInlineBtn').classList.remove('show');
+  document.getElementById('installInlineIos').classList.remove('show');
+  // Also hide the old bottom banner if still showing
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.classList.remove('show');
+});
+
+function triggerInstall() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(choice => {
+      if (choice.outcome === 'accepted') {
+        document.getElementById('installInlineBtn').classList.remove('show');
+      }
+      deferredPrompt = null;
+    });
+  } else {
+    // Fallback — tell them to use Chrome menu
+    alert('To install: tap the 3-dot menu in Chrome → "Add to Home Screen"');
+  }
 }
 
 // ─── MODE SWITCHING ───────────────────────────────────────────────────────
