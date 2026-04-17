@@ -1083,31 +1083,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// ─── PWA INSTALL ──────────────────────────────────────────────────────────
-let deferredPrompt = null;
-const banner = document.getElementById('installBanner');
-const installBtn = document.getElementById('installBtn');
-const dismissBtn = document.getElementById('dismissBtn');
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault(); deferredPrompt = e;
-  if (!sessionStorage.getItem('installDismissed')) banner.classList.add('show');
-});
-installBtn.addEventListener('click', () => {
-  banner.classList.remove('show');
-  if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then(() => { deferredPrompt = null; }); }
-});
-dismissBtn.addEventListener('click', () => {
-  banner.classList.remove('show');
-  sessionStorage.setItem('installDismissed', '1');
-});
-window.addEventListener('appinstalled', () => { banner.classList.remove('show'); deferredPrompt = null; });
-const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-const isStandalone = window.navigator.standalone === true;
-if (isIOS && !isStandalone && !sessionStorage.getItem('installDismissed')) {
-  document.querySelector('.install-banner-text').innerHTML = 'Add to Home Screen<small>Tap the Share button → "Add to Home Screen"</small>';
-  installBtn.style.display = 'none';
-  banner.classList.add('show');
-}
+// old PWA block removed — handled below
 
 // ─── MODE SWITCHING ───────────────────────────────────────────────────────
 function setMode(mode) {
