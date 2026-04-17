@@ -113,9 +113,15 @@
   .upload-area p { font-size: 14px; color: var(--text); font-weight: 600; }
   .upload-area small { font-size: 12px; color: var(--muted); margin-top: 4px; display: block; }
 
-  .preview-img {
-    width: 100%; border-radius: 8px; margin-top: 10px;
-    max-height: 180px; object-fit: cover; display: none;
+  .preview-strip {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;
+  }
+  .preview-strip img {
+    height: 72px; width: 72px; object-fit: cover;
+    border-radius: 6px; border: 1px solid var(--border);
+  }
+  .preview-count {
+    font-size: 12px; color: var(--power-color); margin-top: 6px;
   }
 
   /* Progress */
@@ -352,12 +358,13 @@
     <div class="card-title"><div class="icon">2</div> Upload Route Screenshot</div>
 
     <div class="upload-area" id="uploadArea">
-      <input type="file" id="fileInput" accept="image/*">
+      <input type="file" id="fileInput" accept="image/*" multiple>
       <div class="upload-icon">📸</div>
       <p>Tap to upload your FieldRoutes schedule screenshot</p>
-      <small>Reads all MEASUREMENTS automatically — no typing needed</small>
+      <small>Select multiple screenshots at once — all properties combined automatically</small>
     </div>
-    <img id="previewImg" class="preview-img" alt="Route screenshot preview">
+    <div class="preview-strip" id="previewStrip"></div>
+    <div class="preview-count" id="previewCount"></div>
 
     <div class="progress-wrap" id="progressWrap">
       <div class="progress-label">
@@ -658,34 +665,75 @@ function isAfterMarch10() { const n=new Date(); return n > new Date(n.getFullYea
 
 // ─── SCREENSHOT READER ────────────────────────────────────────────────────
 document.getElementById('fileInput').addEventListener('change', function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const img = document.getElementById('previewImg');
-  img.src = URL.createObjectURL(file);
-  img.style.display = 'block';
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+
+  // Show thumbnails
+  const strip = document.getElementById('previewStrip');
+  const countEl = document.getElementById('previewCount');
+  strip.innerHTML = '';
+  files.forEach(file => {
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+    strip.appendChild(img);
+  });
+  countEl.textContent = files.length > 1 ? `${files.length} screenshots selected — reading all...` : '1 screenshot selected — reading...';
+
   document.getElementById('errorBox').style.display = 'none';
-  readScreenshot(file);
+  document.getElementById('propsCard').style.display = 'none';
+  props = []; detectedTotal = null;
+
+  processAllFiles(files);
 });
 
-async function readScreenshot(file) {
-  setProgress(true, 'Reading screenshot...', 20);
-  const reader = new FileReader();
-  reader.onload = async function(e) {
-    const b64 = e.target.result.split(',')[1];
-    const mediaType = file.type || 'image/jpeg';
-    setProgress(true, 'Extracting property measurements...', 55);
+async function processAllFiles(files) {
+  setProgress(true, `Reading ${files.length} screenshot${files.length > 1 ? 's' : ''}...`, 10);
+  let allProps = [];
+  let combinedTotal = 0;
+
+  for (let i = 0; i < files.length; i++) {
+    const pct = 10 + Math.round(((i + 1) / files.length) * 80);
+    setProgress(true, `Reading screenshot ${i + 1} of ${files.length}...`, pct);
     try {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 800,
-          messages: [{
-            role: 'user',
-            content: [
-              { type: 'image', source: { type: 'base64', media_type: mediaType, data: b64 } },
-              { type: 'text', text: `Extract property data from this FieldRoutes schedule screenshot.
+      const result = await readOneFile(files[i]);
+      allProps = allProps.concat(result.properties || []);
+      if (result.total) combinedTotal += result.total;
+    } catch(err) {
+      showError(`Error on screenshot ${i + 1}: ${err.message}`);
+      setProgress(false);
+      return;
+    }
+  }
+
+  setProgress(true, 'Done — combining results...', 95);
+  props = allProps.map(p => ({ name: p.name, sqft: parseInt(p.sqft) || 0 }));
+  if (combinedTotal) detectedTotal = combinedTotal;
+
+  document.getElementById('previewCount').textContent =
+    `${files.length} screenshot${files.length > 1 ? 's' : ''} read — ${props.length} properties found`;
+
+  setProgress(false);
+  renderProps();
+}
+
+async function readOneFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      const b64 = e.target.result.split(',')[1];
+      const mediaType = file.type || 'image/jpeg';
+      try {
+        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 800,
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'image', source: { type: 'base64', media_type: mediaType, data: b64 } },
+                { type: 'text', text: `Extract property data from this FieldRoutes schedule screenshot.
 
 Return ONLY raw JSON — no markdown, no explanation, no backticks. Format:
 {"properties":[{"name":"Last, First","sqft":6500}],"total":43100}
@@ -696,33 +744,18 @@ Rules:
 - total = the number from "Meas. SF/LF XX.XK SF" at the top header. If not visible omit total field.
 - Clean names: use "Smith, John" format, remove & symbols
 - Skip time slots, LUNCH blocks, END entries, empty slots` }
-            ]
-          }]
-        })
-      });
-      setProgress(true, 'Parsing results...', 85);
-      const data = await resp.json();
-      const raw = (data.content?.[0]?.text || '').replace(/```json|```/g,'').trim();
-      let parsed;
-      try { parsed = JSON.parse(raw); } catch(err) { throw new Error('Could not parse screenshot. Try a clearer image.'); }
-
-      props = (parsed.properties || []).map(p => ({ name: p.name, sqft: parseInt(p.sqft) || 0 }));
-
-      if (parsed.total) {
-        // Auto-fill total sqft if the old field exists (backward compat)
-      }
-
-      setProgress(false);
-      renderProps();
-      if (parsed.total) {
-        showSummaryTotal(parsed.total);
-      }
-    } catch(err) {
-      setProgress(false);
-      showError(err.message || 'Something went wrong reading the image.');
-    }
-  };
-  reader.readAsDataURL(file);
+              ]
+            }]
+          })
+        });
+        const data = await resp.json();
+        const raw = (data.content?.[0]?.text || '').replace(/```json|```/g,'').trim();
+        try { resolve(JSON.parse(raw)); }
+        catch(err) { reject(new Error('Could not parse screenshot. Try a clearer image.')); }
+      } catch(err) { reject(err); }
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function setProgress(on, msg, pct) {
@@ -912,7 +945,9 @@ function resetAll() {
   props = []; detectedTotal = null;
   document.getElementById('turfType').value = '';
   document.getElementById('propsCard').style.display = 'none';
-  document.getElementById('previewImg').style.display = 'none';
+  document.getElementById('previewStrip').innerHTML = '';
+  document.getElementById('previewCount').textContent = '';
+  document.getElementById('fileInput').value = '';
   document.getElementById('errorBox').style.display = 'none';
   initRound();
   clearResults();
