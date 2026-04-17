@@ -309,10 +309,139 @@
   .install-dismiss { background: none; border: none; color: var(--black); font-size: 22px; cursor: pointer; padding: 4px; line-height: 1; opacity: 0.6; }
 
   .footer { text-align: center; font-size: 11px; color: #444; padding: 20px 16px 8px; }
+
+  /* ── MODE SELECTOR ── */
+  #modeScreen {
+    display:flex; flex-direction:column; align-items:center;
+    justify-content:center; min-height:calc(100vh - 80px); padding:24px 16px;
+  }
+  .mode-logo { font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:28px; color:var(--green); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; text-align:center; }
+  .mode-sub { font-size:13px; color:var(--muted); margin-bottom:40px; text-align:center; }
+  .mode-btn { width:100%; max-width:420px; border-radius:14px; padding:22px 20px; margin-bottom:14px; cursor:pointer; border:none; text-align:left; display:flex; align-items:center; gap:16px; transition:opacity 0.15s; }
+  .mode-btn:active { opacity:0.85; }
+  .mode-btn-day { background:var(--green); color:var(--black); }
+  .mode-btn-fly { background:var(--card); color:var(--text); border:1px solid var(--border); }
+  .mode-btn-fly:hover { border-color:var(--power-color); }
+  .mode-icon { font-size:36px; flex-shrink:0; line-height:1; }
+  .mode-text-wrap { flex:1; }
+  .mode-title { font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:22px; text-transform:uppercase; letter-spacing:0.5px; line-height:1.1; margin-bottom:4px; }
+  .mode-btn-day .mode-title { color:var(--black); }
+  .mode-btn-fly .mode-title { color:var(--text); }
+  .mode-desc { font-size:13px; line-height:1.4; }
+  .mode-btn-day .mode-desc { color:rgba(0,0,0,0.6); }
+  .mode-btn-fly .mode-desc { color:var(--muted); }
+  .mode-arrow { font-size:22px; flex-shrink:0; opacity:0.5; }
+  .mode-btn-day .mode-arrow { color:var(--black); }
+  .back-btn { background:none; border:none; color:var(--muted); font-family:'Barlow',sans-serif; font-size:13px; cursor:pointer; padding:0; display:none; align-items:center; gap:4px; margin-top:4px; }
+  .back-btn.show { display:flex; }
+  .back-btn:hover { color:var(--text); }
+  .mode-label { font-size:11px; color:var(--muted); margin-top:2px; display:none; }
+  .mode-label.show { display:block; }
+  #flyScreen { display:none; }
+  #dayScreen { display:none; }
+  .fly-note { background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.2); border-radius:8px; padding:10px 14px; font-size:12px; color:var(--power-color); margin-bottom:14px; line-height:1.5; }
+
 </style>
 </head>
 <body>
 
+
+<header>
+  <h1>⚡ FLEX MIX CALCULATOR</h1>
+  <p class="mode-label" id="modeLabel"></p>
+  <button class="back-btn" id="backBtn" onclick="goHome()">← Back</button>
+</header>
+
+
+
+<!-- MODE SELECT SCREEN -->
+<div id="modeScreen">
+  <div class="mode-logo">⚡ Flex Mix Calculator</div>
+  <div class="mode-sub">What are you doing right now?</div>
+
+  <button class="mode-btn mode-btn-day" onclick="setMode('day')">
+    <div class="mode-icon">🌅</div>
+    <div class="mode-text-wrap">
+      <div class="mode-title">Mixing for the Day</div>
+      <div class="mode-desc">Upload your route screenshot — auto-calculates everything</div>
+    </div>
+    <div class="mode-arrow">›</div>
+  </button>
+
+  <button class="mode-btn mode-btn-fly" onclick="setMode('fly')">
+    <div class="mode-icon">⚡</div>
+    <div class="mode-text-wrap">
+      <div class="mode-title">Mix on the Fly</div>
+      <div class="mode-desc">Ran out mid-route — enter sqft manually for a quick refill</div>
+    </div>
+    <div class="mode-arrow">›</div>
+  </button>
+</div>
+
+
+
+<!-- FLY MODE SCREEN -->
+<div id="flyScreen">
+<div class="container">
+
+  <div class="fly-note">⚡ Mid-route refill mode — enter the sqft you still need to cover and pick your equipment. No screenshot needed.</div>
+
+  <div class="card">
+    <div class="card-title"><div class="icon">1</div> Route Info</div>
+    <div class="field-group">
+      <label>Turf Type</label>
+      <select id="flyTurf" onchange="flyCheckAtrazine()">
+        <option value="">— Select —</option>
+        <option value="warm">Warm Season (Bermuda / Zoysia)</option>
+        <option value="cool">Cool Season (Tall Fescue)</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label>Round <span>(auto-detected — override if needed)</span></label>
+      <select id="flyRound" onchange="flyCheckAtrazine()">
+        <option value="">— Select —</option>
+        <option value="1">Round 1 — Jan 25 – Feb 28</option>
+        <option value="2">Round 2 — Mar 1 – Apr 14</option>
+        <option value="3">Round 3 — Apr 15 – May 31</option>
+        <option value="4">Round 4 — Jun 1 – Jul 15</option>
+        <option value="5">Round 5 — Aug 1 – Sep 15</option>
+        <option value="6">Round 6 — Sep 16 – Oct 15</option>
+        <option value="7">Round 7 — Oct 16 – Nov 30</option>
+      </select>
+      <div id="flyRoundBadge" class="round-auto-badge" style="display:none"></div>
+    </div>
+    <div id="flyAtrazineWarning" class="atrazineWarning">
+      ⛔ TODAY IS AFTER MARCH 10 — ATRAZINE IS NOT PERMITTED.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><div class="icon">2</div> Sqft to Cover</div>
+    <div class="field-group">
+      <label>Equipment</label>
+      <select id="flyEquip">
+        <option value="power">💧 Power Spray Rig (1.14 gal / 1,000 sqft)</option>
+        <option value="toro">🚜 Toro SprayMaster (0.34 gal / 1,000 sqft)</option>
+        <option value="bg">🪣 B&amp;G Hand Sprayer (1 gallon batch)</option>
+        <option value="rock">🪨 FlowZone Rock Beds (1 gal / 1,625 sqft)</option>
+      </select>
+    </div>
+    <div class="field-group" id="flySqftGroup">
+      <label>Sqft remaining to cover</label>
+      <input type="number" id="flySqft" placeholder="e.g. 8500" inputmode="numeric">
+    </div>
+    <button class="calc-btn" onclick="flyCalculate()">Calculate Refill →</button>
+    <button class="reset-btn" onclick="flyReset()">↺ Clear</button>
+  </div>
+
+  <div id="flyResults" style="display:none"></div>
+
+  <div class="footer">Flex Lawn Care · Mix on the Fly · Mid-route refill</div>
+</div>
+</div>
+
+
+<div id="dayScreen">
 <header>
   <h1>⚡ FLEX MIX CALCULATOR</h1>
   <p>Morning tank mix — zero math required</p>
@@ -467,8 +596,10 @@
   <button class="install-btn" id="installBtn">Install</button>
   <button class="install-dismiss" id="dismissBtn">×</button>
 </div>
+</div><!-- /dayScreen -->
 
 <script>
+
 // ─── ROUND AUTO-DETECTION ──────────────────────────────────────────────────
 const ROUND_DATES = [
   { n: 1, start: [1,25],  end: [2,28]  },
@@ -949,13 +1080,15 @@ function resetAll() {
   document.getElementById('previewCount').textContent = '';
   document.getElementById('fileInput').value = '';
   document.getElementById('errorBox').style.display = 'none';
-  initRound();
-  clearResults();
-  window.scrollTo(0, 0);
+  document.getElementById('results').style.display = 'none';
+  goHome();
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────
-initRound();
+// Show mode selection screen on load
+document.getElementById('modeScreen').style.display = 'flex';
+document.getElementById('dayScreen').style.display = 'none';
+document.getElementById('flyScreen').style.display = 'none';
 
 // ─── SERVICE WORKER ───────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
@@ -991,6 +1124,154 @@ if (isIOS && !isStandalone && !sessionStorage.getItem('installDismissed')) {
   installBtn.style.display = 'none';
   banner.classList.add('show');
 }
+
+// ─── MODE SWITCHING ───────────────────────────────────────────────────────
+function setMode(mode) {
+  document.getElementById('modeScreen').style.display = 'none';
+  document.getElementById('backBtn').classList.add('show');
+  document.getElementById('modeLabel').classList.add('show');
+  if (mode === 'day') {
+    document.getElementById('dayScreen').style.display = 'block';
+    document.getElementById('flyScreen').style.display = 'none';
+    document.getElementById('modeLabel').textContent = 'Mixing for the Day';
+    initRound();
+  } else {
+    document.getElementById('flyScreen').style.display = 'block';
+    document.getElementById('dayScreen').style.display = 'none';
+    document.getElementById('modeLabel').textContent = 'Mix on the Fly';
+    flyInitRound();
+  }
+}
+
+function goHome() {
+  document.getElementById('modeScreen').style.display = 'flex';
+  document.getElementById('dayScreen').style.display = 'none';
+  document.getElementById('flyScreen').style.display = 'none';
+  document.getElementById('backBtn').classList.remove('show');
+  document.getElementById('modeLabel').classList.remove('show');
+  document.getElementById('modeLabel').textContent = '';
+}
+
+// ─── FLY MODE ─────────────────────────────────────────────────────────────
+function flyInitRound() {
+  const ar = getAutoRound();
+  const sel = document.getElementById('flyRound');
+  const badge = document.getElementById('flyRoundBadge');
+  if (ar) {
+    sel.value = ar;
+    badge.style.display = 'inline-flex';
+    badge.textContent = '✓ Auto-detected from today\'s date';
+    badge.className = 'round-auto-badge';
+  }
+  flyCheckAtrazine();
+}
+
+function flyCheckAtrazine() {
+  const r = document.getElementById('flyRound').value;
+  const t = document.getElementById('flyTurf').value;
+  const el = document.getElementById('flyAtrazineWarning');
+  el.classList.toggle('show', r === '1' && t === 'warm' && isAfterMarch10());
+}
+
+function getAutoRound() {
+  const d = new Date(), m = d.getMonth() + 1, day = d.getDate();
+  for (const r of ROUND_DATES) {
+    const [sm, sd] = r.start, [em, ed] = r.end;
+    const after = (m > sm) || (m === sm && day >= sd);
+    const before = (m < em) || (m === em && day <= ed);
+    if (after && before) return r.n;
+  }
+  return null;
+}
+
+function flyReset() {
+  document.getElementById('flySqft').value = '';
+  document.getElementById('flyResults').style.display = 'none';
+  document.getElementById('flyResults').innerHTML = '';
+}
+
+function flyCalculate() {
+  const turf = document.getElementById('flyTurf').value;
+  const round = parseInt(document.getElementById('flyRound').value);
+  const equip = document.getElementById('flyEquip').value;
+  const sqft = parseInt(document.getElementById('flySqft').value) || 0;
+
+  if (!turf || !round) { alert('Please select Turf Type and Round first.'); return; }
+
+  const resultsEl = document.getElementById('flyResults');
+  resultsEl.style.display = 'block';
+
+  // B&G is always 1 gallon — sqft doesn't apply
+  if (equip === 'bg') {
+    const data = ROUNDS[round][turf];
+    if (!data.bg) {
+      resultsEl.innerHTML = '<div class="result-block"><div class="result-header bg-header">🪣 B&G — Spot Weeds</div><div class="result-body"><div class="na-box">No B&G mix for this round/turf combination.</div></div></div>';
+      return;
+    }
+    let html = '<div class="result-block"><div class="result-header bg-header">🪣 B&G — Spot Weeds <span style="font-size:14px;font-weight:400;opacity:0.7">1 gal batch</span></div><div class="result-body"><div class="mix-meta">Mix 1 gallon at a time</div>';
+    html += makeProductRows(data.bg, 'flowzone-amt', 1, false);
+    if (data.bgNote) html += '<div class="warning-box">' + data.bgNote + '</div>';
+    html += '</div></div>';
+    resultsEl.innerHTML = html;
+    resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+
+  // Rock bed
+  if (equip === 'rock') {
+    if (sqft <= 0) { alert('Enter the sqft of rock beds to cover.'); return; }
+    const rockGals = Math.max(1, Math.ceil(sqft / 1625));
+    const rpOz = (2 * rockGals).toFixed(1);
+    const dyeOz = (0.3 * rockGals).toFixed(1);
+    resultsEl.innerHTML = '<div class="result-block"><div class="result-header rock-header">🪨 FlowZone — Rock Beds <span class="gal-badge" style="background:rgba(168,85,247,0.15);color:#c084fc;">' + rockGals + ' gal</span></div><div class="result-body"><div class="mix-meta">Coverage: ~1,625 sqft/gal · ' + fmtNum(sqft) + ' sqft = ' + rockGals + ' gal</div><div class="product-row"><div class="product-name">Ranger Pro (41% glyphosate)</div><div class="product-amount glypho-amt">' + rpOz + ' <small>oz</small></div></div><div class="product-row"><div class="product-name">Dye</div><div class="product-amount glypho-amt">' + dyeOz + ' <small>oz</small></div></div><div class="warning-box">⚠️ Non-selective — keep off turf and ornamentals.</div></div></div>';
+    resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+
+  if (sqft <= 0) { alert('Enter the sqft you still need to cover.'); return; }
+
+  const data = ROUNDS[round][turf];
+  const atrazineBlocked = isAfterMarch10();
+  let products, gals, headerClass, headerLabel, amtClass, calNote;
+
+  if (equip === 'power') {
+    gals = roundGals(sqftToGalsPower(sqft));
+    products = data.power;
+    headerClass = 'power-header';
+    headerLabel = '💧 Power Spray Rig';
+    amtClass = 'power-amt';
+    calNote = 'Calibration: 1.14 gal / 1,000 sqft @ 3.0 MPH — 6 ft spray width';
+  } else {
+    gals = roundGals(sqftToGalsToro(sqft));
+    products = data.toro;
+    headerClass = 'toro-header';
+    headerLabel = '🚜 Toro SprayMaster';
+    amtClass = 'toro-amt';
+    calNote = 'Calibration: 0.34 gal / 1,000 sqft @ 5 MPH — Purple tips — 40 PSI';
+  }
+
+  let html = '<div class="result-block"><div class="result-header ' + headerClass + '">' + headerLabel + ' <span class="gal-badge">' + gals + ' gal</span></div><div class="result-body"><div class="mix-meta">' + calNote + '<br>' + fmtNum(sqft) + ' sqft remaining → fill to <strong>' + gals + ' gal</strong></div>';
+
+  if (!products) {
+    const note = data.granular ? data.toroNote : (equip === 'power' ? data.powerNote : data.toroNote);
+    html += '<div class="na-box">' + (note || 'This equipment is not used for liquid spray this round.') + '</div>';
+  } else {
+    html += makeProductRows(products, amtClass, gals, atrazineBlocked);
+    const note = equip === 'power' ? data.powerNote : data.toroNote;
+    if (note) html += '<div class="warning-box">' + note + '</div>';
+    if (round === 1 && turf === 'warm' && !atrazineBlocked) {
+      html += '<div class="atrazine-gate">⚠️ ATRAZINE GATE: Visually confirm bermuda is fully dormant before mixing Atrazine.</div>';
+    }
+  }
+
+  html += '</div></div>';
+  resultsEl.innerHTML = html;
+  resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+
+// Override initRound to NOT auto-set on load (mode screen handles it)
+// initRound is called when entering day mode
 </script>
 
 </body>
