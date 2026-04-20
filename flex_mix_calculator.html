@@ -874,28 +874,34 @@ async function sliceImage(file) {
     const url = URL.createObjectURL(file);
     img.onload = function() {
       URL.revokeObjectURL(url);
-      const MAX_SLICE_H = 3000; // px per slice
       const w = img.width;
       const h = img.height;
 
-      if (h <= MAX_SLICE_H) {
-        // No slicing needed — return as single slice
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0);
-        resolve([{ b64: canvas.toDataURL('image/jpeg', 0.92).split(',')[1], mediaType: 'image/jpeg' }]);
-        return;
-      }
+      // Target: each slice should be at most 1200px tall so text is large and readable
+      // Scale up narrow mobile screenshots so text is minimum 800px wide
+      const MIN_W = 800;
+      const scale = w < MIN_W ? MIN_W / w : 1;
+      const scaledW = Math.round(w * scale);
+      const scaledH = Math.round(h * scale);
+
+      // Slice height in SCALED pixels — aim for ~4 property cards per slice
+      const MAX_SLICE_H = 1400;
 
       const slices = [];
-      let y = 0;
+      let y = 0; // in original pixels
       while (y < h) {
-        const sliceH = Math.min(MAX_SLICE_H, h - y);
+        // How many original pixels fit in one slice
+        const origSliceH = Math.min(Math.round(MAX_SLICE_H / scale), h - y);
+        const sliceScaledH = Math.round(origSliceH * scale);
+
         const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = sliceH;
-        canvas.getContext('2d').drawImage(img, 0, y, w, sliceH, 0, 0, w, sliceH);
-        slices.push({ b64: canvas.toDataURL('image/jpeg', 0.92).split(',')[1], mediaType: 'image/jpeg' });
-        y += MAX_SLICE_H;
+        canvas.width = scaledW;
+        canvas.height = sliceScaledH;
+        const ctx = canvas.getContext('2d');
+        // Draw this slice of the original image, scaled up
+        ctx.drawImage(img, 0, y, w, origSliceH, 0, 0, scaledW, sliceScaledH);
+        slices.push({ b64: canvas.toDataURL('image/jpeg', 0.95).split(',')[1], mediaType: 'image/jpeg' });
+        y += origSliceH;
       }
       resolve(slices);
     };
