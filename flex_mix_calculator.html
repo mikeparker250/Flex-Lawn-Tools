@@ -829,27 +829,48 @@ async function readOneFile(file) {
               role: 'user',
               content: [
                 { type: 'image', source: { type: 'base64', media_type: mediaType, data: b64 } },
-                { type: 'text', text: `Extract property data from this FieldRoutes schedule screenshot. The image may be a long scrolling screenshot — read every property card carefully top to bottom even if text is small.
+                { type: 'text', text: `You are extracting lawn care route data from a FieldRoutes schedule screenshot. This may be a long scrolling screenshot — scan every card from top to bottom.
 
-Return ONLY raw JSON — no markdown, no explanation, no backticks. Format:
-{"properties":[{"name":"Last, First","sqft":6500,"round":2,"rockYard":false}],"total":43100}
+RESPOND WITH ONLY A JSON OBJECT. No text before or after. No markdown. No backticks. Just the raw JSON.
 
-Rules:
-- Only include property cards that show a MEASUREMENTS value
-- Convert K values: 6.5K=6500, 12K=12000, 43.1K=43100, 5.1K=5100
-- total = the number from "Meas. SF/LF XX.XK SF" at the top header. If not visible omit it.
-- Clean names: "Smith, John" format, remove & symbols
-- round = the round number shown on the card (R1=1, R2=2, R3=3, RS=2, etc). If RS (reservice) treat as same round number as the original service shown. If unclear default to the round selected by user.
-- rockYard = true if red notes say "ALL ROCK YARD" or "rock bed" or "rock yard" — these get FlowZone glyphosate only, zero lawn sqft
-- Skip time slots, LUNCH, END, MEETING entries` }
+Required format:
+{"properties":[{"name":"Smith, John","sqft":6500,"round":2,"rockYard":false}],"total":43100}
+
+For each property CARD that shows MEASUREMENTS:
+- name: Last name, First name (remove & symbols, clean up)
+- sqft: convert the K value (6.5K=6500, 13.8K=13800, 5.1K=5100, 43.1K=43100)
+- round: look for R1, R2, R3, R4, R5, R6, R7, or RS badge on the card. R1=1, R2=2, R3=3, RS=2. If not visible use 2.
+- rockYard: true ONLY if red notes say ALL ROCK YARD or rock bed or rock yard. Otherwise false.
+
+total: the "XX.XK SF" number shown in the header summary at the top (e.g. "63.2K SF" = 63200). Omit if not visible.
+
+SKIP: time slots, LUNCH blocks, MEETING blocks, END entries, any card without MEASUREMENTS, cancelled appointments.
+
+Important: rockYard=true properties still get their sqft recorded (for FlowZone calculation), but lawn sqft = 0.` }
               ]
             }]
           })
         });
         const data = await resp.json();
-        const raw = (data.content?.[0]?.text || '').replace(/```json|```/g,'').trim();
-        try { resolve(JSON.parse(raw)); }
-        catch(err) { reject(new Error('Could not parse screenshot. Try a clearer image.')); }
+        const rawText = (data.content?.[0]?.text || '').trim();
+        // Strip any markdown fences
+        const raw = rawText.replace(/```json|```/g,'').trim();
+        try {
+          // Try direct parse first
+          resolve(JSON.parse(raw));
+        } catch(e1) {
+          // Try extracting JSON from response if there's extra text
+          const jsonMatch = raw.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            try {
+              resolve(JSON.parse(jsonMatch[0]));
+              return;
+            } catch(e2) {}
+          }
+          // Log what we got for debugging
+          console.error('Parse failed. Raw response:', raw.substring(0, 500));
+          reject(new Error('Could not read screenshot — got: ' + raw.substring(0, 100)));
+        }
       } catch(err) { reject(err); }
     };
     reader.readAsDataURL(file);
