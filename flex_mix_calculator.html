@@ -1004,7 +1004,7 @@ function calculate() {
     if (data.granular && data.granularProduct) {
       // Show granular totals for push spreader props (under 13K)
       const pushSqft = powerSqft;
-      const toroGranSqft = toroSqftRaw; // use raw toro sqft for granular (no buffer deduction)
+      const toroGranSqft = toroSqftRaw;
       const pushLbs = data.granularRatePush ? (pushSqft / 1000 * data.granularRatePush) : 0;
       const toroLbs = data.granularRateToro ? (toroGranSqft / 1000 * data.granularRateToro) : 0;
       const totalLbs = pushLbs + toroLbs;
@@ -1012,20 +1012,21 @@ function calculate() {
       document.getElementById('power-gal-badge').textContent = pushLbs > 0 ? pushLbs.toFixed(1) + ' lbs' : 'N/A';
       let html = '';
       if (pushLbs > 0) {
-        html += \`<div class="product-row"><div class="product-name">\${data.granularProduct}<small>Push spreader — props under 13K sqft</small></div><div class="product-amount power-amt">\${pushLbs.toFixed(1)} <small>lbs</small></div></div>\`;
+        html += '<div class="product-row"><div class="product-name">' + data.granularProduct + '<small>Push spreader — props under 13K sqft</small></div><div class="product-amount power-amt">' + pushLbs.toFixed(1) + ' <small>lbs</small></div></div>';
       }
       if (toroLbs > 0) {
-        html += \`<div class="product-row"><div class="product-name">\${data.granularProduct}<small>Toro hopper — props 13K sqft and over</small></div><div class="product-amount toro-amt">\${toroLbs.toFixed(1)} <small>lbs</small></div></div>\`;
+        html += '<div class="product-row"><div class="product-name">' + data.granularProduct + '<small>Toro hopper — props 13K sqft and over</small></div><div class="product-amount toro-amt">' + toroLbs.toFixed(1) + ' <small>lbs</small></div></div>';
       }
-      html += \`<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name"><strong>Total granular for the day</strong><small>\${bags50} bag\${bags50 !== 1 ? 's' : ''} of 50 lbs needed</small></div><div class="product-amount" style="color:var(--green);font-size:24px;">\${totalLbs.toFixed(1)} <small>lbs</small></div></div>\`;
-      if (data.granularHardStop) html += \`<div class="atrazine-gate">⚠️ \${data.granularHardStop}</div>\`;
+      const bagLabel = bags50 !== 1 ? 's' : '';
+      html += '<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name"><strong>Total granular for the day</strong><small>' + bags50 + ' bag' + bagLabel + ' of 50 lbs needed</small></div><div class="product-amount" style="color:var(--green);font-size:24px;">' + totalLbs.toFixed(1) + ' <small>lbs</small></div></div>';
+      if (data.granularHardStop) html += '<div class="atrazine-gate">⚠️ ' + data.granularHardStop + '</div>';
       const note = data.powerNote || data.toroNote || '';
-      if (note) html += \`<div class="warning-box">\${note}</div>\`;
+      if (note) html += '<div class="warning-box">' + note + '</div>';
       powerProds.innerHTML = html;
     } else {
       document.getElementById('power-gal-badge').textContent = 'N/A';
       const note = data.powerNote || data.toroNote || 'Power spray rig not used this round.';
-      powerProds.innerHTML = \`<div class="na-box">\${note}</div>\`;
+      powerProds.innerHTML = '<div class="na-box">' + note + '</div>';
     }
   }
 
@@ -1049,7 +1050,7 @@ function calculate() {
     } else if (data.granular && data.granularRateToro) {
       const toroGranLbs = (toroSqftRaw / 1000 * data.granularRateToro).toFixed(1);
       document.getElementById('toro-gal-badge').textContent = toroGranLbs + ' lbs';
-      toroProds.innerHTML = `<div class="product-row"><div class="product-name">${data.granularProduct}<small>Toro hopper spreader</small></div><div class="product-amount toro-amt">${toroGranLbs} <small>lbs</small></div></div>`;
+      toroProds.innerHTML = '<div class="product-row"><div class="product-name">' + data.granularProduct + '<small>Toro hopper spreader</small></div><div class="product-amount toro-amt">' + toroGranLbs + ' <small>lbs</small></div></div>';
     } else {
       document.getElementById('toro-gal-badge').textContent = data.granular ? 'See above' : 'N/A';
       const note = data.toroNote || 'Toro not used this round.';
@@ -1113,14 +1114,12 @@ function resetAll() {
 
 
 
-// ─── KILL ANY EXISTING SERVICE WORKERS ───────────────────────────────────
-// Unregisters any previously installed service workers so updates are instant
+// ─── SERVICE WORKER ───────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(regs => {
-    regs.forEach(reg => reg.unregister());
-  });
-  caches.keys().then(keys => {
-    keys.forEach(key => caches.delete(key));
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(r => console.log('SW registered:', r.scope))
+      .catch(e => console.log('SW failed:', e));
   });
 }
 

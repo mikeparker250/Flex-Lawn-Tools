@@ -1,46 +1,43 @@
-const CACHE_NAME = 'flex-mix-v4';
+// ─── VERSION — bump this number every time you deploy a new version ───────
+const VERSION = 'flex-mix-v6';
+// ─────────────────────────────────────────────────────────────────────────
 
 const ASSETS = [
   '/Flex-Lawn-Tools/flex_mix_calculator.html',
   '/Flex-Lawn-Tools/manifest.json'
 ];
 
-// Install — cache assets
+// Install — cache new version
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+    caches.open(VERSION).then(cache => cache.addAll(ASSETS))
   );
+  // Activate immediately — don't wait for old SW to die
   self.skipWaiting();
 });
 
-// Activate — delete ALL old caches immediately
+// Activate — delete ALL old caches, take control of all tabs instantly
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+      Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Fetch — NETWORK FIRST, fall back to cache
-// This means the phone always tries to get the latest from GitHub first.
-// Only uses cache if offline.
+// Fetch — network first, cache as fallback (always gets latest from GitHub)
 self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Got a fresh response — update the cache with it
         if (response && response.status === 200) {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          caches.open(VERSION).then(cache => cache.put(event.request, clone));
         }
         return response;
       })
-      .catch(() => {
-        // Offline — serve from cache
-        return caches.match(event.request)
-          .then(cached => cached || caches.match('/Flex-Lawn-Tools/flex_mix_calculator.html'));
-      })
+      .catch(() => caches.match(event.request)
+        .then(cached => cached || caches.match('/Flex-Lawn-Tools/flex_mix_calculator.html'))
+      )
   );
 });
