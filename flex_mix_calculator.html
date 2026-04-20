@@ -7,6 +7,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a0a0a">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Flex Mix Calculator</title>
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1286,13 +1289,16 @@ function resetAll() {
 
 
 
-// ─── SERVICE WORKER ───────────────────────────────────────────────────────
+// ─── KILL ALL SERVICE WORKERS & CACHES ────────────────────────────────────
+// No service worker — ensures every phone always gets the latest version
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(r => console.log('SW registered:', r.scope))
-      .catch(e => console.log('SW failed:', e));
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => {
+      r.unregister();
+      console.log('Unregistered SW:', r.scope);
+    });
   });
+  caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
 }
 
 // old PWA block removed — handled below
