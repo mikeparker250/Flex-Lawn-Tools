@@ -1,18 +1,18 @@
-const CACHE = 'flex-mix-v6';
-const ASSETS = [
-  '/Flex-Lawn-Tools/flex_mix_calculator.html',
-  '/Flex-Lawn-Tools/manifest.json',
+const CACHE = 'flex-mix-v7';
+const STATIC = [
   '/Flex-Lawn-Tools/icon-512.png',
-  'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap'
+  '/Flex-Lawn-Tools/manifest.json',
 ];
 
+// Install — only cache static assets, NEVER the HTML
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS).catch(() => {}))
+    caches.open(CACHE).then(c => c.addAll(STATIC).catch(() => {}))
   );
   self.skipWaiting();
 });
 
+// Activate — clear old caches immediately
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -23,11 +23,23 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Don't cache API calls
-  if (e.request.url.includes('anthropic.com')) return;
+  const url = e.request.url;
+
+  // Never intercept API calls
+  if (url.includes('anthropic.com')) return;
+
+  // HTML files: always network-first — never serve stale app code
+  if (e.request.destination === 'document' || url.endsWith('.html')) {
+    e.respondWith(
+      fetch(e.request).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // Static assets: cache-first
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request).then(res => {
-      if (res.ok && e.request.method === 'GET') {
+      if (res.ok) {
         const clone = res.clone();
         caches.open(CACHE).then(c => c.put(e.request, clone));
       }

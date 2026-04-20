@@ -1667,9 +1667,12 @@ if (isIOS && !isStandalone && !localStorage.getItem('ios-install-shown')) {
 //  SERVICE WORKER
 // ═══════════════════════════════════════════════════════════
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/Flex-Lawn-Tools/sw.js')
-      .catch(() => {});
+  navigator.serviceWorker.register('/Flex-Lawn-Tools/sw.js').then(reg => {
+    reg.update(); // Check for new SW on every page load
+  });
+  // When new SW takes control, reload to get fresh HTML
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
   });
 }
 
