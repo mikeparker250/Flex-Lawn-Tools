@@ -1,5 +1,5 @@
 // ─── VERSION — bump this number every time you deploy a new version ───────
-const VERSION = 'flex-mix-v9';
+const VERSION = 'flex-mix-v10';
 // ─────────────────────────────────────────────────────────────────────────
 
 const ASSETS = [

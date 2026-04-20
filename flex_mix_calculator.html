@@ -814,24 +814,23 @@ async function processAllFiles(files) {
   renderProps();
 }
 
-async function readOneFile(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-      const b64 = e.target.result.split(',')[1];
-      const mediaType = file.type || 'image/jpeg';
-      try {
-        const resp = await fetch('https://flex-proxy.mike-8e3.workers.dev', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [{
-              role: 'user',
-              content: [
-                { type: 'image', source: { type: 'base64', media_type: mediaType, data: b64 } },
-                { type: 'text', text: `You are extracting lawn care route data from a FieldRoutes schedule screenshot. This may be a long scrolling screenshot — scan every card from top to bottom.
+// Sends one image slice (base64) to the worker and returns parsed properties
+async function callWorkerWithSlice(b64, mediaType, isFirstSlice) {
+  const totalNote = isFirstSlice
+    ? 'total: the "XX.XK SF" number shown in the header summary at the top (e.g. "63.2K SF" = 63200). Omit if not visible.'
+    : 'total: omit this field — only extract from the first slice.';
 
-RESPOND WITH ONLY A JSON OBJECT. No text before or after. No markdown. No backticks. Just the raw JSON.
+  const resp = await fetch('https://flex-proxy.mike-8e3.workers.dev', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: b64 } },
+          { type: 'text', text: `You are extracting lawn care route data from a FieldRoutes schedule screenshot.
+
+RESPOND WITH ONLY A JSON OBJECT. No text before or after. No markdown. No backticks. Just raw JSON.
 
 Required format:
 {"properties":[{"name":"Smith, John","sqft":6500,"round":2,"rockYard":false}],"total":43100}
@@ -839,42 +838,99 @@ Required format:
 For each property CARD that shows MEASUREMENTS:
 - name: Last name, First name (remove & symbols, clean up)
 - sqft: convert the K value (6.5K=6500, 13.8K=13800, 5.1K=5100, 43.1K=43100)
-- round: look for R1, R2, R3, R4, R5, R6, R7, or RS badge on the card. R1=1, R2=2, R3=3, RS=2. If not visible use 2.
+- round: look for R1, R2, R3, R4, R5, R6, R7, or RS badge. R1=1, R2=2, R3=3, RS=2. Default 2 if unclear.
 - rockYard: true ONLY if red notes say ALL ROCK YARD or rock bed or rock yard. Otherwise false.
 
-total: the "XX.XK SF" number shown in the header summary at the top (e.g. "63.2K SF" = 63200). Omit if not visible.
+${totalNote}
 
-SKIP: time slots, LUNCH blocks, MEETING blocks, END entries, any card without MEASUREMENTS, cancelled appointments.
-
-Important: rockYard=true properties still get their sqft recorded (for FlowZone calculation), but lawn sqft = 0.` }
-              ]
-            }]
-          })
-        });
-        const data = await resp.json();
-        const rawText = (data.content?.[0]?.text || '').trim();
-        // Strip any markdown fences
-        const raw = rawText.replace(/```json|```/g,'').trim();
-        try {
-          // Try direct parse first
-          resolve(JSON.parse(raw));
-        } catch(e1) {
-          // Try extracting JSON from response if there's extra text
-          const jsonMatch = raw.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            try {
-              resolve(JSON.parse(jsonMatch[0]));
-              return;
-            } catch(e2) {}
-          }
-          // Log what we got for debugging
-          console.error('Parse failed. Raw response:', raw.substring(0, 500));
-          reject(new Error('Could not read screenshot — got: ' + raw.substring(0, 100)));
-        }
-      } catch(err) { reject(err); }
-    };
-    reader.readAsDataURL(file);
+SKIP: time slots, LUNCH, MEETING, END entries, cards without MEASUREMENTS, cancelled appointments.
+If no property cards with measurements are visible in this image section, return {"properties":[]}.` }
+        ]
+      }]
+    })
   });
+
+  const data = await resp.json();
+  const rawText = (data.content?.[0]?.text || '').trim();
+  const raw = rawText.replace(/\`\`\`json|\`\`\`/g, '').trim();
+
+  // Try direct parse
+  try { return JSON.parse(raw); } catch(e1) {}
+
+  // Try extracting JSON object from response
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try { return JSON.parse(jsonMatch[0]); } catch(e2) {}
+  }
+
+  console.error('Slice parse failed:', raw.substring(0, 300));
+  throw new Error('Could not read screenshot — got: ' + raw.substring(0, 80));
+}
+
+// Slices a tall image into vertical chunks using canvas, returns array of base64 strings
+async function sliceImage(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = function() {
+      URL.revokeObjectURL(url);
+      const MAX_SLICE_H = 3000; // px per slice
+      const w = img.width;
+      const h = img.height;
+
+      if (h <= MAX_SLICE_H) {
+        // No slicing needed — return as single slice
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        resolve([{ b64: canvas.toDataURL('image/jpeg', 0.92).split(',')[1], mediaType: 'image/jpeg' }]);
+        return;
+      }
+
+      const slices = [];
+      let y = 0;
+      while (y < h) {
+        const sliceH = Math.min(MAX_SLICE_H, h - y);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = sliceH;
+        canvas.getContext('2d').drawImage(img, 0, y, w, sliceH, 0, 0, w, sliceH);
+        slices.push({ b64: canvas.toDataURL('image/jpeg', 0.92).split(',')[1], mediaType: 'image/jpeg' });
+        y += MAX_SLICE_H;
+      }
+      resolve(slices);
+    };
+    img.onerror = function() {
+      // Fallback: read file directly without slicing
+      const reader = new FileReader();
+      reader.onload = (e) => resolve([{ b64: e.target.result.split(',')[1], mediaType: file.type || 'image/jpeg' }]);
+      reader.readAsDataURL(file);
+    };
+    img.src = url;
+  });
+}
+
+async function readOneFile(file) {
+  // Slice the image into manageable chunks (handles unlimited size scrolling screenshots)
+  const slices = await sliceImage(file);
+
+  let allProperties = [];
+  let detectedTotalFromFile = null;
+
+  for (let i = 0; i < slices.length; i++) {
+    const { b64, mediaType } = slices[i];
+    setProgress(true, 'Reading screenshot' + (slices.length > 1 ? ' (part ' + (i+1) + ' of ' + slices.length + ')' : '') + '...', 20 + Math.round((i / slices.length) * 60));
+    try {
+      const result = await callWorkerWithSlice(b64, mediaType, i === 0);
+      if (result.properties) allProperties = allProperties.concat(result.properties);
+      if (result.total && i === 0) detectedTotalFromFile = result.total;
+    } catch(err) {
+      // If one slice fails, continue with others rather than stopping entirely
+      console.warn('Slice ' + (i+1) + ' failed:', err.message);
+      if (slices.length === 1) throw err; // Only throw if it was a single-slice file
+    }
+  }
+
+  return { properties: allProperties, total: detectedTotalFromFile };
 }
 
 function setProgress(on, msg, pct) {
