@@ -691,6 +691,9 @@ const ROUNDS = {
       powerNote: null,
       bgNote: 'B&G 1-gal — spot spray only where weeds are visible. Mix 1 gallon at a time.',
       granular: true,
+      granularProduct: 'Lesco 32-0-0 w/ 20% PolyPlus OPTI45',
+      granularRateToro: 3.13,
+      granularRatePush: 3.13,
     },
     cool: {
       toro: null, power: null,
@@ -699,6 +702,10 @@ const ROUNDS = {
       powerNote: null,
       bgNote: 'B&G 1-gal — spot spray broadleaf weeds only. Cool-season turf.',
       granular: true,
+      granularProduct: 'Lesco 32-0-0 w/ 20% PolyPlus OPTI45',
+      granularRateToro: null,
+      granularRatePush: 2.5,
+      granularHardStop: 'MAY 1 HARD STOP — Skip granular if after May 1. Spot weeds only.',
     }
   },
   4: {
@@ -993,10 +1000,33 @@ function calculate() {
     powerProds.innerHTML = html;
   } else if (powerSqft === 0 || !data.power) {
     powerBlock.style.display = 'block';
-    document.getElementById('power-gal-badge').textContent = 'N/A';
-    powerNames.textContent = '';
-    const note = data.powerNote || (data.granular ? data.toroNote : 'Power spray rig not used this round.');
-    powerProds.innerHTML = `<div class="na-box">${note || 'Not used this round.'}</div>`;
+    powerNames.textContent = powerPxList.length > 0 ? powerPxList.map(p => p.name).join(' · ') : '';
+    if (data.granular && data.granularProduct) {
+      // Show granular totals for push spreader props (under 13K)
+      const pushSqft = powerSqft;
+      const toroGranSqft = toroSqftRaw; // use raw toro sqft for granular (no buffer deduction)
+      const pushLbs = data.granularRatePush ? (pushSqft / 1000 * data.granularRatePush) : 0;
+      const toroLbs = data.granularRateToro ? (toroGranSqft / 1000 * data.granularRateToro) : 0;
+      const totalLbs = pushLbs + toroLbs;
+      const bags50 = Math.ceil(totalLbs / 50);
+      document.getElementById('power-gal-badge').textContent = pushLbs > 0 ? pushLbs.toFixed(1) + ' lbs' : 'N/A';
+      let html = '';
+      if (pushLbs > 0) {
+        html += \`<div class="product-row"><div class="product-name">\${data.granularProduct}<small>Push spreader — props under 13K sqft</small></div><div class="product-amount power-amt">\${pushLbs.toFixed(1)} <small>lbs</small></div></div>\`;
+      }
+      if (toroLbs > 0) {
+        html += \`<div class="product-row"><div class="product-name">\${data.granularProduct}<small>Toro hopper — props 13K sqft and over</small></div><div class="product-amount toro-amt">\${toroLbs.toFixed(1)} <small>lbs</small></div></div>\`;
+      }
+      html += \`<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name"><strong>Total granular for the day</strong><small>\${bags50} bag\${bags50 !== 1 ? 's' : ''} of 50 lbs needed</small></div><div class="product-amount" style="color:var(--green);font-size:24px;">\${totalLbs.toFixed(1)} <small>lbs</small></div></div>\`;
+      if (data.granularHardStop) html += \`<div class="atrazine-gate">⚠️ \${data.granularHardStop}</div>\`;
+      const note = data.powerNote || data.toroNote || '';
+      if (note) html += \`<div class="warning-box">\${note}</div>\`;
+      powerProds.innerHTML = html;
+    } else {
+      document.getElementById('power-gal-badge').textContent = 'N/A';
+      const note = data.powerNote || data.toroNote || 'Power spray rig not used this round.';
+      powerProds.innerHTML = \`<div class="na-box">\${note}</div>\`;
+    }
   }
 
   // ── TORO BLOCK (SECONDARY) ──
@@ -1012,10 +1042,19 @@ function calculate() {
     toroProds.innerHTML = html;
   } else {
     toroBlock.style.display = 'block';
-    document.getElementById('toro-gal-badge').textContent = toroPxList.length === 0 ? 'No props' : 'N/A';
     toroNames.textContent = toroPxList.length > 0 ? toroPxList.map(p => p.name).join(' · ') : '';
-    const note = toroPxList.length === 0 ? 'No properties ≥13,000 sqft on this route.' : (data.toroNote || 'Toro not used this round.');
-    toroProds.innerHTML = `<div class="na-box">${note}</div>`;
+    if (toroPxList.length === 0) {
+      document.getElementById('toro-gal-badge').textContent = 'No props';
+      toroProds.innerHTML = '<div class="na-box">No properties ≥13,000 sqft on this route — all going to push spreader.</div>';
+    } else if (data.granular && data.granularRateToro) {
+      const toroGranLbs = (toroSqftRaw / 1000 * data.granularRateToro).toFixed(1);
+      document.getElementById('toro-gal-badge').textContent = toroGranLbs + ' lbs';
+      toroProds.innerHTML = `<div class="product-row"><div class="product-name">${data.granularProduct}<small>Toro hopper spreader</small></div><div class="product-amount toro-amt">${toroGranLbs} <small>lbs</small></div></div>`;
+    } else {
+      document.getElementById('toro-gal-badge').textContent = data.granular ? 'See above' : 'N/A';
+      const note = data.toroNote || 'Toro not used this round.';
+      toroProds.innerHTML = `<div class="na-box">${note}</div>`;
+    }
   }
 
   // ── B&G BLOCK ──
