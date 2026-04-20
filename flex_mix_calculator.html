@@ -1,701 +1,1594 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0a0a0a">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Flex Mix Calculator</title>
-<link rel="manifest" href="manifest.json">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap">
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#080808" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+<meta name="apple-mobile-web-app-title" content="Flex Mix" />
+<link rel="apple-touch-icon" href="icon-512.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
 <style>
-:root{--green:#32ff64;--black:#0a0a0a;--card:#141414;--border:#2a2a2a;--text:#e8e8e8;--muted:#888;--toro:#32ff64;--power:#38bdf8;--push:#7dff9e;--rock:#c084fc;}
-*{box-sizing:border-box;margin:0;padding:0;}
-html{background:var(--black);color:var(--text);font-family:'Barlow',sans-serif;}
-body{min-height:100vh;padding-bottom:max(80px,env(safe-area-inset-bottom));}
-header{background:var(--black);padding:18px 16px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;}
-header h1{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;color:var(--green);text-transform:uppercase;letter-spacing:.5px;}
-header p{font-size:12px;color:var(--muted);margin-top:2px;}
-.back-btn{background:none;border:none;color:var(--muted);font-family:'Barlow',sans-serif;font-size:13px;cursor:pointer;padding:0;display:none;align-items:center;gap:4px;margin-top:3px;}
-.back-btn.show{display:flex;}
-.container{max-width:600px;margin:0 auto;padding:16px;}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;}
-.card-title{display:flex;align-items:center;gap:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;}
-.icon{width:28px;height:28px;border-radius:50%;background:var(--green);color:var(--black);font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.field-group{margin-bottom:14px;}.field-group:last-child{margin-bottom:0;}
-label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
-label span{font-weight:400;text-transform:none;letter-spacing:0;}
-select,input[type="number"],input[type="text"]{width:100%;background:#1e1e1e;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Barlow',sans-serif;font-size:16px;padding:12px 14px;outline:none;appearance:none;-webkit-appearance:none;}
-select:focus,input:focus{border-color:var(--green);}
-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;}
-.round-badge{display:inline-flex;align-items:center;background:rgba(50,255,100,.1);border:1px solid rgba(50,255,100,.3);border-radius:6px;padding:4px 10px;margin-top:6px;font-size:12px;color:var(--green);}
-.round-badge.override{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3);color:#fbbf24;}
-.upload-area{border:2px dashed var(--border);border-radius:10px;padding:24px 16px;text-align:center;cursor:pointer;position:relative;background:#1a1a1a;transition:border-color .2s,background .2s;}
-.upload-area:hover,.upload-area.drag-over{border-color:var(--power);background:rgba(56,189,248,.05);}
-.upload-area input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;font-size:0;}
-.upload-icon{font-size:32px;margin-bottom:8px;}
-.upload-area p{font-size:14px;color:var(--text);font-weight:600;}
-.upload-area small{font-size:12px;color:var(--muted);margin-top:4px;display:block;}
-.preview-strip{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
-.preview-strip img{height:72px;width:72px;object-fit:cover;border-radius:6px;border:1px solid var(--border);}
-.preview-count{font-size:12px;color:var(--power);margin-top:6px;}
-.progress-wrap{margin-top:10px;display:none;}
-.progress-label{font-size:12px;color:var(--power);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
-.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--power);border-radius:50%;animation:spin .7s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
-.progress-fill{height:100%;background:var(--power);border-radius:2px;width:0;transition:width .4s ease;}
-.error-box{background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#fca5a5;margin-top:10px;display:none;}
-.prop-item{display:grid;grid-template-columns:1fr 80px auto auto;gap:8px;align-items:center;margin-bottom:8px;}
-.prop-item input{padding:8px 10px;font-size:13px;border-radius:6px;}
-.prop-badge{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:4px 8px;border-radius:4px;text-align:center;white-space:nowrap;}
-.badge-power{background:rgba(56,189,248,.15);color:var(--power);border:1px solid rgba(56,189,248,.3);}
-.badge-toro{background:rgba(50,255,100,.12);color:var(--toro);border:1px solid rgba(50,255,100,.3);}
-.badge-rock{background:rgba(192,132,252,.15);color:var(--rock);border:1px solid rgba(192,132,252,.3);}
-.rm-btn{background:none;border:none;color:#555;cursor:pointer;font-size:18px;padding:2px 6px;line-height:1;}
-.rm-btn:hover{color:#e05;}
-.summary-chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0;}
-.chip{background:#1e1e1e;border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:12px;color:var(--muted);}
-.chip strong{color:var(--text);font-weight:600;}
-.chip.power-chip{border-color:rgba(56,189,248,.3);}
-.chip.power-chip strong{color:var(--power);}
-.chip.toro-chip{border-color:rgba(50,255,100,.3);}
-.chip.toro-chip strong{color:var(--toro);}
-.calc-btn{width:100%;background:var(--green);color:var(--black);border:none;border-radius:10px;padding:16px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;text-transform:uppercase;letter-spacing:1px;cursor:pointer;margin-top:14px;transition:opacity .15s;}
-.calc-btn:active{opacity:.85;}
-.reset-btn{width:100%;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:'Barlow',sans-serif;font-size:14px;cursor:pointer;margin-top:8px;}
-#results{display:none;}
-.sqft-summary{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:14px;}
-.sqft-box{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;text-align:center;}
-.sqft-box .val{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:18px;color:var(--text);}
-.sqft-box .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
-.result-block{border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:14px;}
-.result-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;text-transform:uppercase;letter-spacing:.5px;}
-.result-header.toro-header{background:rgba(50,255,100,.08);border-bottom:1px solid rgba(50,255,100,.2);color:var(--toro);}
-.result-header.power-header{background:rgba(56,189,248,.08);border-bottom:1px solid rgba(56,189,248,.2);color:var(--power);}
-.result-header.push-header{background:rgba(50,255,100,.06);border-bottom:1px solid rgba(50,255,100,.15);color:#7dff9e;}
-.result-header.bg-header{background:rgba(251,191,36,.08);border-bottom:1px solid rgba(251,191,36,.2);color:#fbbf24;}
-.result-header.rock-header{background:rgba(192,132,252,.08);border-bottom:1px solid rgba(192,132,252,.2);color:var(--rock);}
-.gal-badge{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;padding:4px 12px;border-radius:6px;}
-.toro-header .gal-badge{background:rgba(50,255,100,.15);color:var(--toro);}
-.power-header .gal-badge{background:rgba(56,189,248,.15);color:var(--power);}
-.push-header .gal-badge{background:rgba(50,255,100,.12);color:#7dff9e;}
-.rock-header .gal-badge{background:rgba(192,132,252,.15);color:var(--rock);}
-.result-body{background:var(--card);padding:14px 16px;}
-.mix-meta{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5;}
-.prop-names-list{font-size:11px;color:var(--muted);padding:6px 16px 0;background:var(--card);line-height:1.6;}
-.product-row{display:flex;align-items:flex-start;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);gap:10px;}
-.product-row:last-of-type{border-bottom:none;}
-.product-name{font-size:15px;color:var(--text);flex:1;line-height:1.3;}
-.product-name small{display:block;font-size:11px;color:var(--muted);margin-top:2px;}
-.product-amount{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;text-align:right;white-space:nowrap;}
-.product-amount.toro-amt{color:var(--toro);}
-.product-amount.power-amt{color:var(--power);}
-.product-amount.push-amt{color:#7dff9e;}
-.product-amount.bg-amt{color:#fbbf24;}
-.product-amount.rock-amt{color:var(--rock);}
-.product-amount small{display:block;font-size:11px;font-weight:400;color:var(--muted);}
-.warning-box{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:6px;padding:10px 12px;font-size:12px;color:#fbbf24;margin-top:12px;line-height:1.5;}
-.atrazine-gate{background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:6px;padding:10px 12px;font-size:12px;color:#fca5a5;margin-top:12px;line-height:1.5;}
-.na-box{font-size:13px;color:var(--muted);padding:4px 0;line-height:1.5;}
-.atrazineWarning{background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;padding:12px 14px;font-size:13px;color:#fca5a5;margin-top:12px;display:none;line-height:1.5;}
-.atrazineWarning.show{display:block;}
-/* Mode screen */
-#modeScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 80px);padding:24px 16px;}
-.mode-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:28px;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;text-align:center;}
-.mode-sub{font-size:13px;color:var(--muted);margin-bottom:40px;text-align:center;}
-.mode-btn{width:100%;max-width:420px;border-radius:14px;padding:22px 20px;margin-bottom:14px;cursor:pointer;border:none;text-align:left;display:flex;align-items:center;gap:16px;transition:opacity .15s;}
-.mode-btn:active{opacity:.85;}
-.mode-btn-day{background:var(--green);color:var(--black);}
-.mode-btn-fly{background:var(--card);color:var(--text);border:1px solid var(--border)!important;}
-.mode-icon{font-size:36px;flex-shrink:0;line-height:1;}
-.mode-text-wrap{flex:1;}
-.mode-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;text-transform:uppercase;letter-spacing:.5px;line-height:1.1;margin-bottom:4px;}
-.mode-btn-day .mode-title{color:var(--black);}
-.mode-btn-fly .mode-title{color:var(--text);}
-.mode-desc{font-size:13px;line-height:1.4;}
-.mode-btn-day .mode-desc{color:rgba(0,0,0,.6);}
-.mode-btn-fly .mode-desc{color:var(--muted);}
-.mode-arrow{font-size:22px;flex-shrink:0;opacity:.5;}
-.mode-btn-day .mode-arrow{color:var(--black);}
-.install-inline-btn{display:none;align-items:center;justify-content:center;gap:8px;width:100%;max-width:420px;margin-top:6px;background:none;border:1px solid rgba(50,255,100,.3);border-radius:10px;padding:12px 16px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:var(--green);text-transform:uppercase;letter-spacing:.5px;}
-.install-inline-btn.show{display:flex;}
-.install-inline-ios{display:none;width:100%;max-width:420px;margin-top:6px;background:rgba(50,255,100,.06);border:1px solid rgba(50,255,100,.2);border-radius:10px;padding:12px 16px;font-size:12px;color:var(--green);line-height:1.6;text-align:center;}
-.install-inline-ios.show{display:block;}
-#flyScreen{display:none;}
-#dayScreen{display:none;}
-.fly-note{background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--power);margin-bottom:14px;line-height:1.5;}
-.install-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--green);padding:14px 16px;z-index:999;align-items:center;gap:12px;box-shadow:0 -4px 20px rgba(50,255,100,.3);padding-bottom:max(14px,env(safe-area-inset-bottom));}
-.install-banner.show{display:flex;}
-.install-banner-text{flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:var(--black);line-height:1.3;}
-.install-banner-text small{display:block;font-weight:400;font-size:12px;color:#005520;margin-top:2px;}
-.install-btn{background:var(--black);color:var(--green);border:none;border-radius:8px;padding:10px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;cursor:pointer;white-space:nowrap;text-transform:uppercase;}
-.install-dismiss{background:none;border:none;color:var(--black);font-size:22px;cursor:pointer;padding:4px;line-height:1;opacity:.6;}
-.footer{text-align:center;font-size:11px;color:#444;padding:20px 16px 8px;}
-.add-prop-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:12px;padding:4px 10px;cursor:pointer;font-family:'Barlow',sans-serif;}
-.props-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-.prop-count{font-size:12px;color:var(--muted);}
+:root {
+  --bg: #080808;
+  --bg2: #111111;
+  --bg3: #181818;
+  --bg4: #202020;
+  --green: #00ff47;
+  --green-dim: #00c438;
+  --green-glow: rgba(0,255,71,0.10);
+  --green-border: rgba(0,255,71,0.20);
+  --text: #ffffff;
+  --text2: #aaaaaa;
+  --text3: #666666;
+  --warn: #ff8c00;
+  --warn-bg: rgba(255,140,0,0.10);
+  --danger: #ff3b30;
+  --danger-bg: rgba(255,59,48,0.10);
+  --radius: 10px;
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-body: 'Barlow', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-body); -webkit-font-smoothing: antialiased; overscroll-behavior: none; }
+
+/* ─── INSTALL BANNER ─── */
+#install-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg3); border-bottom: 1px solid var(--green-border);
+  padding: 10px 16px; transition: transform 0.3s ease;
+}
+#install-banner.hidden { transform: translateY(-110%); }
+#install-banner img { width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0; }
+.install-text { flex: 1; }
+.install-text strong { display: block; font-family: var(--font-display); font-weight: 700; font-size: 14px; letter-spacing: 0.5px; }
+.install-text span { font-size: 11px; color: var(--text2); }
+#install-btn {
+  background: var(--green); color: #000; border: none; border-radius: 6px;
+  font-family: var(--font-display); font-weight: 700; font-size: 13px;
+  padding: 7px 14px; letter-spacing: 0.5px; cursor: pointer; white-space: nowrap;
+}
+#install-dismiss {
+  background: none; border: none; color: var(--text3); font-size: 18px;
+  cursor: pointer; padding: 4px; line-height: 1;
+}
+
+/* ─── IOS MODAL ─── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.modal-overlay.hidden { display: none; }
+.modal-box {
+  background: var(--bg3); border-radius: 16px 16px 0 0;
+  padding: 24px 20px 40px; max-width: 480px; width: 100%;
+  border-top: 1px solid var(--green-border);
+}
+.modal-box h3 { font-family: var(--font-display); font-weight: 900; font-size: 20px; letter-spacing: 0.5px; margin-bottom: 16px; }
+.modal-box p { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 12px; }
+.modal-box ol { padding-left: 20px; }
+.modal-box li { font-size: 14px; color: var(--text2); margin-bottom: 8px; line-height: 1.5; }
+.modal-box li strong { color: var(--text); }
+.modal-close-btn {
+  margin-top: 20px; width: 100%;
+  background: var(--bg4); border: 1px solid var(--green-border);
+  color: var(--text); padding: 12px; border-radius: 8px;
+  font-family: var(--font-display); font-weight: 700; font-size: 15px;
+  cursor: pointer; letter-spacing: 0.5px;
+}
+.ios-share-icon { display: inline-block; width: 20px; height: 20px; vertical-align: middle; margin: 0 4px; }
+
+/* ─── MAIN APP ─── */
+#app {
+  display: flex; flex-direction: column; min-height: 100dvh;
+  max-width: 520px; margin: 0 auto;
+}
+#app.banner-visible { padding-top: 58px; }
+
+/* Header */
+header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px 12px; border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+header img { width: 30px; height: 30px; border-radius: 6px; }
+header h1 {
+  flex: 1;
+  font-family: var(--font-display); font-weight: 900; font-size: 18px;
+  letter-spacing: 1px; text-transform: uppercase; color: var(--green);
+}
+.icon-btn {
+  background: none; border: 1px solid rgba(255,255,255,0.12); border-radius: 6px;
+  color: var(--text2); width: 34px; height: 34px; display: flex;
+  align-items: center; justify-content: center; cursor: pointer; font-size: 16px;
+}
+
+/* Main content */
+#main-content { flex: 1; overflow-y: auto; padding: 20px 16px; }
+
+/* Footer */
+.brand-footer {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 14px 16px; border-top: 1px solid var(--green-border);
+  background: var(--bg); flex-shrink: 0;
+}
+.brand-footer img { width: 24px; height: 24px; border-radius: 4px; }
+.brand-footer span {
+  font-family: var(--font-display); font-weight: 700; font-size: 13px;
+  letter-spacing: 2px; color: var(--green);
+}
+
+/* ─── STEP 1: ROUTE TYPE ─── */
+.step-label {
+  font-size: 11px; font-family: var(--font-mono); color: var(--text3);
+  letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px;
+}
+.step-title {
+  font-family: var(--font-display); font-weight: 900; font-size: 26px;
+  letter-spacing: 0.5px; margin-bottom: 24px; line-height: 1.1;
+}
+.route-cards { display: flex; flex-direction: column; gap: 12px; }
+.route-card {
+  background: var(--bg2); border: 2px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius); padding: 20px 18px;
+  cursor: pointer; transition: all 0.15s ease; position: relative; overflow: hidden;
+}
+.route-card:active { transform: scale(0.98); }
+.route-card:hover, .route-card.selected {
+  border-color: var(--green); background: var(--green-glow);
+}
+.route-card .route-icon { font-size: 32px; margin-bottom: 8px; display: block; }
+.route-card .route-name {
+  font-family: var(--font-display); font-weight: 900; font-size: 24px;
+  letter-spacing: 1px; display: block; text-transform: uppercase;
+}
+.route-card .route-sub { font-size: 13px; color: var(--text2); margin-top: 4px; display: block; }
+.route-card .route-check {
+  position: absolute; top: 16px; right: 16px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--green); display: none; align-items: center; justify-content: center;
+  color: #000; font-size: 13px; font-weight: 900;
+}
+.route-card.selected .route-check { display: flex; }
+
+/* ─── STEP 2: UPLOAD ─── */
+.section-header {
+  font-family: var(--font-display); font-weight: 700; font-size: 13px;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--green);
+  margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--green-border);
+}
+.upload-zone {
+  border: 2px dashed rgba(0,255,71,0.25); border-radius: var(--radius);
+  padding: 32px 20px; text-align: center; cursor: pointer;
+  background: var(--bg2); transition: all 0.15s ease; position: relative;
+  margin-bottom: 16px;
+}
+.upload-zone:hover { border-color: var(--green); background: var(--green-glow); }
+.upload-zone input[type=file] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.upload-icon { font-size: 36px; margin-bottom: 10px; }
+.upload-label {
+  font-family: var(--font-display); font-weight: 700; font-size: 17px;
+  letter-spacing: 0.5px; display: block; margin-bottom: 4px;
+}
+.upload-sub { font-size: 12px; color: var(--text2); }
+.upload-previews { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.upload-preview {
+  width: 72px; height: 72px; border-radius: 6px; object-fit: cover;
+  border: 1px solid var(--green-border);
+}
+.upload-preview-wrap { position: relative; }
+.remove-img {
+  position: absolute; top: -6px; right: -6px;
+  width: 18px; height: 18px; background: var(--danger); border-radius: 50%;
+  border: none; color: #fff; font-size: 10px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* API Key inline */
+.api-key-section {
+  background: var(--bg2); border: 1px solid var(--warn-bg);
+  border-left: 3px solid var(--warn); border-radius: var(--radius);
+  padding: 14px 14px; margin-bottom: 16px;
+}
+.api-key-section p { font-size: 13px; color: var(--text2); margin-bottom: 10px; line-height: 1.5; }
+.api-key-section a { color: var(--green); font-size: 12px; }
+.input-row { display: flex; gap: 8px; }
+.api-input {
+  flex: 1; background: var(--bg3); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px; color: var(--text); padding: 10px 12px;
+  font-family: var(--font-mono); font-size: 12px; outline: none;
+}
+.api-input:focus { border-color: var(--green); }
+.save-key-btn {
+  background: var(--green); color: #000; border: none; border-radius: 6px;
+  font-family: var(--font-display); font-weight: 700; font-size: 13px;
+  padding: 10px 14px; cursor: pointer; white-space: nowrap;
+}
+
+/* Divider */
+.or-divider {
+  display: flex; align-items: center; gap: 12px; margin: 16px 0;
+  color: var(--text3); font-size: 12px; font-family: var(--font-mono);
+}
+.or-divider::before, .or-divider::after {
+  content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.08);
+}
+
+/* Manual add */
+.manual-add-btn {
+  width: 100%; padding: 14px; background: var(--bg2);
+  border: 1px dashed rgba(255,255,255,0.15); border-radius: var(--radius);
+  color: var(--text2); font-family: var(--font-body); font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.manual-add-btn:hover { border-color: var(--green); color: var(--text); }
+
+/* ─── STEP 3: PROPERTY LIST ─── */
+.property-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.property-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg2); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius); padding: 12px 14px;
+}
+.prop-name { flex: 1; font-size: 15px; font-weight: 600; }
+.prop-sqft {
+  font-family: var(--font-mono); font-size: 14px; color: var(--text2);
+  white-space: nowrap;
+}
+.equip-badge {
+  font-family: var(--font-display); font-weight: 700; font-size: 11px;
+  letter-spacing: 1px; padding: 3px 7px; border-radius: 4px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.badge-toro { background: rgba(0,255,71,0.12); color: var(--green); border: 1px solid var(--green-border); }
+.badge-ps { background: rgba(100,180,255,0.12); color: #64b4ff; border: 1px solid rgba(100,180,255,0.25); }
+.badge-push { background: rgba(255,200,0,0.12); color: #ffc800; border: 1px solid rgba(255,200,0,0.25); }
+.prop-delete { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 18px; padding: 2px 4px; }
+
+/* Editable inputs */
+.prop-row-inputs {
+  display: flex; gap: 8px; margin-bottom: 12px;
+}
+.prop-input {
+  flex: 1; background: var(--bg3); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px; color: var(--text); padding: 10px 12px;
+  font-size: 14px; outline: none;
+}
+.prop-input:focus { border-color: var(--green); }
+.add-prop-btn {
+  background: var(--green); color: #000; border: none; border-radius: 6px;
+  font-family: var(--font-display); font-weight: 700; font-size: 13px;
+  padding: 10px 14px; cursor: pointer;
+}
+
+/* Round selector */
+.round-selector {
+  background: var(--bg2); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius); padding: 14px;
+}
+.round-auto-label {
+  font-size: 12px; color: var(--green); font-family: var(--font-mono);
+  margin-bottom: 8px; display: block;
+}
+.round-select {
+  width: 100%; background: var(--bg3); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px; color: var(--text); padding: 10px 12px;
+  font-family: var(--font-body); font-size: 15px; outline: none; cursor: pointer;
+}
+.round-select:focus { border-color: var(--green); }
+
+/* ─── RESULTS ─── */
+.results-header { margin-bottom: 20px; }
+.results-title {
+  font-family: var(--font-display); font-weight: 900; font-size: 28px;
+  line-height: 1.1; letter-spacing: 0.5px;
+}
+.results-meta { font-size: 13px; color: var(--text2); margin-top: 4px; font-family: var(--font-mono); }
+.results-date { color: var(--green); }
+
+/* Alert boxes */
+.alert-box {
+  padding: 12px 14px; border-radius: var(--radius); margin-bottom: 12px;
+  font-size: 13px; line-height: 1.55; border-left: 3px solid;
+}
+.alert-danger { background: var(--danger-bg); border-color: var(--danger); color: #ffaaaa; }
+.alert-warn { background: var(--warn-bg); border-color: var(--warn); color: #ffd0a0; }
+.alert-info { background: var(--green-glow); border-color: var(--green); color: #b0ffcc; }
+
+/* Mix card */
+.mix-card {
+  background: var(--bg2); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius); margin-bottom: 14px; overflow: hidden;
+}
+.mix-card-header {
+  background: var(--bg3); padding: 12px 14px;
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.mix-card-icon { font-size: 20px; }
+.mix-card-title {
+  font-family: var(--font-display); font-weight: 700; font-size: 15px;
+  letter-spacing: 0.5px; text-transform: uppercase; flex: 1;
+}
+.mix-card-body { padding: 14px; }
+.mix-meta {
+  display: flex; gap: 16px; margin-bottom: 14px; flex-wrap: wrap;
+}
+.mix-meta-item { }
+.mix-meta-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; font-family: var(--font-mono); }
+.mix-meta-value {
+  font-family: var(--font-mono); font-weight: 700; font-size: 18px; color: var(--green);
+  line-height: 1.1;
+}
+.mix-meta-unit { font-size: 11px; color: var(--text2); }
+
+/* Product rows */
+.product-row {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.product-row:last-child { border-bottom: none; }
+.product-name { font-size: 14px; flex: 1; padding-right: 12px; line-height: 1.3; }
+.product-name .cond-note { display: block; font-size: 11px; color: var(--warn); margin-top: 2px; font-family: var(--font-mono); }
+.product-amount {
+  font-family: var(--font-mono); font-weight: 700; font-size: 16px;
+  color: var(--green); white-space: nowrap;
+}
+.product-unit { font-size: 11px; color: var(--text2); font-family: var(--font-mono); }
+
+/* Separator in B&G */
+.bg-separator {
+  margin: 10px -14px; padding: 6px 14px;
+  background: rgba(255,140,0,0.08); border-top: 1px solid rgba(255,140,0,0.2);
+  border-bottom: 1px solid rgba(255,140,0,0.2);
+  font-size: 11px; font-family: var(--font-mono); color: var(--warn);
+  letter-spacing: 1px; text-transform: uppercase;
+}
+
+/* Mix order note */
+.mix-order {
+  background: rgba(0,255,71,0.05); border: 1px solid var(--green-border);
+  border-radius: 6px; padding: 10px 12px; margin-top: 12px;
+  font-size: 12px; font-family: var(--font-mono); color: var(--green);
+  line-height: 1.6;
+}
+.mix-order::before { content: 'MIX ORDER: '; color: var(--text3); }
+
+/* Granular sections */
+.gran-rate-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.gran-rate-row:last-child { border-bottom: none; }
+.gran-label { font-size: 14px; }
+.gran-equip {
+  font-size: 11px; color: var(--text2); font-family: var(--font-mono); margin-top: 2px;
+}
+.gran-amount {
+  text-align: right;
+}
+.gran-amount .big { font-family: var(--font-mono); font-weight: 700; font-size: 20px; color: var(--green); }
+.gran-amount .small { font-size: 11px; color: var(--text2); font-family: var(--font-mono); }
+.hardstop-banner {
+  background: var(--danger-bg); border: 1px solid var(--danger); border-radius: 8px;
+  padding: 12px 14px; margin-bottom: 12px;
+  font-size: 13px; color: #ffaaaa; line-height: 1.5; font-weight: 600;
+}
+
+/* Totals summary */
+.totals-bar {
+  background: var(--bg3); border: 1px solid var(--green-border); border-radius: var(--radius);
+  padding: 14px; margin-bottom: 16px; display: flex; gap: 20px; flex-wrap: wrap;
+}
+.total-item .t-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; font-family: var(--font-mono); }
+.total-item .t-value {
+  font-family: var(--font-mono); font-weight: 700; font-size: 22px; line-height: 1.1;
+}
+.total-item .t-value.green { color: var(--green); }
+.total-item .t-value.blue { color: #64b4ff; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 20px; border-radius: var(--radius); cursor: pointer;
+  font-family: var(--font-display); font-weight: 700; font-size: 16px;
+  letter-spacing: 0.5px; transition: all 0.15s ease; border: none;
+  text-decoration: none; width: 100%;
+}
+.btn-primary { background: var(--green); color: #000; }
+.btn-primary:hover { background: var(--green-dim); }
+.btn-primary:disabled { background: var(--bg4); color: var(--text3); cursor: not-allowed; }
+.btn-secondary {
+  background: transparent; color: var(--text2);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.btn-secondary:hover { border-color: var(--green); color: var(--text); }
+
+.btn-row { display: flex; gap: 10px; margin-top: 12px; }
+.btn-row .btn { flex: 1; }
+
+/* Back nav */
+.back-nav {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 16px;
+  background: none; border: none; color: var(--text2); cursor: pointer;
+  font-size: 14px; padding: 0; font-family: var(--font-body);
+}
+.back-nav:hover { color: var(--text); }
+.route-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--green-glow); border: 1px solid var(--green-border);
+  border-radius: 100px; padding: 4px 10px;
+  font-size: 12px; font-family: var(--font-mono); color: var(--green);
+  margin-bottom: 16px;
+}
+
+/* Loading */
+.loading-wrap { text-align: center; padding: 40px 20px; }
+.spinner {
+  width: 40px; height: 40px; border: 3px solid rgba(0,255,71,0.2);
+  border-top-color: var(--green); border-radius: 50%;
+  animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: 0.5px; }
+.loading-sub { font-size: 13px; color: var(--text2); margin-top: 6px; }
+
+/* Settings modal */
+.settings-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 900;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.settings-modal.hidden { display: none; }
+.settings-box {
+  background: var(--bg2); border-radius: 16px 16px 0 0;
+  padding: 24px 20px 40px; max-width: 520px; width: 100%;
+  border-top: 1px solid var(--green-border);
+}
+.settings-box h3 {
+  font-family: var(--font-display); font-weight: 900; font-size: 20px;
+  letter-spacing: 0.5px; margin-bottom: 6px;
+}
+.settings-box p { font-size: 13px; color: var(--text2); margin-bottom: 14px; line-height: 1.5; }
+.settings-box a { color: var(--green); }
+.key-status { font-size: 12px; font-family: var(--font-mono); margin-top: 8px; }
+.key-status.set { color: var(--green); }
+.key-status.unset { color: var(--warn); }
+
+/* Error state */
+.error-box {
+  background: var(--danger-bg); border: 1px solid var(--danger); border-radius: var(--radius);
+  padding: 14px; margin-bottom: 14px; font-size: 13px; color: #ffaaaa; line-height: 1.5;
+}
+.info-row { font-size: 12px; color: var(--text3); font-family: var(--font-mono); margin-top: 4px; }
+
+/* Empty state */
+.empty-state {
+  text-align: center; padding: 30px 20px;
+  color: var(--text3); font-size: 15px;
+}
+.empty-state .es-icon { font-size: 40px; margin-bottom: 10px; }
+
+/* Responsive */
+@media (min-width: 520px) {
+  #main-content { padding: 24px 20px; }
+}
 </style>
 </head>
 <body>
 
-<header>
-  <h1>&#9889; FLEX MIX CALCULATOR</h1>
-  <p id="modeLabel"></p>
-  <button class="back-btn" id="backBtn" onclick="goHome()">&#8592; Back</button>
-</header>
-
-<div id="modeScreen">
-  <div class="mode-logo">&#9889; Flex Mix Calculator</div>
-  <div class="mode-sub">What are you doing right now?</div>
-  <button class="mode-btn mode-btn-day" onclick="setMode('day')">
-    <div class="mode-icon">&#127749;</div>
-    <div class="mode-text-wrap">
-      <div class="mode-title">Mixing for the Day</div>
-      <div class="mode-desc">Upload your route screenshot &#8212; auto-calculates everything</div>
-    </div>
-    <div class="mode-arrow">&#8250;</div>
-  </button>
-  <button class="mode-btn mode-btn-fly" onclick="setMode('fly')">
-    <div class="mode-icon">&#9889;</div>
-    <div class="mode-text-wrap">
-      <div class="mode-title">Mix on the Fly</div>
-      <div class="mode-desc">Ran out mid-route &#8212; enter sqft manually for a quick refill</div>
-    </div>
-    <div class="mode-arrow">&#8250;</div>
-  </button>
-  <button class="install-inline-btn" id="installInlineBtn" onclick="triggerInstall()">&#11015; Add to Home Screen</button>
-  <div class="install-inline-ios" id="installInlineIos">&#128242; To install: tap <strong>Share</strong> &#8594; <strong>"Add to Home Screen"</strong></div>
+<!-- Install Banner -->
+<div id="install-banner" class="hidden">
+  <img src="icon-512.png" alt="Flex" />
+  <div class="install-text">
+    <strong>Flex Mix Calculator</strong>
+    <span>Install for offline access</span>
+  </div>
+  <button id="install-btn">Install</button>
+  <button id="install-dismiss">✕</button>
 </div>
 
-<div id="dayScreen">
-<div class="container">
-  <div class="card">
-    <div class="card-title"><div class="icon">1</div> Route Info</div>
-    <div class="field-group">
-      <label>Turf Type <span>(today's route)</span></label>
-      <select id="turfType" onchange="onTurfChange()">
-        <option value="">&#8212; Select &#8212;</option>
-        <option value="warm">Warm Season (Bermuda / Zoysia)</option>
-        <option value="cool">Cool Season (Tall Fescue)</option>
-      </select>
-    </div>
-    <div class="field-group">
-      <label>Default Round <span>(auto-detected &#8212; override if needed)</span></label>
-      <select id="round" onchange="onRoundChange()">
-        <option value="">&#8212; Select &#8212;</option>
-        <option value="1">Round 1 &#8212; Jan 25 &#8211; Feb 28</option>
-        <option value="2">Round 2 &#8212; Mar 1 &#8211; Apr 14</option>
-        <option value="3">Round 3 &#8212; Apr 15 &#8211; May 31</option>
-        <option value="4">Round 4 &#8212; Jun 1 &#8211; Jul 15</option>
-        <option value="5">Round 5 &#8212; Aug 1 &#8211; Sep 15</option>
-        <option value="6">Round 6 &#8212; Sep 16 &#8211; Oct 15</option>
-        <option value="7">Round 7 &#8212; Oct 16 &#8211; Nov 30</option>
-      </select>
-      <div id="roundBadge" class="round-badge" style="display:none"></div>
-    </div>
-    <div id="atrazineWarning" class="atrazineWarning">&#9940; TODAY IS AFTER MARCH 10 &#8212; ATRAZINE IS NOT PERMITTED.</div>
+<!-- iOS Install Modal -->
+<div id="ios-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3>📲 Install on iPhone</h3>
+    <p>Add Flex Mix to your home screen for fast one-tap access — no App Store needed.</p>
+    <ol>
+      <li>Tap the <strong>Share</strong> button
+        <svg class="ios-share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/>
+        </svg>
+        at the bottom of Safari
+      </li>
+      <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+      <li>Tap <strong>"Add"</strong> in the top right</li>
+    </ol>
+    <p>The Flex logo will appear on your home screen — tap it to open the app instantly.</p>
+    <button class="modal-close-btn" onclick="document.getElementById('ios-modal').classList.add('hidden')">Got it</button>
   </div>
-
-  <div class="card">
-    <div class="card-title"><div class="icon">2</div> Upload Route Screenshot</div>
-    <div class="upload-area" id="uploadArea">
-      <input type="file" id="fileInput" accept="image/*" multiple>
-      <div class="upload-icon">&#128248;</div>
-      <p>Tap to upload your FieldRoutes schedule screenshot</p>
-      <small>Select multiple screenshots at once &#8212; all properties combined automatically</small>
-    </div>
-    <div class="preview-strip" id="previewStrip"></div>
-    <div class="preview-count" id="previewCount"></div>
-    <div class="progress-wrap" id="progressWrap">
-      <div class="progress-label"><div class="spinner"></div><span id="progressLabel">Reading...</span></div>
-      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-    </div>
-    <div class="error-box" id="errorBox"></div>
-    <button class="reset-btn" id="uploadResetBtn" onclick="resetAll()" style="display:none;margin-top:10px">&#x21BA; Start Over</button>
-  </div>
-
-  <div class="card" id="propsCard" style="display:none">
-    <div class="card-title"><div class="icon">3</div> Properties</div>
-    <div class="props-header">
-      <span class="prop-count" id="propCount">0 properties</span>
-      <button class="add-prop-btn" onclick="addProp()">+ Add property</button>
-    </div>
-    <div id="propList"></div>
-    <div class="summary-chips" id="summaryChips"></div>
-    <button class="calc-btn" onclick="calculate()">Calculate My Mix &#8594;</button>
-    <button class="reset-btn" onclick="resetAll()">&#x21BA; Start Over</button>
-  </div>
-
-  <div id="results">
-    <div class="sqft-summary">
-      <div class="sqft-box"><div class="val" id="sum-power">&#8212;</div><div class="lbl">Power/Push</div></div>
-      <div class="sqft-box"><div class="val" id="sum-toro">&#8212;</div><div class="lbl">Toro</div></div>
-      <div class="sqft-box"><div class="val" id="sum-rock">&#8212;</div><div class="lbl">Rock Yards</div></div>
-      <div class="sqft-box"><div class="val">5,000</div><div class="lbl">Buffer</div></div>
-    </div>
-    <div id="results-wrap"></div>
-  </div>
-  <div class="footer">Flex Lawn Care &#183; Mix Calculator v3.0 &#183; Power Spray primary / Toro secondary</div>
-</div>
 </div>
 
-<div id="flyScreen">
-<div class="container">
-  <div class="fly-note">&#9889; Mid-route refill mode &#8212; enter the sqft you still need to cover.</div>
-  <div class="card">
-    <div class="card-title"><div class="icon">1</div> Route Info</div>
-    <div class="field-group">
-      <label>Turf Type</label>
-      <select id="flyTurf" onchange="flyCheckAtrazine()">
-        <option value="">&#8212; Select &#8212;</option>
-        <option value="warm">Warm Season (Bermuda / Zoysia)</option>
-        <option value="cool">Cool Season (Tall Fescue)</option>
-      </select>
+<!-- Settings Modal -->
+<div id="settings-modal" class="settings-modal hidden">
+  <div class="settings-box">
+    <h3>⚙ Settings</h3>
+    <p>The AI screenshot parser requires an Anthropic API key. Get yours at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys.</p>
+    <div class="input-row">
+      <input type="password" id="settings-api-input" class="api-input" placeholder="sk-ant-..." />
+      <button class="save-key-btn" id="save-key-btn">Save</button>
     </div>
-    <div class="field-group">
-      <label>Round</label>
-      <select id="flyRound" onchange="flyCheckAtrazine()">
-        <option value="">&#8212; Select &#8212;</option>
-        <option value="1">Round 1</option><option value="2">Round 2</option>
-        <option value="3">Round 3</option><option value="4">Round 4</option>
-        <option value="5">Round 5</option><option value="6">Round 6</option>
-        <option value="7">Round 7</option>
-      </select>
-      <div id="flyRoundBadge" class="round-badge" style="display:none"></div>
+    <div id="key-status-msg" class="key-status unset">No API key saved</div>
+    <div class="btn-row" style="margin-top:20px">
+      <button class="btn btn-secondary" onclick="document.getElementById('settings-modal').classList.add('hidden')">Close</button>
     </div>
-    <div id="flyAtrazineWarning" class="atrazineWarning">&#9940; TODAY IS AFTER MARCH 10 &#8212; ATRAZINE IS NOT PERMITTED.</div>
   </div>
-  <div class="card">
-    <div class="card-title"><div class="icon">2</div> Sqft to Cover</div>
-    <div class="field-group">
-      <label>Equipment</label>
-      <select id="flyEquip">
-        <option value="power">&#128167; Power Spray Rig (1.14 gal/1,000 sqft)</option>
-        <option value="toro">&#128668; Toro SprayMaster (0.34 gal/1,000 sqft)</option>
-        <option value="bg">&#129635; B&amp;G Hand Sprayer (1 gal batch)</option>
-        <option value="rock">&#129704; FlowZone Rock Beds (1 gal/1,625 sqft)</option>
-      </select>
-    </div>
-    <div class="field-group">
-      <label>Sqft remaining</label>
-      <input type="number" id="flySqft" placeholder="e.g. 8500" inputmode="numeric">
-    </div>
-    <button class="calc-btn" onclick="flyCalculate()">Calculate Refill &#8594;</button>
-    <button class="reset-btn" onclick="flyReset()">&#x21BA; Clear</button>
-  </div>
-  <div id="flyResults" style="display:none"></div>
-  <div class="footer">Flex Lawn Care &#183; Mix on the Fly &#183; Mid-route refill</div>
-</div>
 </div>
 
-<div class="install-banner" id="installBanner">
-  <div class="install-banner-text">Add to Home Screen<small>Works offline &#8212; no signal needed</small></div>
-  <button class="install-btn" id="installBtn">Install</button>
-  <button class="install-dismiss" id="dismissBtn">&#215;</button>
+<!-- App -->
+<div id="app">
+  <header>
+    <img src="icon-512.png" alt="Flex" />
+    <h1>Flex Mix Calc</h1>
+    <button class="icon-btn" id="settings-btn" title="Settings">⚙</button>
+  </header>
+  <main id="main-content"></main>
+  <footer class="brand-footer">
+    <img src="icon-512.png" alt="Flex" />
+    <span>FLEX LAWN CARE</span>
+  </footer>
 </div>
 
 <script>
-const ROUND_DATES=[{n:1,start:[1,25],end:[2,28]},{n:2,start:[3,1],end:[4,14]},{n:3,start:[4,15],end:[5,31]},{n:4,start:[6,1],end:[7,15]},{n:5,start:[8,1],end:[9,15]},{n:6,start:[9,16],end:[10,15]},{n:7,start:[10,16],end:[11,30]}];
-function getAutoRound(){const d=new Date(),m=d.getMonth()+1,day=d.getDate();for(const r of ROUND_DATES){const[sm,sd]=r.start,[em,ed]=r.end;if(((m>sm)||(m===sm&&day>=sd))&&((m<em)||(m===em&&day<=ed)))return r.n;}return null;}
-function isAfterMarch10(){const n=new Date();return n>new Date(n.getFullYear(),2,10);}
-const TORO_COV=0.34,POWER_COV=1.14,SQFT_THRESHOLD=10000,BUFFER=5000;
-function sqftToGalsToro(s){return s*TORO_COV/1000;}
-function sqftToGalsPower(s){return s*POWER_COV/1000;}
-function roundGals(g){return Math.max(3,Math.ceil(g));}
-function fmtOz(v){if(v===0)return'0';if(v<1)return v.toFixed(2);if(v<10)return v.toFixed(1);return v.toFixed(0);}
-function fmtNum(n){return n.toLocaleString();}
+// ═══════════════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════════════
+const TORO_OUT = 0.34;   // gal / 1,000 sqft
+const PS_OUT   = 1.14;   // gal / 1,000 sqft
+const GATE     = 10000;  // sqft: ≥ this → Toro, < this → Power Spray
+const BUFFER   = 5000;   // sqft buffer deducted from primary equipment total
 
-const ROUNDS={
-  1:{
-    warm:{toro:[{name:'Stonewall 4L',unit:'oz',rate:2.18,note:'Pre-emergent'},{name:'Three-Way',unit:'oz',rate:4.32,note:'Broadleaf'},{name:'90/10 Surfactant',unit:'oz',rate:0.82,note:''},{name:'Atrazine',unit:'oz',rate:3.24,note:'DORMANT BERMUDA ONLY',atrazine:true}],power:[{name:'Stonewall 4L',unit:'oz',rate:2.18,note:'Pre-emergent'},{name:'Three-Way',unit:'oz',rate:4.32,note:'Broadleaf'},{name:'90/10 Surfactant',unit:'oz',rate:0.82,note:''},{name:'Atrazine',unit:'oz',rate:3.24,note:'DORMANT BERMUDA ONLY',atrazine:true}],toroNote:'Blanket. Atrazine only on fully dormant bermuda Jan 25-Mar 10.',powerNote:'Same warm-season mix.'},
-    cool:{toro:null,power:[{name:'Stonewall 4L',unit:'oz',rate:0.65,note:'Pre-emergent'},{name:'Three-Way',unit:'oz',rate:1.29,note:'Broadleaf'},{name:'90/10 Surfactant',unit:'oz',rate:0.25,note:''}],powerNote:'Cool-season only. NO Atrazine. NO Simazine. Ever.',toroNote:null}
+// ═══════════════════════════════════════════════════════════
+//  ROUND DATA
+// ═══════════════════════════════════════════════════════════
+const ROUNDS = {
+  warm: {
+    1: {
+      name:'Pre-Emergent + Weed Control', icon:'❄️', dates:'Jan 25 – Feb 28',
+      liquid:{
+        products:[
+          {name:'Stonewall 4L (Prodiamine)',    rate:2.18, unit:'oz'},
+          {name:'Three-Way',                    rate:4.32, unit:'oz'},
+          {name:'90/10 Surfactant',             rate:0.82, unit:'oz'},
+          {name:'Atrazine ⚠️ GATE REQUIRED',   rate:3.24, unit:'oz', cond:true, condNote:'Jan 25–Mar 10 ONLY. Confirm 100% dormant (zero green) before adding.'},
+        ],
+      },
+      granular:null,
+      bg:null,
+      alerts:[
+        {type:'danger', msg:'ATRAZINE GATE: After Mar 10 — NEVER add Atrazine. Before Mar 10 — visually confirm 100% brown turf. ANY green visible = skip Atrazine. No exceptions.'},
+      ],
+    },
+    2: {
+      name:'Spring Pre-Emergent + Broadleaf Cleanup', icon:'🌿', dates:'Mar 1 – Apr 14',
+      liquid:{
+        products:[
+          {name:'Prodiamine (Stonewall 4FL / Barricade 4FL)', rate:1.03, unit:'oz'},
+          {name:'Triad Select — Warm Rate',                   rate:2.65, unit:'oz'},
+        ],
+      },
+      granular:null, bg:null, alerts:[],
+    },
+    3: {
+      name:'Spring Granular Fertilizer + Spot Weeds', icon:'🌱', dates:'Apr 15 – May 31',
+      liquid:null,
+      granular:{
+        product:'Lesco 32-0-0 w/ 20% PolyPlus OPTI45',
+        rates:[{label:'Bermuda & Zoysia', lbs:3.13}],
+      },
+      bg:[
+        {name:'Three-Way',                 amount:'1.4 oz',       note:'Broadleaf weeds'},
+        {name:'90/10 Surfactant',          amount:'0.25 oz',      note:''},
+        {name:'Revolver',                  amount:'0.6 oz',       note:'Grassy weeds ONLY'},
+        {name:'SedgeHammer',              amount:'0.9 g (1 scoop)',note:'Nutsedge / Kyllinga ONLY'},
+      ],
+      alerts:[
+        {type:'danger', msg:'DEEP CLEAN REQUIRED before first R3 mix. Drain Toro tanks → water rinse → Dawn soap rinse → final water rinse until crystal clear (zero bubbles, zero color, zero odor). Document in FieldRoutes.'},
+      ],
+    },
+    4: {
+      name:'Early Summer Health', icon:'☀️', dates:'Jun 1 – Jul 15',
+      liquid:{
+        products:[
+          {name:'Terra Ally TA 22-0-0',          rate:44.1, unit:'fl oz'},
+          {name:'Artavia SC (Azoxystrobin)',      rate:2.25, unit:'fl oz'},
+          {name:'90/10 Surfactant',              rate:0.82, unit:'oz'},
+        ],
+      },
+      granular:null,
+      bg:[
+        {name:'Celsius',                      amount:'0.10 oz',      note:''},
+        {name:'Momentum / Halosulfuron',      amount:'0.9 g (1 scoop)',note:'Nutsedge ONLY'},
+        {sep:true, label:'DALLISGRASS — SEPARATE 1-GAL BATCH'},
+        {name:'Manuscript',                   amount:'0.44 oz',      note:'Do NOT mix with above'},
+        {name:'MSO Adigor',                   amount:'0.44 oz',      note:'Required with Manuscript only'},
+      ],
+      alerts:[
+        {type:'warn', msg:'HEAT RULE: 90°F+ forecasted → complete ALL blanket spray before 9:30 AM. After 9:30 AM — spot spray weeds with B&G only.'},
+      ],
+    },
+    5: {
+      name:'Mid-Summer Protection', icon:'🔥', dates:'Aug 1 – Sep 15',
+      liquid:{
+        products:[
+          {name:'Artavia SC (Azoxystrobin) — FRAC 11', rate:2.25, unit:'fl oz'},
+          {name:'Propiconazole 14.3 — FRAC 3',         rate:2.94, unit:'fl oz'},
+        ],
+        mixOrder:'water first → Artavia SC → Propiconazole 14.3 → fill to mark → agitate 60 sec',
+      },
+      granular:{
+        product:'Lesco 28-0-0 w/ 20% PolyPlus OPTI45 + 1.2% Fe',
+        rates:[
+          {label:'Bermuda', lbs:3.57},
+          {label:'Zoysia',  lbs:2.75},
+        ],
+        note:'Apply same visit as fungicide, immediately after spray pass.',
+      },
+      bg:[
+        {name:'Celsius',     amount:'0.10 oz',       note:''},
+        {name:'Quin-Way',    amount:'1.45 oz',        note:''},
+        {name:'Ambition',    amount:'0.18 oz',        note:''},
+        {sep:true, label:'DALLISGRASS — SEPARATE 1-GAL BATCH'},
+        {name:'Manuscript',  amount:'0.44 oz',        note:''},
+        {name:'MSO Adigor',  amount:'0.44 oz',        note:''},
+      ],
+      alerts:[
+        {type:'warn',   msg:'PEAK HEAT: All fungicide blanket spray must be done before 9:30 AM on 90°F+ days.'},
+        {type:'danger', msg:'BERMUDA LIMIT: Never exceed 4 fl oz Propiconazole per 1,000 sqft per 30 days. The 1.0 fl oz rate is within the safe limit — do NOT over-apply.'},
+      ],
+    },
+    6: {
+      name:'Late Summer Root Strengthening', icon:'🍂', dates:'Sep 16 – Oct 15',
+      liquid:null,
+      granular:{
+        product:'Lesco 5-0-25 w/ 10% Fe',
+        rates:[{label:'Bermuda & Zoysia', lbs:4.0}],
+        note:'High-potassium for cold hardiness and root strength.',
+      },
+      bg:[
+        {name:'Celsius',    amount:'0.10 oz', note:''},
+        {name:'Quin-Way',   amount:'1.45 oz', note:''},
+        {name:'Ambition',   amount:'0.18 oz', note:''},
+        {sep:true, label:'DALLISGRASS — SEPARATE 1-GAL BATCH'},
+        {name:'Manuscript', amount:'0.44 oz', note:''},
+        {name:'MSO Adigor', amount:'0.44 oz', note:''},
+      ],
+      alerts:[],
+    },
+    7: {
+      name:'Fall Pre-Emergent + Spring Dead Spot Prevention', icon:'❄️', dates:'Oct 16 – Nov 30',
+      liquid:{
+        products:[
+          {name:'Specticle',       rate:0.10, unit:'oz'},
+          {name:'Simazine',        rate:0.73, unit:'oz'},
+          {name:'Three-Way',       rate:1.47, unit:'oz'},
+          {name:'90/10 Surfactant',rate:0.28, unit:'oz'},
+        ],
+        tankNote:'ROUND 7 EXCEPTION: Herbicides back in BOTH Toro tanks. Both tanks identical mix.',
+        fungSep:{
+          label:'SPRING DEAD SPOT FUNGICIDE — SEPARATE PASS',
+          products:[{name:'Artavia SC (Azoxystrobin)', rate:2.25, unit:'fl oz'}],
+          note:'Apply herbicide pass first. Rinse Tank A. Then apply Artavia SC as second pass same visit. Water in within 24 hrs (≥1/8 inch). NOT optional — every Bermuda & Zoysia account.',
+        },
+      },
+      granular:null, bg:null,
+      alerts:[
+        {type:'danger', msg:'SIMAZINE WARNING: Warm-season turf ONLY. NEVER near fescue or cool-season turf.'},
+        {type:'danger', msg:'CRITICAL: Spring dead spot fungicide is the most important application of the year. Apply Artavia SC to EVERY bermuda and zoysia account. After R7 — drain and rinse BOTH Toro tanks completely.'},
+      ],
+    },
   },
-  2:{
-    warm:{toro:[{name:'Prodiamine (Stonewall 4FL)',unit:'oz',rate:1.03,note:'Pre-emergent'},{name:'Triad Select (warm rate)',unit:'oz',rate:2.65,note:'Broadleaf'},{name:'Quin-Way',unit:'oz',rate:1.45,note:'Grassy weed coverage'}],power:[{name:'Prodiamine (Stonewall 4FL)',unit:'oz',rate:1.03,note:'Pre-emergent'},{name:'Triad Select (warm rate)',unit:'oz',rate:2.65,note:'Broadleaf'},{name:'Quin-Way',unit:'oz',rate:1.45,note:'Grassy weed coverage'}],toroNote:'Finish spring pre-emergent barrier.',powerNote:'Same warm-season mix.'},
-    cool:{toro:null,power:[{name:'Prodiamine (Stonewall 4FL)',unit:'oz',rate:1.03,note:'Pre-emergent'},{name:'Triad Select (COOL rate)',unit:'oz',rate:3.24,note:'Higher rate for fescue'}],powerNote:'Cool-season only. NO Atrazine. NO warm-season products.',toroNote:null}
+
+  cool: {
+    1: {
+      name:'Pre-Emergent + Weed Control', icon:'❄️', dates:'Jan 25 – Feb 28',
+      liquid:{
+        equipment:'ps',
+        products:[
+          {name:'Stonewall 4L (Prodiamine)', rate:0.65, unit:'oz'},
+          {name:'Three-Way',                 rate:1.29, unit:'oz'},
+          {name:'90/10 Surfactant',          rate:0.25, unit:'oz'},
+        ],
+      },
+      granular:null, bg:null,
+      alerts:[
+        {type:'danger', msg:'NO ATRAZINE — EVER on fescue. Atrazine kills fescue. No exceptions.'},
+        {type:'danger', msg:'NO SIMAZINE — EVER on fescue.'},
+      ],
+    },
+    2: {
+      name:'Spring Pre-Emergent + Broadleaf Cleanup', icon:'🌿', dates:'Mar 1 – Apr 14',
+      liquid:{
+        equipment:'ps',
+        products:[
+          {name:'Prodiamine (Stonewall 4FL / Barricade 4FL)', rate:1.03, unit:'oz'},
+          {name:'Triad Select — COOL SEASON RATE',            rate:3.24, unit:'oz'},
+        ],
+        note:'Cool-season Triad Select rate (3.24 oz/gal) is HIGHER than warm-season rate. Do not substitute.',
+      },
+      granular:null, bg:null, alerts:[],
+    },
+    3: {
+      name:'Spring Granular Fertilizer + Spot Weeds', icon:'🌱', dates:'Apr 15 – May 31',
+      liquid:null,
+      granular:{
+        product:'Lesco 32-0-0 w/ 20% PolyPlus OPTI45',
+        rates:[{label:'Tall Fescue', lbs:2.5}],
+        note:'Push Spreader ONLY — NEVER Toro hopper on fescue.',
+        hardStop:true,
+      },
+      bg:[
+        {name:'Three-Way', amount:'1.4 oz', note:'Broadleaf weeds only. No surfactant.'},
+      ],
+      alerts:[],
+    },
+    4: {
+      name:'Early Summer Health', icon:'☀️', dates:'Jun 1 – Jul 15',
+      liquid:{
+        equipment:'ps',
+        products:[
+          {name:'Terra Ally TA 22-0-0',     rate:13.17, unit:'fl oz'},
+          {name:'Artavia SC (Azoxystrobin)', rate:0.66,  unit:'fl oz'},
+          {name:'90/10 Surfactant',          rate:0.25,  unit:'oz'},
+        ],
+        note:'NO nitrogen fertilizer on fescue in summer. Fescue fertilization stopped May 1 — resumes in R6.',
+      },
+      granular:null,
+      bg:[
+        {name:'Three-Way',      amount:'1.4 oz',  note:''},
+        {name:'90/10 Surfactant',amount:'0.25 oz', note:''},
+      ],
+      alerts:[
+        {type:'warn', msg:'HEAT RULE: 90°F+ days → complete blanket spray before 9:30 AM. Stressed fescue → fungicide only, skip everything else.'},
+      ],
+    },
+    5: {
+      name:'Mid-Summer Protection', icon:'🔥', dates:'Aug 1 – Sep 15',
+      liquid:{
+        equipment:'toro',
+        products:[
+          {name:'Artavia SC (Azoxystrobin) — FRAC 11', rate:2.25, unit:'fl oz'},
+          {name:'Propiconazole 14.3 — FRAC 3',         rate:2.94, unit:'fl oz'},
+        ],
+        mixOrder:'water first → Artavia SC → Propiconazole 14.3 → fill to mark → agitate 60 sec',
+        note:'POWER SPRAY RIG NOT USED for chemistry this round — clean water only.',
+      },
+      granular:{
+        product:'6-3-0 w/ 2% Fe',
+        rates:[{label:'Tall Fescue', lbs:3.0}],
+        note:'Push Spreader ONLY — never Toro hopper on fescue.',
+      },
+      bg:[
+        {name:'Quin-Way',  amount:'1.45 oz', note:''},
+        {name:'Ambition',  amount:'0.18 oz', note:''},
+      ],
+      alerts:[
+        {type:'info', msg:'Power Spray Rig carries clean water only this round. Toro SprayMaster handles all fescue fungicide.'},
+      ],
+    },
+    6: {
+      name:'Fall Fertilization + Weed Control', icon:'🍂', dates:'Sep 16 – Oct 15',
+      liquid:null,
+      granular:{
+        product:'6-3-0 w/ 2% Fe',
+        rates:[{label:'Tall Fescue', lbs:3.0}],
+        note:'Push Spreader ONLY. Fall is prime fescue season — feed heavily.',
+      },
+      bg:[
+        {name:'Quin-Way', amount:'1.45 oz', note:''},
+        {name:'Ambition', amount:'0.18 oz', note:''},
+      ],
+      alerts:[],
+    },
+    7: {
+      name:'Fall Pre-Winter Protection', icon:'❄️', dates:'Oct 16 – Nov 30',
+      liquid:null,
+      granular:{
+        product:'Lesco 32-0-0 w/ 20% PolyPlus OPTI45',
+        rates:[{label:'Tall Fescue', lbs:3.13}],
+        note:'Push Spreader ONLY. Final feed before winter.',
+      },
+      bg:[
+        {name:'Three-Way',       amount:'1.4 oz',  note:''},
+        {name:'90/10 Surfactant',amount:'0.25 oz', note:''},
+      ],
+      alerts:[
+        {type:'info', msg:'PREMIUM ACCOUNTS ONLY: Artavia SC (Azoxystrobin) — blanket spray at standard preventive rate. Blanket spray via Toro or Power Spray Rig. Confirm account is flagged premium in FieldRoutes before applying.'},
+        {type:'danger', msg:'NO SIMAZINE and NO WARM-SEASON PRODUCTS on fescue — EVER.'},
+      ],
+    },
   },
-  3:{
-    warm:{toro:null,power:null,bg:[{name:'Three-Way',unit:'oz',rate:1.4,note:'Broadleaf spot spray'},{name:'90/10 Surfactant',unit:'oz',rate:0.25,note:''},{name:'Revolver',unit:'oz',rate:0.6,note:'Grassy weeds'},{name:'SedgeHammer',unit:'g',rate:0.9,note:'Nutsedge/Kyllinga'}],granular:true,granularProduct:'Lesco 32-0-0 w/ 20% PolyPlus OPTI45',granularRatePush:3.13,granularRateToro:3.13,bgNote:'B&G 1-gal - spot spray where weeds visible.',toroNote:'GRANULAR ROUND - Toro hopper at 3.13 lbs/1,000 sqft.',powerNote:null},
-    cool:{toro:null,power:null,bg:[{name:'Three-Way',unit:'oz',rate:1.4,note:'Broadleaf spot spray only'}],granular:true,granularProduct:'Lesco 32-0-0 w/ 20% PolyPlus OPTI45',granularRatePush:2.5,granularRateToro:null,granularHardStop:'MAY 1 HARD STOP - Skip granular after May 1. Spot weeds only.',bgNote:'B&G 1-gal - broadleaf spot spray only.',toroNote:'GRANULAR ROUND - push spreader only. 2.5 lbs/1,000 sqft.',powerNote:null}
-  },
-  4:{
-    warm:{toro:[{name:'Terra Ally TA 22-0-0',unit:'fl oz',rate:44.1,note:'Liquid N - Tank A'},{name:'Artavia SC',unit:'fl oz',rate:2.25,note:'Fungicide - Tank A'},{name:'Surfactant',unit:'oz',rate:0.82,note:'Tank A'}],power:[{name:'Terra Ally TA 22-0-0',unit:'fl oz',rate:44.1,note:'Liquid N'},{name:'Artavia SC',unit:'fl oz',rate:2.25,note:'Fungicide'},{name:'Surfactant',unit:'oz',rate:0.82,note:''}],bg:[{name:'Celsius',unit:'oz',rate:0.10,note:'Warm-season weeds'},{name:'Momentum (Halosulfuron)',unit:'g',rate:0.9,note:'Sedge'},{name:'Manuscript',unit:'oz',rate:0.44,note:'Dallisgrass'},{name:'MSO (Adigor)',unit:'oz',rate:0.44,note:'With Manuscript only'}],toroNote:'Tank A - health tank. Spot weeds via B&G only.',powerNote:'Same Tank A mix.',bgNote:'B&G 1-gal - spot spray only.'},
-    cool:{toro:null,power:[{name:'Terra Ally TA 22-0-0',unit:'fl oz',rate:44.1,note:'Liquid N'},{name:'Artavia SC',unit:'fl oz',rate:2.25,note:'Fungicide'},{name:'Surfactant',unit:'oz',rate:0.82,note:''}],bg:[{name:'Three-Way',unit:'oz',rate:1.4,note:'Broadleaf spot spray'},{name:'Surfactant',unit:'oz',rate:0.25,note:''}],powerNote:'Cool-season health tank.',bgNote:'B&G 1-gal - spot spray broadleaf only.',toroNote:null}
-  },
-  5:{
-    warm:{toro:[{name:'Artavia SC',unit:'fl oz',rate:2.25,note:'Fungicide FRAC 11 - Tank A'},{name:'Propiconazole 14.3',unit:'fl oz',rate:2.94,note:'Fungicide FRAC 3 - MAX 4 fl oz/1k/30 days on bermuda'}],power:[{name:'Artavia SC',unit:'fl oz',rate:2.25,note:'Fungicide FRAC 11'},{name:'Propiconazole 14.3',unit:'fl oz',rate:2.94,note:'Fungicide FRAC 3'}],bg:[{name:'Celsius',unit:'oz',rate:0.10,note:'Broadleaf'},{name:'Quin-Way',unit:'oz',rate:1.45,note:'Broadleaf'},{name:'Ambition',unit:'oz',rate:0.18,note:'Broadleaf'},{name:'Manuscript',unit:'oz',rate:0.44,note:'Dallisgrass only'},{name:'MSO (Adigor)',unit:'oz',rate:0.44,note:'With Manuscript only'}],granularProduct:'Lesco 28-0-0 w/ 20% PolyPlus OPTI45 + 1.2% Fe',granularRatePush:3.57,granularRateToro:3.57,toroNote:'Dual fungicide FRAC 11+3. Apply granular same visit via Toro hopper.',powerNote:'Same dual fungicide. Apply granular via push spreader same visit.',bgNote:'B&G 1-gal - spot spray only. Peak heat rules active.'},
-    cool:{toro:[{name:'Artavia SC',unit:'fl oz',rate:2.25,note:'Fungicide FRAC 11'},{name:'Propiconazole 14.3',unit:'fl oz',rate:2.94,note:'Fungicide FRAC 3'}],power:null,bg:[{name:'Quin-Way',unit:'oz',rate:1.45,note:'Spot weeds'},{name:'Ambition',unit:'oz',rate:0.18,note:'Spot weeds'}],granularProduct:'6-3-0 w/ 2% Fe',granularRatePush:3.0,granularRateToro:null,toroNote:'Dual fungicide via Toro Tank A. Granular: 6-3-0 via push spreader.',powerNote:null,bgNote:'B&G 1-gal - spot weeds only.'}
-  },
-  6:{
-    warm:{toro:null,power:null,bg:[{name:'Celsius',unit:'oz',rate:0.10,note:'Warm-season weeds'},{name:'Quin-Way',unit:'oz',rate:1.45,note:''},{name:'Ambition',unit:'oz',rate:0.18,note:''}],granular:true,granularProduct:'Lesco 5-0-25 w/ 10% Fe',granularRatePush:4.0,granularRateToro:4.0,bgNote:'B&G spot weeds. Dallisgrass: Manuscript+MSO 0.44oz each per gal.',toroNote:'Granular only round.',powerNote:null},
-    cool:{toro:null,power:null,bg:[{name:'Quin-Way',unit:'oz',rate:1.45,note:'Spot weeds'},{name:'Ambition',unit:'oz',rate:0.18,note:'Spot weeds'}],granular:true,granularProduct:'6-3-0 w/ 2% Fe',granularRatePush:3.0,granularRateToro:null,bgNote:'B&G 1-gal - cool-season spot weeds only.',toroNote:'GRANULAR ONLY - push spreader only.',powerNote:null}
-  },
-  7:{
-    warm:{toro:[{name:'Specticle',unit:'oz',rate:0.10,note:'Winter annual pre-emergent'},{name:'Simazine',unit:'oz',rate:0.73,note:'WARM-SEASON ONLY - never on fescue'},{name:'Three-Way',unit:'oz',rate:1.47,note:'Fall broadleaf cleanup'},{name:'90/10 Surfactant',unit:'oz',rate:0.28,note:''}],power:[{name:'Specticle',unit:'oz',rate:0.10,note:'Winter annual pre-emergent'},{name:'Simazine',unit:'oz',rate:0.73,note:'WARM-SEASON ONLY'},{name:'Three-Way',unit:'oz',rate:1.47,note:'Fall broadleaf'},{name:'90/10 Surfactant',unit:'oz',rate:0.28,note:''}],toroNote:'Broadcast OK. Simazine NEVER on fescue.',powerNote:'Same warm-season mix. Simazine NEVER on fescue.'},
-    cool:{toro:null,power:null,bg:[{name:'Three-Way',unit:'oz',rate:1.4,note:'Spot spray visible weeds'},{name:'Surfactant',unit:'oz',rate:0.25,note:''}],granular:true,granularProduct:'Lesco 32-0-0 w/ 20% PolyPlus OPTI45',granularRatePush:3.13,granularRateToro:null,bgNote:'B&G 1-gal - spot spray only.',toroNote:'GRANULAR ONLY - push spreader only. 3.13 lbs/1k.',powerNote:null}
-  }
 };
 
-let props=[],detectedTotal=null;
-let autoRound=getAutoRound(),userOverrode=false;
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+const state = {
+  screen:'step1',
+  routeType:null,
+  properties:[],
+  round:null,
+  images:[],          // {name, dataUrl, base64, mime}
+  isLoading:false,
+  parseError:null,
+  apiKey: localStorage.getItem('flex_api_key') || '',
+  newPropName:'',
+  newPropSqft:'',
+};
 
-function initRound(){
-  const sel=document.getElementById('round'),badge=document.getElementById('roundBadge');
-  if(autoRound){sel.value=autoRound;badge.style.display='inline-flex';badge.textContent='checkmark Auto-detected from today date - change above to override';badge.className='round-badge';}
-  checkAtrazine();
+function detectRound() {
+  const d = new Date();
+  const v = (d.getMonth()+1)*100 + d.getDate();
+  if (v>=125&&v<=228) return 1;
+  if (v>=301&&v<=414) return 2;
+  if (v>=415&&v<=531) return 3;
+  if (v>=601&&v<=715) return 4;
+  if (v>=801&&v<=915) return 5;
+  if (v>=916&&v<=1015) return 6;
+  if (v>=1016&&v<=1130) return 7;
+  return null;
 }
-function onRoundChange(){
-  const sel=document.getElementById('round'),badge=document.getElementById('roundBadge');
-  userOverrode=true;
-  if(autoRound&&parseInt(sel.value)!==autoRound){badge.style.display='inline-flex';badge.textContent='Manual override - auto-detected Round '+autoRound;badge.className='round-badge override';}
-  else if(autoRound){badge.textContent='Auto-detected from today date';badge.className='round-badge';}
-  clearResults();checkAtrazine();
-}
-function onTurfChange(){clearResults();checkAtrazine();}
-function checkAtrazine(){
-  const r=document.getElementById('round').value,t=document.getElementById('turfType').value;
-  document.getElementById('atrazineWarning').classList.toggle('show',r==='1'&&t==='warm'&&isAfterMarch10());
-}
-function clearResults(){document.getElementById('results').style.display='none';}
 
-document.getElementById('fileInput').addEventListener('change',function(e){
-  const files=Array.from(e.target.files);
-  if(!files.length)return;
-  const strip=document.getElementById('previewStrip'),countEl=document.getElementById('previewCount');
-  strip.innerHTML='';
-  files.forEach(file=>{const img=document.createElement('img');img.src=URL.createObjectURL(file);strip.appendChild(img);});
-  countEl.textContent=files.length>1?files.length+' screenshots selected - reading all...':'1 screenshot selected - reading...';
-  document.getElementById('errorBox').style.display='none';
-  document.getElementById('uploadResetBtn').style.display='none';
-  document.getElementById('propsCard').style.display='none';
-  props=[];detectedTotal=null;
-  processAllFiles(files);
+function fmt(num, dec=1) {
+  if (isNaN(num)) return '0';
+  return num.toFixed(dec).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+}
+
+function fmtLbs(n) { return fmt(n, 1) + ' lbs'; }
+function fmtGal(n) { return fmt(n, 2) + ' gal'; }
+function fmtOz(n, unit) {
+  if (unit === 'fl oz') return fmt(n, 2) + ' fl oz';
+  return fmt(n, 2) + ' oz';
+}
+
+function assignEquip(sqft) {
+  return sqft >= GATE ? 'toro' : 'ps';
+}
+
+function today() {
+  return new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CALCULATIONS
+// ═══════════════════════════════════════════════════════════
+function calcLiqMix(sqft, equipment, products, applyBuffer) {
+  const buf = applyBuffer ? BUFFER : 0;
+  const eff = Math.max(0, sqft - buf);
+  if (eff <= 0) return null;
+  const outputRate = equipment === 'toro' ? TORO_OUT : PS_OUT;
+  const gal = (eff / 1000) * outputRate;
+  return {
+    sqft, buf, eff, gal, equipment,
+    products: products.map(p => ({...p, amt: gal * p.rate})),
+  };
+}
+
+function psRates(products) {
+  // Derive Power Spray rates from Toro rates (same on-lawn rate)
+  const ratio = TORO_OUT / PS_OUT;
+  return products.map(p => ({...p, rate: p.rate * ratio}));
+}
+
+function calcResults(routeType, round, properties) {
+  const rd = ROUNDS[routeType][round];
+  const totalSqft = properties.reduce((s, p) => s + p.sqft, 0);
+
+  let toroMix = null, psMix = null, fungSepMix = null, granData = null;
+
+  if (routeType === 'warm') {
+    const toroProps = properties.filter(p => p.sqft >= GATE);
+    const psProps   = properties.filter(p => p.sqft < GATE);
+    const toroSqft  = toroProps.reduce((s,p) => s + p.sqft, 0);
+    const psSqft    = psProps.reduce((s,p) => s + p.sqft, 0);
+
+    if (rd.liquid) {
+      if (toroSqft > 0) toroMix = calcLiqMix(toroSqft, 'toro', rd.liquid.products, true);
+      if (psSqft > 0)   psMix   = calcLiqMix(psSqft,   'ps',   psRates(rd.liquid.products), false);
+      // R7 separate fungicide pass
+      if (rd.liquid.fungSep) {
+        const fs = rd.liquid.fungSep;
+        if (toroSqft > 0) {
+          const tm = calcLiqMix(toroSqft, 'toro', fs.products, true);
+          fungSepMix = {toro: tm, ps: null, config: fs};
+        }
+        if (psSqft > 0) {
+          const pm = calcLiqMix(psSqft, 'ps', psRates(fs.products), false);
+          if (!fungSepMix) fungSepMix = {toro: null, ps: pm, config: fs};
+          else fungSepMix.ps = pm;
+        }
+      }
+    }
+
+    if (rd.granular) {
+      granData = {
+        config: rd.granular,
+        toro: {sqft: toroSqft, equipment: 'Toro Hopper'},
+        ps:   {sqft: psSqft,   equipment: 'Push Spreader'},
+      };
+    }
+  } else {
+    // Cool season
+    if (rd.liquid) {
+      const equip = rd.liquid.equipment; // 'ps' or 'toro'
+      psMix = null; toroMix = null;
+      const mix = calcLiqMix(totalSqft, equip, rd.liquid.products, true);
+      if (equip === 'toro') toroMix = mix;
+      else psMix = mix;
+    }
+    if (rd.granular) {
+      granData = {
+        config: rd.granular,
+        ps: {sqft: totalSqft, equipment: 'Push Spreader'},
+      };
+    }
+  }
+
+  return {rd, totalSqft, toroMix, psMix, fungSepMix, granData};
+}
+
+// ═══════════════════════════════════════════════════════════
+//  AI PARSING
+// ═══════════════════════════════════════════════════════════
+async function parseImages(images, apiKey) {
+  const content = [];
+  for (const img of images) {
+    content.push({type:'image', source:{type:'base64', media_type:img.mime, data:img.base64}});
+  }
+  content.push({
+    type:'text',
+    text:`These are FieldRoutes route screenshots. Extract every customer property with its square footage.
+Look for text like "MEASUREMENTS: 13.8K SF" or "8.9K SF" — convert K SF to actual sqft (e.g. 13.8K = 13800, 8.9K = 8900).
+Also look for numeric sqft values like "8,500 sqft" or "8500".
+Ignore lunch breaks, drive time, dividers, and non-property items.
+Return ONLY a valid JSON array, no other text, no markdown, no explanation:
+[{"name":"Smith, John","sqft":8900},{"name":"Parker, Mike","sqft":13800}]`
+  });
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version':'2023-06-01',
+    },
+    body: JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:1000,
+      messages:[{role:'user', content}]
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `API error ${res.status}`);
+  }
+
+  const data = await res.json();
+  const text = data.content.find(b => b.type==='text')?.text || '';
+  const match = text.match(/\[[\s\S]*\]/);
+  if (!match) throw new Error('No property list found in AI response. Try uploading a clearer screenshot.');
+  const arr = JSON.parse(match[0]);
+  if (!Array.isArray(arr)) throw new Error('Invalid response format');
+  return arr.filter(p => p.name && p.sqft > 0).map(p => ({
+    name: p.name,
+    sqft: Math.round(Number(p.sqft)),
+  }));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER HELPERS
+// ═══════════════════════════════════════════════════════════
+function renderAlerts(alerts) {
+  if (!alerts || !alerts.length) return '';
+  return alerts.map(a =>
+    `<div class="alert-box alert-${a.type}">${a.msg}</div>`
+  ).join('');
+}
+
+function renderMixCard(mix, title, icon, extraNote) {
+  if (!mix) return '';
+  const isPS = mix.equipment === 'ps';
+  const equipLabel = isPS ? 'POWER SPRAY RIG' : 'TORO SPRAYMASTER';
+  const equipColor = isPS ? '#64b4ff' : 'var(--green)';
+  const bufNote = mix.buf > 0 ? `<span style="color:var(--text3);font-size:12px">  (−${mix.buf.toLocaleString()} sqft buffer)</span>` : '';
+
+  const prodsHTML = mix.products.map(p => `
+    <div class="product-row">
+      <div class="product-name">
+        ${p.name}
+        ${p.cond ? `<span class="cond-note">⚠️ ${p.condNote}</span>` : ''}
+        ${p.note ? `<span class="cond-note">${p.note}</span>` : ''}
+      </div>
+      <div>
+        <span class="product-amount">${fmtOz(p.amt, p.unit)}</span>
+        <span class="product-unit"> ${p.unit}</span>
+      </div>
+    </div>`).join('');
+
+  return `
+  <div class="mix-card">
+    <div class="mix-card-header">
+      <span class="mix-card-icon">${icon}</span>
+      <span class="mix-card-title">${title}</span>
+      <span style="font-size:10px;font-family:var(--font-mono);color:${equipColor};letter-spacing:1px">${equipLabel}</span>
+    </div>
+    <div class="mix-card-body">
+      <div class="mix-meta">
+        <div class="mix-meta-item">
+          <div class="mix-meta-label">Effective sqft</div>
+          <div class="mix-meta-value">${mix.eff.toLocaleString()}${bufNote}</div>
+        </div>
+        <div class="mix-meta-item">
+          <div class="mix-meta-label">Water needed</div>
+          <div class="mix-meta-value">${fmtGal(mix.gal)} <span class="mix-meta-unit">water</span></div>
+        </div>
+      </div>
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">ADD PER BATCH →</div>
+      ${prodsHTML}
+      ${extraNote ? `<div class="mix-order">${extraNote}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderBGCard(items) {
+  if (!items || !items.length) return '';
+  const rows = items.map(item => {
+    if (item.sep) return `<div class="bg-separator">${item.label}</div>`;
+    if (item.infoOnly) return `<div class="info-row" style="padding:8px 0">${item.note}</div>`;
+    return `
+      <div class="product-row">
+        <div class="product-name">
+          ${item.name}
+          ${item.note ? `<span class="cond-note">${item.note}</span>` : ''}
+        </div>
+        <div class="product-amount">${item.amount}</div>
+      </div>`;
+  }).join('');
+
+  return `
+  <div class="mix-card">
+    <div class="mix-card-header">
+      <span class="mix-card-icon">🧪</span>
+      <span class="mix-card-title">B&G Spot Spray — 1 Gallon at a Time</span>
+      <span style="font-size:10px;font-family:var(--font-mono);color:#aaa;letter-spacing:1px">B&G SPRAYER</span>
+    </div>
+    <div class="mix-card-body">
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">MIX PER 1 GALLON →</div>
+      ${rows}
+    </div>
+  </div>`;
+}
+
+function renderGranCard(granData) {
+  if (!granData) return '';
+  const cfg = granData.config;
+  const isHardStop = cfg.hardStop && (() => {
+    const d = new Date(); const m = d.getMonth()+1; const day = d.getDate();
+    return (m===5&&day>1)||m>5;
+  })();
+
+  let rateRows = '';
+  const sections = [granData.toro, granData.ps].filter(Boolean);
+  for (const sec of sections) {
+    if (!sec || sec.sqft <= 0) continue;
+    for (const r of cfg.rates) {
+      const lbs = (sec.sqft / 1000) * r.lbs;
+      rateRows += `
+        <div class="gran-rate-row">
+          <div>
+            <div class="gran-label">${r.label}</div>
+            <div class="gran-equip">${sec.equipment} — ${sec.sqft.toLocaleString()} sqft</div>
+          </div>
+          <div class="gran-amount">
+            <div class="big">${fmtLbs(lbs)}</div>
+            <div class="small">@ ${r.lbs} lbs/1K sqft</div>
+          </div>
+        </div>`;
+    }
+  }
+
+  return `
+  <div class="mix-card">
+    <div class="mix-card-header">
+      <span class="mix-card-icon">🌾</span>
+      <span class="mix-card-title">Granular Fertilizer</span>
+      <span style="font-size:10px;font-family:var(--font-mono);color:#ffc800;letter-spacing:1px">SPREADER</span>
+    </div>
+    <div class="mix-card-body">
+      ${isHardStop ? `<div class="hardstop-banner">🚨 MAY 1 HARD STOP: Date is past May 1. Skip granular fertilizer entirely. Spot weed control only.</div>` : ''}
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:4px">PRODUCT</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:14px">${cfg.product}</div>
+      ${rateRows}
+      ${cfg.note ? `<div class="info-row" style="margin-top:10px">ℹ️ ${cfg.note}</div>` : ''}
+      ${cfg.hardStop && !isHardStop ? `<div class="info-row" style="margin-top:10px;color:var(--warn)">⚠️ MAY 1 HARD STOP: If today is after May 1 — skip granular entirely.</div>` : ''}
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SCREENS
+// ═══════════════════════════════════════════════════════════
+function renderStep1() {
+  return `
+  <div class="step-label">STEP 1 OF 3</div>
+  <div class="step-title">What route are you running today?</div>
+  <div class="route-cards">
+    <div class="route-card ${state.routeType==='warm'?'selected':''}" data-type="warm">
+      <span class="route-icon">🔥</span>
+      <span class="route-name">Warm Season</span>
+      <span class="route-sub">Bermuda & Zoysia accounts</span>
+      <div class="route-check">✓</div>
+    </div>
+    <div class="route-card ${state.routeType==='cool'?'selected':''}" data-type="cool">
+      <span class="route-icon">❄️</span>
+      <span class="route-name">Cool Season</span>
+      <span class="route-sub">Tall Fescue accounts</span>
+      <div class="route-check">✓</div>
+    </div>
+  </div>
+  <div class="btn-row" style="margin-top:24px">
+    <button class="btn btn-primary" id="step1-next" ${!state.routeType?'disabled':''}>Continue →</button>
+  </div>`;
+}
+
+function renderStep2() {
+  const hasImages = state.images.length > 0;
+  const hasKey = !!state.apiKey;
+  const previewsHTML = hasImages ? `
+    <div class="upload-previews">
+      ${state.images.map((img,i) => `
+        <div class="upload-preview-wrap">
+          <img src="${img.dataUrl}" class="upload-preview" alt="Route ${i+1}" />
+          <button class="remove-img" data-idx="${i}">✕</button>
+        </div>`).join('')}
+    </div>` : '';
+
+  const apiKeySection = !hasKey ? `
+    <div class="api-key-section">
+      <p>AI parsing requires an Anthropic API key. Get one free at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com → API Keys</a> (Starter tier works).</p>
+      <div class="input-row">
+        <input type="password" id="inline-api-input" class="api-input" placeholder="sk-ant-..." />
+        <button class="save-key-btn" id="inline-save-key">Save</button>
+      </div>
+    </div>` : '';
+
+  return `
+  <button class="back-nav" id="back-to-1">← Back</button>
+  <div class="route-chip">${state.routeType==='warm'?'🔥 Warm Season':'❄️ Cool Season'}</div>
+  <div class="step-label">STEP 2 OF 3</div>
+  <div class="step-title">Upload your FieldRoutes screenshots</div>
+
+  ${state.parseError ? `<div class="error-box">❌ ${state.parseError}<div class="info-row" style="margin-top:6px">Try again or add properties manually below.</div></div>` : ''}
+
+  ${apiKeySection}
+
+  <div class="upload-zone" id="upload-zone">
+    <input type="file" accept="image/*" multiple id="file-input" />
+    <div class="upload-icon">📸</div>
+    <span class="upload-label">${hasImages ? `${state.images.length} screenshot${state.images.length>1?'s':''} uploaded` : 'Tap to upload screenshots'}</span>
+    <span class="upload-sub">${hasImages ? 'Tap to add more' : 'Multiple screenshots OK — all properties will be combined'}</span>
+  </div>
+  ${previewsHTML}
+  ${hasImages ? `<button class="btn btn-primary" id="parse-btn" style="margin-bottom:16px" ${!hasKey?'disabled':''}>
+    ${!hasKey ? '🔒 Save API Key to Parse' : '🤖 Parse Properties with AI'}
+  </button>` : ''}
+
+  <div class="or-divider">OR</div>
+  <button class="manual-add-btn" id="skip-to-manual">+ Enter Properties Manually</button>`;
+}
+
+function renderStep3() {
+  const detectedRound = detectRound();
+  const currentRound = state.round || detectedRound;
+  const hasProps = state.properties.length > 0;
+
+  const propsHTML = hasProps
+    ? state.properties.map((p,i) => {
+        const equip = state.routeType==='warm' ? assignEquip(p.sqft) : 'ps';
+        const badge = equip==='toro'
+          ? `<span class="equip-badge badge-toro">TORO</span>`
+          : `<span class="equip-badge badge-ps">POWER SPRAY</span>`;
+        return `
+        <div class="property-row">
+          <div class="prop-name">${p.name}</div>
+          <div class="prop-sqft">${p.sqft.toLocaleString()} sqft</div>
+          ${badge}
+          <button class="prop-delete" data-del="${i}">×</button>
+        </div>`;
+      }).join('')
+    : `<div class="empty-state">
+        <div class="es-icon">🏡</div>
+        <div>No properties yet — add them below</div>
+      </div>`;
+
+  const roundOptions = [1,2,3,4,5,6,7].map(n => {
+    const r = ROUNDS[state.routeType][n];
+    return `<option value="${n}" ${n===currentRound?'selected':''}>${`R${n} — ${r.dates}`}</option>`;
+  }).join('');
+
+  // Totals
+  const toroSqft = state.properties.filter(p=>p.sqft>=GATE).reduce((s,p)=>s+p.sqft,0);
+  const psSqft   = state.properties.filter(p=>p.sqft<GATE).reduce((s,p)=>s+p.sqft,0);
+  const totalSqft = state.properties.reduce((s,p)=>s+p.sqft,0);
+
+  const totalsBar = state.routeType==='warm' ? `
+    <div class="totals-bar">
+      <div class="total-item">
+        <div class="t-label">TOTAL SQFT</div>
+        <div class="t-value" style="color:var(--text)">${totalSqft.toLocaleString()}</div>
+      </div>
+      <div class="total-item">
+        <div class="t-label">TORO (≥10K)</div>
+        <div class="t-value green">${toroSqft.toLocaleString()}</div>
+      </div>
+      <div class="total-item">
+        <div class="t-label">POWER SPRAY (&lt;10K)</div>
+        <div class="t-value blue">${psSqft.toLocaleString()}</div>
+      </div>
+    </div>` : `
+    <div class="totals-bar">
+      <div class="total-item">
+        <div class="t-label">TOTAL SQFT</div>
+        <div class="t-value" style="color:var(--text)">${totalSqft.toLocaleString()}</div>
+      </div>
+      <div class="total-item">
+        <div class="t-label">POWER SPRAY</div>
+        <div class="t-value blue">${totalSqft.toLocaleString()}</div>
+      </div>
+    </div>`;
+
+  return `
+  <button class="back-nav" id="back-to-2">← Back</button>
+  <div class="route-chip">${state.routeType==='warm'?'🔥 Warm Season':'❄️ Cool Season'}</div>
+  <div class="step-label">STEP 3 OF 3</div>
+  <div class="step-title">Review Properties & Select Round</div>
+
+  <div class="section-header">Properties (${state.properties.length})</div>
+  <div class="property-list">${propsHTML}</div>
+
+  <div class="prop-row-inputs">
+    <input type="text" class="prop-input" id="new-prop-name" placeholder="Customer name" value="${state.newPropName}" />
+    <input type="number" class="prop-input" id="new-prop-sqft" placeholder="sqft" style="max-width:110px" value="${state.newPropSqft}" />
+    <button class="add-prop-btn" id="add-prop-btn">+</button>
+  </div>
+
+  ${state.properties.length > 0 ? totalsBar : ''}
+
+  <div class="section-header" style="margin-top:16px">Round Selection</div>
+  <div class="round-selector">
+    ${detectedRound ? `<span class="round-auto-label">✓ Auto-detected from today's date: R${detectedRound}</span>` : `<span class="round-auto-label" style="color:var(--warn)">⚠️ Outside of season dates — select manually</span>`}
+    <select class="round-select" id="round-select">
+      ${roundOptions}
+    </select>
+  </div>
+
+  <div class="btn-row" style="margin-top:20px">
+    <button class="btn btn-primary" id="calc-btn" ${!hasProps||!currentRound?'disabled':''}>
+      Calculate Mix →
+    </button>
+  </div>`;
+}
+
+function renderResults() {
+  if (!state.round || !state.properties.length) {
+    return `<div class="empty-state">No data to display. <button class="btn btn-secondary" id="restart-btn" style="margin-top:16px;width:auto;padding:10px 20px">Start Over</button></div>`;
+  }
+
+  const {rd, totalSqft, toroMix, psMix, fungSepMix, granData} = calcResults(state.routeType, state.round, state.properties);
+  const routeLabel = state.routeType==='warm' ? '🔥 Warm Season (Bermuda / Zoysia)' : '❄️ Cool Season (Tall Fescue)';
+
+  let content = '';
+
+  // Alerts
+  content += renderAlerts(rd.alerts);
+
+  // Tank note for R7
+  if (rd.liquid?.tankNote) {
+    content += `<div class="alert-box alert-warn">${rd.liquid.tankNote}</div>`;
+  }
+
+  // Liquid mixes
+  content += renderMixCard(toroMix, 'Toro SprayMaster Mix', '🚜', rd.liquid?.mixOrder);
+  content += renderMixCard(psMix, 'Power Spray Rig Mix', '💧', rd.liquid?.mixOrder);
+
+  // Cool season liquid note
+  if (rd.liquid?.note) {
+    content += `<div class="alert-box alert-info">${rd.liquid.note}</div>`;
+  }
+
+  // R7 separate fungicide
+  if (fungSepMix) {
+    const fsCfg = fungSepMix.config;
+    content += `
+    <div class="mix-card" style="border-color:rgba(0,255,71,0.35)">
+      <div class="mix-card-header" style="background:rgba(0,255,71,0.08)">
+        <span class="mix-card-icon">🍄</span>
+        <span class="mix-card-title">${fsCfg.label}</span>
+      </div>
+      <div class="mix-card-body">
+        <div class="alert-box alert-info" style="margin-bottom:12px">${fsCfg.note}</div>
+        ${fungSepMix.toro ? renderMixCard(fungSepMix.toro, 'Toro — Fungicide Pass', '🚜', null).replace('<div class="mix-card">','<div>').replace('</div>','') : ''}
+        ${fungSepMix.ps ? renderMixCard(fungSepMix.ps, 'Power Spray — Fungicide Pass', '💧', null).replace('<div class="mix-card">','<div>').replace('</div>','') : ''}
+      </div>
+    </div>`;
+    // Simpler: just show inline fungicide card
+    content = content.replace(/fungSepMix PLACEHOLDER/, ''); // safety
+    // Actually redo: show separate fungicide cards cleanly
+  }
+
+  // Granular
+  content += renderGranCard(granData);
+
+  // B&G
+  content += renderBGCard(rd.bg);
+
+  // No spray rounds note
+  if (!rd.liquid && !rd.granular && !rd.bg) {
+    content += `<div class="alert-box alert-info">No mix required for this round. Check round-specific notes.</div>`;
+  }
+
+  return `
+  <button class="back-nav" id="back-to-3">← Edit Properties</button>
+  <div class="results-header">
+    <div class="results-title">${rd.icon} R${state.round} — ${rd.name}</div>
+    <div class="results-meta">
+      <span>${routeLabel}</span> &nbsp;·&nbsp;
+      <span class="results-date">${today()}</span> &nbsp;·&nbsp;
+      <span>${rd.dates}</span>
+    </div>
+  </div>
+  <div class="mix-meta" style="margin-bottom:16px">
+    <div class="mix-meta-item">
+      <div class="mix-meta-label">Properties</div>
+      <div class="mix-meta-value">${state.properties.length}</div>
+    </div>
+    <div class="mix-meta-item">
+      <div class="mix-meta-label">Total sqft</div>
+      <div class="mix-meta-value">${totalSqft.toLocaleString()}</div>
+    </div>
+  </div>
+  ${content}
+  <div class="btn-row" style="margin-top:8px">
+    <button class="btn btn-secondary" id="restart-btn">↩ Start New Route</button>
+  </div>`;
+}
+
+function renderLoading() {
+  return `
+  <div class="loading-wrap">
+    <div class="spinner"></div>
+    <div class="loading-text">Parsing your route...</div>
+    <div class="loading-sub">AI is reading property sqft from your screenshots</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER + EVENTS
+// ═══════════════════════════════════════════════════════════
+function render() {
+  const main = document.getElementById('main-content');
+  if (!main) return;
+
+  if (state.isLoading) { main.innerHTML = renderLoading(); return; }
+
+  switch(state.screen) {
+    case 'step1': main.innerHTML = renderStep1(); break;
+    case 'step2': main.innerHTML = renderStep2(); break;
+    case 'step3': main.innerHTML = renderStep3(); break;
+    case 'results': main.innerHTML = renderResults(); break;
+  }
+
+  attachEvents();
+}
+
+function attachEvents() {
+  // Step 1
+  document.querySelectorAll('.route-card').forEach(card => {
+    card.addEventListener('click', () => {
+      state.routeType = card.dataset.type;
+      render();
+    });
+  });
+  document.getElementById('step1-next')?.addEventListener('click', () => {
+    if (state.routeType) { state.screen='step2'; render(); }
+  });
+
+  // Step 2
+  document.getElementById('back-to-1')?.addEventListener('click', () => { state.screen='step1'; render(); });
+  document.getElementById('file-input')?.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files);
+    for (const file of files) {
+      const dataUrl = await readFileAsDataURL(file);
+      const base64 = dataUrl.split(',')[1];
+      state.images.push({name: file.name, dataUrl, base64, mime: file.type});
+    }
+    state.parseError = null;
+    render();
+  });
+  document.querySelectorAll('.remove-img').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.images.splice(Number(btn.dataset.idx), 1);
+      render();
+    });
+  });
+  document.getElementById('parse-btn')?.addEventListener('click', async () => {
+    if (!state.apiKey) return;
+    state.isLoading = true; state.parseError = null;
+    render();
+    try {
+      const props = await parseImages(state.images, state.apiKey);
+      if (!props.length) throw new Error('No properties found. Make sure sqft data is visible in your screenshots.');
+      state.properties = props;
+      state.round = detectRound();
+      state.screen = 'step3';
+    } catch(err) {
+      state.parseError = err.message;
+    } finally { state.isLoading = false; }
+    render();
+  });
+  document.getElementById('skip-to-manual')?.addEventListener('click', () => {
+    state.screen='step3'; state.round=detectRound(); render();
+  });
+  // Inline API key save
+  document.getElementById('inline-save-key')?.addEventListener('click', () => {
+    const val = document.getElementById('inline-api-input')?.value.trim();
+    if (val) { state.apiKey = val; localStorage.setItem('flex_api_key', val); render(); }
+  });
+
+  // Step 3
+  document.getElementById('back-to-2')?.addEventListener('click', () => { state.screen='step2'; render(); });
+  document.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.properties.splice(Number(btn.dataset.del), 1);
+      render();
+    });
+  });
+  document.getElementById('add-prop-btn')?.addEventListener('click', addProp);
+  document.getElementById('new-prop-sqft')?.addEventListener('keypress', (e) => { if(e.key==='Enter') addProp(); });
+  document.getElementById('round-select')?.addEventListener('change', (e) => {
+    state.round = Number(e.target.value);
+  });
+  document.getElementById('calc-btn')?.addEventListener('click', () => {
+    if (!state.round) state.round = detectRound();
+    if (state.properties.length && state.round) { state.screen='results'; render(); }
+  });
+
+  // Results
+  document.getElementById('back-to-3')?.addEventListener('click', () => { state.screen='step3'; render(); });
+  document.getElementById('restart-btn')?.addEventListener('click', () => {
+    state.screen='step1'; state.routeType=null; state.properties=[];
+    state.images=[]; state.round=null; state.parseError=null;
+    render();
+  });
+}
+
+function addProp() {
+  const nameEl = document.getElementById('new-prop-name');
+  const sqftEl = document.getElementById('new-prop-sqft');
+  const name = nameEl?.value.trim();
+  const sqft = parseInt(sqftEl?.value);
+  if (name && sqft > 0) {
+    state.properties.push({name, sqft});
+    state.newPropName = ''; state.newPropSqft = '';
+    if (nameEl) nameEl.value = '';
+    if (sqftEl) sqftEl.value = '';
+    render();
+  }
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SETTINGS MODAL
+// ═══════════════════════════════════════════════════════════
+document.getElementById('settings-btn')?.addEventListener('click', () => {
+  const modal = document.getElementById('settings-modal');
+  modal.classList.remove('hidden');
+  const inp = document.getElementById('settings-api-input');
+  if (inp) inp.value = state.apiKey;
+  updateKeyStatus();
 });
 
-async function processAllFiles(files){
-  setProgress(true,'Reading '+files.length+' screenshot'+(files.length>1?'s':'')+'...',10);
-  let allProps=[],combinedTotal=0;
-  for(let i=0;i<files.length;i++){
-    setProgress(true,'Reading screenshot '+(i+1)+' of '+files.length+'...',10+Math.round(((i+1)/files.length)*80));
-    try{
-      const result=await readOneFile(files[i]);
-      allProps=allProps.concat(result.properties||[]);
-      if(result.total)combinedTotal+=result.total;
-    }catch(err){
-      showError('Error on screenshot '+(i+1)+': '+err.message);
-      setProgress(false);return;
-    }
+function updateKeyStatus() {
+  const el = document.getElementById('key-status-msg');
+  if (!el) return;
+  if (state.apiKey) {
+    el.textContent = '✓ API key saved';
+    el.className = 'key-status set';
+  } else {
+    el.textContent = '⚠ No API key — AI parsing disabled';
+    el.className = 'key-status unset';
   }
-  setProgress(true,'Done - combining results...',95);
-  props=allProps.map(p=>({name:p.name,sqft:p.rockYard?0:(parseInt(p.sqft)||0),round:p.round||null,rockYard:!!p.rockYard,rockSqft:p.rockYard?(parseInt(p.sqft)||0):0}));
-  if(combinedTotal)detectedTotal=combinedTotal;
-  document.getElementById('previewCount').textContent=files.length+' screenshot'+(files.length>1?'s':'')+' read - '+props.length+' properties found';
-  setProgress(false);
-  renderProps();
 }
 
-async function readOneFile(file){
-  return new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onload=async function(e){
-      const b64=e.target.result.split(',')[1];
-      const mediaType=file.type||'image/jpeg';
-      try{
-        const resp=await fetch('https://flex-proxy.mike-8e3.workers.dev',{
-          method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({messages:[{role:'user',content:[
-            {type:'image',source:{type:'base64',media_type:mediaType,data:b64}},
-            {type:'text',text:'Extract property data from this FieldRoutes schedule screenshot. RESPOND WITH ONLY A JSON OBJECT. No text before or after. No markdown. No backticks. Format: {"properties":[{"name":"Smith, John","sqft":6500,"round":2,"rockYard":false}],"total":43100} For each property CARD showing MEASUREMENTS: name=Last First format remove & symbols, sqft=convert K value 6.5K=6500 13.8K=13800 5.1K=5100, round=R1=1 R2=2 R3=3 RS=2 R4=4 default 2 if unclear, rockYard=true ONLY if red notes say ALL ROCK YARD or rock bed or rock yard. total=the XX.XK SF from header omit if not visible. SKIP time slots LUNCH MEETING END cancelled cards without MEASUREMENTS. If nothing visible return {"properties":[]}'}
-          ]}]})
-        });
-        const data=await resp.json();
-        const rawText=(data.content?.[0]?.text||'').trim();
-        const raw=rawText.replace(/```json|```/g,'').trim();
-        try{resolve(JSON.parse(raw));return;}catch(e1){}
-        const m=raw.match(/\{[\s\S]*\}/);
-        if(m){try{resolve(JSON.parse(m[0]));return;}catch(e2){}}
-        console.error('Parse failed:',raw.substring(0,300));
-        reject(new Error('Could not read screenshot. Got: '+raw.substring(0,80)));
-      }catch(err){reject(err);}
-    };
-    reader.readAsDataURL(file);
+document.getElementById('save-key-btn')?.addEventListener('click', () => {
+  const val = document.getElementById('settings-api-input')?.value.trim();
+  if (val) { state.apiKey = val; localStorage.setItem('flex_api_key', val); }
+  updateKeyStatus();
+});
+
+// ═══════════════════════════════════════════════════════════
+//  PWA INSTALL
+// ═══════════════════════════════════════════════════════════
+let installPrompt = null;
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+  || window.navigator.standalone === true;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+  if (!isStandalone) {
+    document.getElementById('install-banner').classList.remove('hidden');
+    document.getElementById('app').classList.add('banner-visible');
+  }
+});
+
+document.getElementById('install-btn')?.addEventListener('click', async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  const {outcome} = await installPrompt.userChoice;
+  if (outcome === 'accepted') {
+    document.getElementById('install-banner').classList.add('hidden');
+    document.getElementById('app').classList.remove('banner-visible');
+  }
+  installPrompt = null;
+});
+
+document.getElementById('install-dismiss')?.addEventListener('click', () => {
+  document.getElementById('install-banner').classList.add('hidden');
+  document.getElementById('app').classList.remove('banner-visible');
+});
+
+// Show iOS instructions on first visit if on iOS and not installed
+if (isIOS && !isStandalone && !localStorage.getItem('ios-install-shown')) {
+  setTimeout(() => {
+    document.getElementById('ios-modal').classList.remove('hidden');
+    localStorage.setItem('ios-install-shown', '1');
+  }, 1500);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SERVICE WORKER
+// ═══════════════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/Flex-Lawn-Tools/sw.js')
+      .catch(() => {});
   });
 }
 
-function setProgress(on,msg,pct){
-  document.getElementById('progressWrap').style.display=on?'block':'none';
-  if(on){document.getElementById('progressLabel').textContent=msg;document.getElementById('progressFill').style.width=(pct||0)+'%';}
-}
-function showError(msg){
-  const eb=document.getElementById('errorBox');eb.textContent=msg;eb.style.display='block';
-  document.getElementById('uploadResetBtn').style.display='block';
-}
-
-function renderProps(){
-  document.getElementById('propsCard').style.display='block';
-  document.getElementById('results').style.display='none';
-  rebuildPropList();updateChips();
-}
-function rebuildPropList(){
-  const list=document.getElementById('propList');list.innerHTML='';
-  props.forEach((p,i)=>{
-    const div=document.createElement('div');div.className='prop-item';
-    const isRock=p.rockYard,isPush=!isRock&&p.sqft<SQFT_THRESHOLD;
-    const badge=isRock?'<span class="prop-badge badge-rock">Rock</span>':(isPush?'<span class="prop-badge badge-power">Power</span>':'<span class="prop-badge badge-toro">Toro</span>');
-    const rTag=p.round?'<span style="font-size:10px;color:var(--muted);margin-left:2px">R'+p.round+'</span>':'';
-    div.innerHTML='<input type="text" value="'+p.name.replace(/"/g,'&quot;')+'" oninput="props['+i+'].name=this.value" placeholder="Customer name">'+'<input type="number" value="'+(p.rockYard?p.rockSqft:p.sqft)+'" oninput="props['+i+'].sqft=parseInt(this.value)||0;updateChips()" placeholder="sqft">'+badge+rTag+'<button class="rm-btn" onclick="removeProp('+i+')">x</button>';
-    list.appendChild(div);
-  });
-  document.getElementById('propCount').textContent=props.length+' properties';
-}
-function updateChips(){
-  const rockPx=props.filter(p=>p.rockYard),lawnPx=props.filter(p=>!p.rockYard);
-  const toroPx=lawnPx.filter(p=>p.sqft>=SQFT_THRESHOLD),pushPx=lawnPx.filter(p=>p.sqft<SQFT_THRESHOLD);
-  const toroSqft=toroPx.reduce((a,p)=>a+p.sqft,0),pushSqft=pushPx.reduce((a,p)=>a+p.sqft,0),rockSqft=rockPx.reduce((a,p)=>a+p.rockSqft,0);
-  let html='<div class="chip"><strong>'+fmtNum(toroSqft+pushSqft+rockSqft)+'</strong> total sqft</div>';
-  html+='<div class="chip power-chip"><strong>'+pushPx.length+'</strong> props Power/Push (<strong>'+fmtNum(pushSqft)+'</strong> sqft)</div>';
-  html+='<div class="chip toro-chip"><strong>'+toroPx.length+'</strong> props Toro (<strong>'+fmtNum(toroSqft)+'</strong> sqft)</div>';
-  if(rockPx.length>0)html+='<div class="chip" style="border-color:rgba(192,132,252,.3)"><strong style="color:var(--rock)">'+rockPx.length+'</strong> rock yards FlowZone</div>';
-  if(detectedTotal)html+='<div class="chip" style="font-size:11px;opacity:.6">Route total: '+fmtNum(detectedTotal)+' sqft</div>';
-  document.getElementById('summaryChips').innerHTML=html;
-}
-function addProp(){props.push({name:'New Property',sqft:5000,round:null,rockYard:false,rockSqft:0});rebuildPropList();updateChips();}
-function removeProp(i){props.splice(i,1);rebuildPropList();updateChips();}
-
-function buildBlock(hClass,icon,title,badge,propNames,meta,prods,note,extra){
-  let h='<div class="result-block" style="margin-bottom:14px"><div class="result-header '+hClass+'"><span>'+icon+' '+title+'</span><span class="gal-badge">'+badge+'</span></div>';
-  if(propNames)h+='<div class="prop-names-list">'+propNames+'</div>';
-  h+='<div class="result-body">';
-  if(meta)h+='<div class="mix-meta">'+meta+'</div>';
-  h+=prods;
-  if(note)h+=note;if(extra)h+=extra;
-  h+='</div></div>';return h;
-}
-function makeRows(products,amtClass,gals,atrazineBlocked){
-  if(!products||!products.length)return'';
-  let h='';
-  products.forEach(p=>{
-    const blocked=p.atrazine&&atrazineBlocked;
-    const total=p.rate*gals;
-    const disp=blocked?'<span style="color:#f87171;font-size:13px;font-weight:700;">SKIP - After Mar 10</span>':fmtOz(total)+' <small>'+p.unit+'</small>';
-    h+='<div class="product-row" style="'+(blocked?'opacity:.5;':'')+'"><div class="product-name">'+p.name+(p.note?'<small>'+p.note+'</small>':'')+'</div><div class="product-amount '+amtClass+'">'+disp+'</div></div>';
-  });
-  return h;
-}
-function granularRows(propList,rate){
-  let h='';
-  propList.forEach(p=>{const lbs=(p.sqft/1000*rate).toFixed(1);h+='<div class="product-row"><div class="product-name">'+p.name+'<small>'+fmtNum(p.sqft)+' sqft</small></div><div class="product-amount push-amt">'+lbs+' <small>lbs</small></div></div>';});
-  return h;
-}
-
-function calculate(){
-  const turf=document.getElementById('turfType').value;
-  const defaultRound=parseInt(document.getElementById('round').value);
-  if(!turf||!defaultRound){alert('Please select Turf Type and Round first.');return;}
-  const lawnProps=props.filter(p=>!p.rockYard),rockProps=props.filter(p=>p.rockYard);
-  if(lawnProps.length===0&&rockProps.length===0){alert('No properties loaded.');return;}
-  const atrazineBlocked=isAfterMarch10();
-  const wrap=document.getElementById('results-wrap');wrap.innerHTML='';
-  let sumPush=0,sumToro=0,sumRock=rockProps.reduce((a,p)=>a+p.rockSqft,0);
-
-  const groups={};
-  lawnProps.forEach(p=>{const r=p.round||defaultRound;if(!groups[r])groups[r]=[];groups[r].push(p);});
-
-  Object.keys(groups).sort((a,b)=>parseInt(a)-parseInt(b)).forEach(rNum=>{
-    const rInt=parseInt(rNum);
-    const data=ROUNDS[rInt]?ROUNDS[rInt][turf]:null;
-    if(!data)return;
-    const group=groups[rNum];
-    const toroPx=group.filter(p=>p.sqft>=SQFT_THRESHOLD),pushPx=group.filter(p=>p.sqft<SQFT_THRESHOLD);
-    const toroSqftRaw=toroPx.reduce((a,p)=>a+p.sqft,0),pushSqft=pushPx.reduce((a,p)=>a+p.sqft,0);
-    const toroSqft=Math.max(0,toroSqftRaw-BUFFER);
-    sumPush+=pushSqft;sumToro+=toroSqft;
-    const rLabel=Object.keys(groups).length>1?' - Round '+rNum:'';
-
-    // GRANULAR
-    if(data.granular&&data.granularProduct){
-      if(pushPx.length>0&&data.granularRatePush){
-        const totalLbs=pushPx.reduce((a,p)=>a+(p.sqft/1000*data.granularRatePush),0);
-        const bags=Math.ceil(totalLbs/50);
-        let ph=granularRows(pushPx,data.granularRatePush);
-        ph+='<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name"><strong>'+data.granularProduct+'</strong><small>'+bags+' bag'+(bags!==1?'s':'')+' of 50 lbs total</small></div><div class="product-amount push-amt" style="font-size:22px;">'+totalLbs.toFixed(1)+' <small>lbs</small></div></div>';
-        const note=data.granularHardStop?'<div class="atrazine-gate">Warning: '+data.granularHardStop+'</div>':'';
-        wrap.innerHTML+=buildBlock('push-header','Push Spreader'+rLabel+' (Granular)',totalLbs.toFixed(1)+' lbs','push-header','Push Spreader'+rLabel,totalLbs.toFixed(1)+' lbs',null,'Granular - props under 10K sqft',ph,note,null);
-      }
-      if(toroPx.length>0&&data.granularRateToro){
-        const totalLbs=toroPx.reduce((a,p)=>a+(p.sqft/1000*data.granularRateToro),0);
-        let ph=granularRows(toroPx,data.granularRateToro);
-        ph+='<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name"><strong>'+data.granularProduct+'</strong><small>Toro hopper total</small></div><div class="product-amount toro-amt" style="font-size:22px;">'+totalLbs.toFixed(1)+' <small>lbs</small></div></div>';
-        wrap.innerHTML+=buildBlock('toro-header','Toro Hopper Spreader'+rLabel,totalLbs.toFixed(1)+' lbs',toroPx.map(p=>p.name).join(' - '),'Granular - props 10K sqft and over',ph,null,null);
-      }
-    }
-
-    // LIQUID
-    if(data.power&&pushSqft>0){
-      const gals=roundGals(sqftToGalsPower(pushSqft));
-      let ph=makeRows(data.power,'power-amt',gals,atrazineBlocked);
-      let note='';
-      if(data.powerNote)note+='<div class="warning-box">'+data.powerNote+'</div>';
-      if(rInt===1&&turf==='warm'&&!atrazineBlocked)note+='<div class="atrazine-gate">ATRAZINE GATE: Confirm bermuda 100% brown before mixing Atrazine.</div>';
-      wrap.innerHTML+=buildBlock('power-header','Power Sprayer'+rLabel,gals+' gal',pushPx.map(p=>p.name).join(' - '),'Calibration: 1.14 gal/1,000 sqft @ 3.0 MPH - 6 ft spray width',ph,note,null);
-    }
-    if(data.toro&&toroSqft>0){
-      const gals=roundGals(sqftToGalsToro(toroSqft));
-      let ph=makeRows(data.toro,'toro-amt',gals,atrazineBlocked);
-      let note=data.toroNote?'<div class="warning-box">'+data.toroNote+'</div>':'';
-      wrap.innerHTML+=buildBlock('toro-header','Toro SprayMaster'+rLabel,gals+' gal',toroPx.map(p=>p.name).join(' - '),'Calibration: 0.34 gal/1,000 sqft @ 5 MPH - Purple tips - 40 PSI',ph,note,null);
-    }
-
-    // R5 granular (same visit as fungicide)
-    if(rInt===5&&data.granularProduct){
-      if(pushPx.length>0&&data.granularRatePush){
-        const totalLbs=pushPx.reduce((a,p)=>a+(p.sqft/1000*data.granularRatePush),0);
-        const bags=Math.ceil(totalLbs/50);
-        let ph=granularRows(pushPx,data.granularRatePush);
-        ph+='<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name"><strong>'+data.granularProduct+'</strong><small>'+bags+' bag'+(bags!==1?'s':'')+' - apply same visit as fungicide</small></div><div class="product-amount push-amt" style="font-size:22px;">'+totalLbs.toFixed(1)+' <small>lbs</small></div></div>';
-        wrap.innerHTML+=buildBlock('push-header','Push Spreader - R5 Granular',totalLbs.toFixed(1)+' lbs',null,'Apply immediately after fungicide spray pass',ph,null,null);
-      }
-      if(toroPx.length>0&&data.granularRateToro){
-        const totalLbs=toroPx.reduce((a,p)=>a+(p.sqft/1000*data.granularRateToro),0);
-        let ph=granularRows(toroPx,data.granularRateToro);
-        wrap.innerHTML+=buildBlock('toro-header','Toro Hopper - R5 Granular',totalLbs.toFixed(1)+' lbs',null,'Apply immediately after fungicide spray pass',ph,null,null);
-      }
-    }
-
-    // R7 warm two passes
-    if(rInt===7&&turf==='warm'){
-      wrap.innerHTML+='<div class="warning-box" style="margin-bottom:14px">Round 7 requires TWO spray passes. Herbicide broadcast first, then rinse one tank and apply Artavia SC fungicide as second pass same visit.</div>';
-      if(pushPx.length>0){
-        const pGals=roundGals(sqftToGalsPower(pushSqft));
-        const artOz=(pGals*2.25).toFixed(1);
-        wrap.innerHTML+=buildBlock('power-header','Power Sprayer - Pass 2: Artavia SC',pGals+' gal',null,'Rinse tank after herbicide pass. Spring Dead Spot prevention.','<div class="product-row"><div class="product-name">Artavia SC (Azoxystrobin)<small>FRAC Group 11 - Spring Dead Spot</small></div><div class="product-amount power-amt">'+artOz+' <small>fl oz</small></div></div>','<div class="atrazine-gate">Water in after fungicide - 1/8 inch irrigation or rain required.</div>',null);
-      }
-      if(toroPx.length>0){
-        const tGals=roundGals(sqftToGalsToro(toroSqft));
-        const artOz=(tGals*2.25).toFixed(1);
-        wrap.innerHTML+=buildBlock('toro-header','Toro - Pass 2: Artavia SC',tGals+' gal',null,'Rinse one tank after herbicide pass.','<div class="product-row"><div class="product-name">Artavia SC (Azoxystrobin)<small>FRAC Group 11 - Spring Dead Spot</small></div><div class="product-amount toro-amt">'+artOz+' <small>fl oz</small></div></div>','<div class="atrazine-gate">Water in after fungicide - 1/8 inch irrigation or rain required.</div>',null);
-      }
-    }
-
-    // B&G
-    if(data.bg){
-      let ph=makeRows(data.bg,'bg-amt',1,false);
-      let note=data.bgNote?'<div class="warning-box">'+data.bgNote+'</div>':'';
-      wrap.innerHTML+=buildBlock('bg-header','B&G - Spot Weeds'+rLabel,'1 gal batch',null,'Mix 1 gallon at a time - on foot as needed',ph,note,null);
-    }
-  });
-
-  // FlowZone
-  if(rockProps.length>0){
-    const totalRock=rockProps.reduce((a,p)=>a+p.rockSqft,0);
-    const rockGals=Math.max(1,Math.ceil(totalRock/1625));
-    const rpOz=(2*rockGals).toFixed(1),dyeOz=(0.3*rockGals).toFixed(1);
-    let ph='';
-    rockProps.forEach(p=>{const pg=Math.max(1,Math.ceil(p.rockSqft/1625));ph+='<div class="product-row"><div class="product-name">'+p.name+'<small>'+fmtNum(p.rockSqft)+' sqft rock yard</small></div><div class="product-amount rock-amt">'+pg+' <small>gal</small></div></div>';});
-    ph+='<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name">Ranger Pro (41% glyphosate)</div><div class="product-amount rock-amt">'+rpOz+' <small>oz</small></div></div>';
-    ph+='<div class="product-row"><div class="product-name">Dye</div><div class="product-amount rock-amt">'+dyeOz+' <small>oz</small></div></div>';
-    wrap.innerHTML+=buildBlock('rock-header','FlowZone - Rock Yards',rockGals+' gal',rockProps.map(p=>p.name).join(' - '),'Pre-mix at office. 1 gal per ~1,625 sqft. Glyphosate only.',ph,'<div class="warning-box">Non-selective - keep off all turf and ornamentals.</div>',null);
-  }
-
-  document.getElementById('sum-power').textContent=fmtNum(sumPush)+' sqft';
-  document.getElementById('sum-toro').textContent=fmtNum(sumToro)+' sqft';
-  document.getElementById('sum-rock').textContent=fmtNum(sumRock)+' sqft';
-  document.getElementById('results').style.display='block';
-  setTimeout(()=>document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'}),100);
-}
-
-function resetAll(){
-  props=[];detectedTotal=null;
-  document.getElementById('turfType').value='';
-  document.getElementById('propsCard').style.display='none';
-  document.getElementById('previewStrip').innerHTML='';
-  document.getElementById('previewCount').textContent='';
-  document.getElementById('fileInput').value='';
-  document.getElementById('errorBox').style.display='none';
-  document.getElementById('uploadResetBtn').style.display='none';
-  clearResults();goHome();
-}
-
-function setMode(mode){
-  document.getElementById('modeScreen').style.display='none';
-  document.getElementById('backBtn').classList.add('show');
-  document.getElementById('modeLabel').textContent=mode==='day'?'Mixing for the Day':'Mix on the Fly';
-  if(mode==='day'){document.getElementById('dayScreen').style.display='block';document.getElementById('flyScreen').style.display='none';initRound();}
-  else{document.getElementById('flyScreen').style.display='block';document.getElementById('dayScreen').style.display='none';flyInitRound();}
-}
-function goHome(){
-  document.getElementById('modeScreen').style.display='flex';
-  document.getElementById('dayScreen').style.display='none';
-  document.getElementById('flyScreen').style.display='none';
-  document.getElementById('backBtn').classList.remove('show');
-  document.getElementById('modeLabel').textContent='';
-}
-
-function flyInitRound(){
-  const ar=getAutoRound(),sel=document.getElementById('flyRound'),badge=document.getElementById('flyRoundBadge');
-  if(ar){sel.value=ar;badge.style.display='inline-flex';badge.textContent='Auto-detected from today date';badge.className='round-badge';}
-  flyCheckAtrazine();
-}
-function flyCheckAtrazine(){
-  const r=document.getElementById('flyRound').value,t=document.getElementById('flyTurf').value;
-  document.getElementById('flyAtrazineWarning').classList.toggle('show',r==='1'&&t==='warm'&&isAfterMarch10());
-}
-function flyReset(){document.getElementById('flySqft').value='';document.getElementById('flyResults').style.display='none';document.getElementById('flyResults').innerHTML='';}
-function flyCalculate(){
-  const turf=document.getElementById('flyTurf').value,round=parseInt(document.getElementById('flyRound').value),equip=document.getElementById('flyEquip').value,sqft=parseInt(document.getElementById('flySqft').value)||0;
-  if(!turf||!round){alert('Please select Turf Type and Round first.');return;}
-  const resultsEl=document.getElementById('flyResults');resultsEl.style.display='block';
-  const data=ROUNDS[round]?ROUNDS[round][turf]:null;
-  const atrazineBlocked=isAfterMarch10();
-  if(!data){resultsEl.innerHTML='<div class="card"><div class="na-box">No data for this round/turf.</div></div>';return;}
-  if(equip==='bg'){
-    if(!data.bg){resultsEl.innerHTML='<div class="card"><div class="na-box">No B&G mix for this round/turf.</div></div>';return;}
-    let h='<div class="result-block"><div class="result-header bg-header">B&G - Spot Weeds <span style="font-size:14px;font-weight:400;opacity:.7">1 gal batch</span></div><div class="result-body"><div class="mix-meta">Mix 1 gallon at a time</div>';
-    h+=makeRows(data.bg,'bg-amt',1,false);
-    if(data.bgNote)h+='<div class="warning-box">'+data.bgNote+'</div>';
-    h+='</div></div>';resultsEl.innerHTML=h;return;
-  }
-  if(equip==='rock'){
-    if(sqft<=0){alert('Enter sqft of rock beds.');return;}
-    const rg=Math.max(1,Math.ceil(sqft/1625));
-    resultsEl.innerHTML='<div class="result-block"><div class="result-header rock-header">FlowZone - Rock Beds <span class="gal-badge" style="background:rgba(192,132,252,.15);color:var(--rock)">'+rg+' gal</span></div><div class="result-body"><div class="mix-meta">~1,625 sqft/gal</div><div class="product-row"><div class="product-name">Ranger Pro (41% glyphosate)</div><div class="product-amount rock-amt">'+(2*rg).toFixed(1)+' <small>oz</small></div></div><div class="product-row"><div class="product-name">Dye</div><div class="product-amount rock-amt">'+(0.3*rg).toFixed(1)+' <small>oz</small></div></div><div class="warning-box">Non-selective - keep off turf and ornamentals.</div></div></div>';return;
-  }
-  if(sqft<=0){alert('Enter the sqft to cover.');return;}
-  let products,gals,hClass,hLabel,amtClass,calNote;
-  if(equip==='power'){gals=roundGals(sqftToGalsPower(sqft));products=data.power;hClass='power-header';hLabel='Power Spray Rig';amtClass='power-amt';calNote='Calibration: 1.14 gal/1,000 sqft @ 3.0 MPH - 6 ft spray width';}
-  else{gals=roundGals(sqftToGalsToro(sqft));products=data.toro;hClass='toro-header';hLabel='Toro SprayMaster';amtClass='toro-amt';calNote='Calibration: 0.34 gal/1,000 sqft @ 5 MPH - Purple tips - 40 PSI';}
-  let h='<div class="result-block"><div class="result-header '+hClass+'">'+hLabel+' <span class="gal-badge">'+gals+' gal</span></div><div class="result-body"><div class="mix-meta">'+calNote+'<br>'+fmtNum(sqft)+' sqft - fill to '+gals+' gal</div>';
-  if(!products){h+='<div class="na-box">'+(data.granular?data.toroNote||data.powerNote:'Not used this round.')+'</div>';}
-  else{h+=makeRows(products,amtClass,gals,atrazineBlocked);const note=equip==='power'?data.powerNote:data.toroNote;if(note)h+='<div class="warning-box">'+note+'</div>';if(round===1&&turf==='warm'&&!atrazineBlocked)h+='<div class="atrazine-gate">ATRAZINE GATE: Confirm bermuda fully dormant before mixing Atrazine.</div>';}
-  h+='</div></div>';resultsEl.innerHTML=h;resultsEl.scrollIntoView({behavior:'smooth',block:'start'});
-}
-
-let deferredPrompt=null;
-const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
-const isStandalone=window.navigator.standalone===true||window.matchMedia('(display-mode:standalone)').matches;
-const banner=document.getElementById('installBanner'),installBtn=document.getElementById('installBtn'),dismissBtn=document.getElementById('dismissBtn');
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('installInlineBtn').classList.add('show');if(!sessionStorage.getItem('installDismissed'))banner.classList.add('show');});
-installBtn.addEventListener('click',()=>{banner.classList.remove('show');if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;});}});
-dismissBtn.addEventListener('click',()=>{banner.classList.remove('show');sessionStorage.setItem('installDismissed','1');});
-window.addEventListener('appinstalled',()=>{banner.classList.remove('show');deferredPrompt=null;document.getElementById('installInlineBtn').classList.remove('show');});
-function triggerInstall(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(c=>{if(c.outcome==='accepted')document.getElementById('installInlineBtn').classList.remove('show');deferredPrompt=null;});}else alert("To install: tap the 3-dot menu in Chrome -> Add to Home Screen");}
-if(isIOS&&!isStandalone)document.getElementById('installInlineIos').classList.add('show');
-
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.getRegistrations().then(regs=>regs.forEach(r=>r.unregister()));
-  caches.keys().then(keys=>keys.forEach(k=>caches.delete(k)));
-}
-
-document.getElementById('modeScreen').style.display='flex';
-document.getElementById('dayScreen').style.display='none';
-document.getElementById('flyScreen').style.display='none';
+// ═══════════════════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════════════════
+render();
 </script>
 </body>
 </html>
