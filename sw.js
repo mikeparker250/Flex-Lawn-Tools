@@ -1,4 +1,4 @@
-const CACHE = 'flex-mix-v4';
+const CACHE = 'flex-mix-v6';
 const ASSETS = [
   '/Flex-Lawn-Tools/flex_mix_calculator.html',
   '/Flex-Lawn-Tools/manifest.json',

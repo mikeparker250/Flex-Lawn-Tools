@@ -975,18 +975,20 @@ async function parseImages(images, apiKey) {
   }
   content.push({
     type:'text',
-    text:`These are FieldRoutes "My Routes" or "Schedule" screenshots. For each customer property card, extract:
-1. name - the customer name (e.g. "Brook, K", "Lewis, Ruby", "& Tessa Carter, Corey")
-2. sqft - from "MEASUREMENTS: X.XK SF" — convert K SF to sqft (4.8K=4800, 13.8K=13800, 9.2K=9200). If no measurements shown, use 0.
-3. round - the round code shown (look for R1, R2, R3, R4, R5, R6, R7 in a circle or label, or RS for re-service). Use null if not visible.
-4. isRockYard - true ONLY if RED NOTES contains words like "rock yard", "rock bed", "all rock", "full rock". Otherwise false.
-5. isHoseDrag - true ONLY if RED NOTES contains "hose drag". Otherwise false.
+    text:`These are FieldRoutes "My Routes" screenshots. For each customer property card, extract:
+1. name - the customer name
+2. sqft - from "MEASUREMENTS: X.XK SF" (convert: 4.8K=4800, 13.8K=13800). Use 0 if not shown.
+3. round - round code in the blue circle below the profile photo (R1, R2, R3, R4, R5, R6, R7, RS). null if not visible.
+4. isRockYard - TRUE only if the ENTIRE property is rock with NO GRASS — look for "ALL ROCK YARD", "FULL ROCK YARD", "ALL ROCK" in RED NOTES. This means FlowZone only, no lawn spray at all.
+   FALSE if it says "rock beds are included in lawn care" — that means a real lawn exists plus rock beds.
+5. hasRockBeds - TRUE if RED NOTES says "rock beds are included" or similar — means normal lawn PLUS rock beds needing FlowZone.
+6. isHoseDrag - TRUE only if RED NOTES says "hose drag required".
 
-Ignore: LUNCH, MEETING, END, time-slot-only rows (no customer name), and header rows.
-Ignore any property where sqft is not shown AND round is not shown.
+CRITICAL: Read ALL red text labeled "RED NOTES" carefully. "ALL ROCK YARD" = isRockYard:true. "rock beds included" = hasRockBeds:true.
+Ignore: LUNCH, MEETING, END, time-only rows with no customer name.
 
-Return ONLY a valid JSON array, no markdown, no explanation:
-[{"name":"Brook, K","sqft":13800,"round":"R2","isRockYard":true,"isHoseDrag":false},{"name":"Lewis, Ruby","sqft":6400,"round":"R2","isRockYard":false,"isHoseDrag":false}]`
+Return ONLY a JSON array, no markdown:
+[{"name":"Brook, K","sqft":13800,"round":"R2","isRockYard":true,"hasRockBeds":false,"isHoseDrag":false},{"name":"Griffin, Matthew","sqft":4800,"round":"R2","isRockYard":false,"hasRockBeds":true,"isHoseDrag":false}]`
   });
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -998,8 +1000,8 @@ Return ONLY a valid JSON array, no markdown, no explanation:
       'anthropic-dangerous-direct-browser-access':'true',
     },
     body: JSON.stringify({
-      model:'claude-haiku-4-5-20251001',
-      max_tokens:1000,
+      model:'claude-sonnet-4-6',
+      max_tokens:1500,
       messages:[{role:'user', content}]
     })
   });
@@ -1020,6 +1022,7 @@ Return ONLY a valid JSON array, no markdown, no explanation:
     sqft: Math.round(Number(p.sqft) || 0),
     round: p.round ? String(p.round).toUpperCase() : null,
     isRockYard: !!p.isRockYard,
+    hasRockBeds: !!p.hasRockBeds,
     isHoseDrag: !!p.isHoseDrag,
   }));
 }
@@ -1247,12 +1250,16 @@ function renderStep3() {
           <option value="" ${!p.round?'selected':''}>--</option>
           ${roundOpts}
         </select>`;
+        const rockBedsBadge = p.hasRockBeds
+          ? `<span class="equip-badge" style="background:rgba(100,180,255,0.10);color:#64b4ff;border-color:rgba(100,180,255,0.25);font-size:10px">🪨 +BEDS</span>`
+          : '';
         return `
         <div class="property-row">
           <div class="prop-name">${p.name}</div>
           <div class="prop-sqft">${p.sqft > 0 ? p.sqft.toLocaleString()+' sqft' : '—'}</div>
           ${roundBadge}
           ${equipBadge}
+          ${rockBedsBadge}
           <button class="prop-delete" data-del="${i}">×</button>
         </div>`;
       }).join('')
@@ -1372,6 +1379,12 @@ function renderResults() {
       }
       content += renderGranCard(sec.granData);
       content += renderBGCard(rd.bg);
+
+      // Rock beds note
+      const rockBedProps = sec.props.filter(p => p.hasRockBeds);
+      if (rockBedProps.length > 0) {
+        content += `<div class="alert-box alert-info">🪨 ROCK BEDS — FlowZone glyphosate also needed at: ${rockBedProps.map(p=>p.name).join(', ')}. Spray rock bed areas only — not the lawn.</div>`;
+      }
       if (!rd.liquid && !rd.granular && !rd.bg) {
         content += `<div class="alert-box alert-info">No mix for this round — check round notes.</div>`;
       }
@@ -1563,7 +1576,7 @@ function addProp() {
   const sqft  = parseInt(sqftEl?.value) || 0;
   const round = roundEl?.value || null;
   if (name) {
-    state.properties.push({name, sqft, round, isRockYard:false, isHoseDrag:false});
+    state.properties.push({name, sqft, round, isRockYard:false, hasRockBeds:false, isHoseDrag:false});
     state.newPropName=''; state.newPropSqft='';
     if (nameEl) nameEl.value='';
     if (sqftEl) sqftEl.value='';
