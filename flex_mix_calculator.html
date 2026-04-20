@@ -495,6 +495,7 @@
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     </div>
     <div class="error-box" id="errorBox"></div>
+    <button class="reset-btn" id="uploadResetBtn" onclick="resetAll()" style="display:none;margin-top:10px">↺ Start Over</button>
   </div>
 
   <!-- STEP 3: PROPERTIES -->
@@ -867,6 +868,7 @@ function showError(msg) {
   const eb = document.getElementById('errorBox');
   eb.textContent = msg;
   eb.style.display = 'block';
+  document.getElementById('uploadResetBtn').style.display = 'block';
 }
 
 let detectedTotal = null;
@@ -1194,6 +1196,7 @@ function resetAll() {
   document.getElementById('previewCount').textContent = '';
   document.getElementById('fileInput').value = '';
   document.getElementById('errorBox').style.display = 'none';
+  document.getElementById('uploadResetBtn').style.display = 'none';
   clearResults();
   goHome();
 }
