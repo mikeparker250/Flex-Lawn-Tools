@@ -1,43 +1,37 @@
-// ─── VERSION — bump this number every time you deploy a new version ───────
-const VERSION = 'flex-mix-v11';
-// ─────────────────────────────────────────────────────────────────────────
-
+const CACHE = 'flex-mix-v3';
 const ASSETS = [
   '/Flex-Lawn-Tools/flex_mix_calculator.html',
-  '/Flex-Lawn-Tools/manifest.json'
+  '/Flex-Lawn-Tools/manifest.json',
+  '/Flex-Lawn-Tools/icon-512.png',
+  'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap'
 ];
 
-// Install — cache new version
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(VERSION).then(cache => cache.addAll(ASSETS))
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(ASSETS).catch(() => {}))
   );
-  // Activate immediately — don't wait for old SW to die
   self.skipWaiting();
 });
 
-// Activate — delete ALL old caches, take control of all tabs instantly
-self.addEventListener('activate', event => {
-  event.waitUntil(
+self.addEventListener('activate', e => {
+  e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    )
   );
+  self.clients.claim();
 });
 
-// Fetch — network first, cache as fallback (always gets latest from GitHub)
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(VERSION).then(cache => cache.put(event.request, clone));
-        }
-        return response;
-      })
-      .catch(() => caches.match(event.request)
-        .then(cached => cached || caches.match('/Flex-Lawn-Tools/flex_mix_calculator.html'))
-      )
+self.addEventListener('fetch', e => {
+  // Don't cache API calls
+  if (e.request.url.includes('anthropic.com')) return;
+  e.respondWith(
+    caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+      if (res.ok && e.request.method === 'GET') {
+        const clone = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+      }
+      return res;
+    }))
   );
 });
