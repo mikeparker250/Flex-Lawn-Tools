@@ -15,984 +15,687 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap">
 <style>
-  :root {
-    --green: #32ff64;
-    --green-dim: #1a8c36;
-    --black: #0a0a0a;
-    --card: #141414;
-    --border: #2a2a2a;
-    --text: #e8e8e8;
-    --muted: #888;
-    --toro-color: #32ff64;
-    --power-color: #38bdf8;
-    --bg-color: #0a0a0a;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { background: var(--bg-color); color: var(--text); font-family: 'Barlow', sans-serif; }
-  body { min-height: 100vh; padding-bottom: max(80px, env(safe-area-inset-bottom)); }
-
-  header {
-    background: var(--black);
-    padding: 20px 16px 16px;
-    border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; z-index: 10;
-  }
-  header h1 {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 900; font-size: 22px;
-    color: var(--green); letter-spacing: 0.5px;
-    text-transform: uppercase;
-  }
-  header p { font-size: 13px; color: var(--muted); margin-top: 2px; }
-
-  .container { max-width: 600px; margin: 0 auto; padding: 16px; }
-
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 18px;
-    margin-bottom: 14px;
-  }
-  .card-title {
-    display: flex; align-items: center; gap: 10px;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700; font-size: 18px;
-    text-transform: uppercase; letter-spacing: 0.5px;
-    color: var(--text); margin-bottom: 16px;
-  }
-  .icon {
-    width: 28px; height: 28px; border-radius: 50%;
-    background: var(--green); color: var(--black);
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 900; font-size: 15px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .field-group { margin-bottom: 14px; }
-  .field-group:last-child { margin-bottom: 0; }
-  label {
-    display: block; font-size: 12px; font-weight: 600;
-    color: var(--muted); text-transform: uppercase;
-    letter-spacing: 0.08em; margin-bottom: 6px;
-  }
-  label span { font-weight: 400; text-transform: none; letter-spacing: 0; }
-  select, input[type="number"], input[type="text"] {
-    width: 100%; background: #1e1e1e;
-    border: 1px solid var(--border); border-radius: 8px;
-    color: var(--text); font-family: 'Barlow', sans-serif;
-    font-size: 16px; padding: 12px 14px; outline: none;
-    appearance: none; -webkit-appearance: none;
-  }
-  select:focus, input:focus { border-color: var(--green); }
-  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
-
-  /* Auto-round badge */
-  .round-auto-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: rgba(50,255,100,0.1); border: 1px solid rgba(50,255,100,0.3);
-    border-radius: 6px; padding: 4px 10px; margin-top: 6px;
-    font-size: 12px; color: var(--green);
-  }
-  .round-auto-badge.override {
-    background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.3);
-    color: #fbbf24;
-  }
-
-  /* Upload area */
-  .upload-area {
-    border: 2px dashed var(--border); border-radius: 10px;
-    padding: 24px 16px; text-align: center; cursor: pointer;
-    position: relative; transition: border-color 0.2s, background 0.2s;
-    background: #1a1a1a;
-  }
-  .upload-area:hover, .upload-area.drag-over { border-color: var(--power-color); background: rgba(56,189,248,0.05); }
-  .upload-area input[type="file"] {
-    position: absolute; inset: 0; opacity: 0; cursor: pointer;
-    width: 100%; height: 100%; font-size: 0;
-  }
-  .upload-icon { font-size: 32px; margin-bottom: 8px; }
-  .upload-area p { font-size: 14px; color: var(--text); font-weight: 600; }
-  .upload-area small { font-size: 12px; color: var(--muted); margin-top: 4px; display: block; }
-
-  .preview-strip {
-    display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;
-  }
-  .preview-strip img {
-    height: 72px; width: 72px; object-fit: cover;
-    border-radius: 6px; border: 1px solid var(--border);
-  }
-  .preview-count {
-    font-size: 12px; color: var(--power-color); margin-top: 6px;
-  }
-
-  /* Progress */
-  .progress-wrap { margin-top: 10px; display: none; }
-  .progress-label { font-size: 12px; color: var(--power-color); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
-  .spinner { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--power-color); border-radius: 50%; animation: spin 0.7s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
-  .progress-fill { height: 100%; background: var(--power-color); border-radius: 2px; width: 0%; transition: width 0.4s ease; }
-
-  /* Properties list */
-  .props-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 12px;
-  }
-  .prop-count { font-size: 12px; color: var(--muted); }
-  .add-prop-btn {
-    background: none; border: 1px solid var(--border); border-radius: 6px;
-    color: var(--muted); font-size: 12px; padding: 4px 10px; cursor: pointer;
-    font-family: 'Barlow', sans-serif;
-  }
-  .add-prop-btn:hover { border-color: var(--green); color: var(--green); }
-
-  .prop-item {
-    display: grid; grid-template-columns: 1fr 90px auto;
-    gap: 8px; align-items: center; margin-bottom: 8px;
-  }
-  .prop-item input {
-    padding: 8px 10px; font-size: 13px; border-radius: 6px;
-  }
-  .prop-badge {
-    font-size: 11px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.05em; padding: 4px 8px; border-radius: 4px;
-    text-align: center; white-space: nowrap;
-  }
-  .badge-power { background: rgba(56,189,248,0.15); color: var(--power-color); border: 1px solid rgba(56,189,248,0.3); }
-  .badge-toro { background: rgba(50,255,100,0.12); color: var(--toro-color); border: 1px solid rgba(50,255,100,0.3); }
-  .rm-btn {
-    background: none; border: none; color: #555; cursor: pointer;
-    font-size: 18px; padding: 2px 6px; line-height: 1;
-  }
-  .rm-btn:hover { color: #e05; }
-
-  .summary-chips {
-    display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0;
-  }
-  .chip {
-    background: #1e1e1e; border: 1px solid var(--border);
-    border-radius: 6px; padding: 6px 12px; font-size: 12px; color: var(--muted);
-  }
-  .chip strong { color: var(--text); font-weight: 600; }
-  .chip.power-chip { border-color: rgba(56,189,248,0.3); }
-  .chip.power-chip strong { color: var(--power-color); }
-  .chip.toro-chip { border-color: rgba(50,255,100,0.3); }
-  .chip.toro-chip strong { color: var(--toro-color); }
-
-  /* Calc button */
-  .calc-btn {
-    width: 100%; background: var(--green); color: var(--black);
-    border: none; border-radius: 10px; padding: 16px;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 900; font-size: 20px;
-    text-transform: uppercase; letter-spacing: 1px;
-    cursor: pointer; margin-top: 14px; transition: opacity 0.15s;
-  }
-  .calc-btn:active { opacity: 0.85; }
-  .reset-btn {
-    width: 100%; background: transparent; color: var(--muted);
-    border: 1px solid var(--border); border-radius: 10px; padding: 12px;
-    font-family: 'Barlow', sans-serif; font-size: 14px;
-    cursor: pointer; margin-top: 8px;
-  }
-  .reset-btn:hover { border-color: var(--muted); }
-
-  /* Error */
-  .error-box {
-    background: rgba(220,38,38,0.1); border: 1px solid rgba(220,38,38,0.3);
-    border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #fca5a5;
-    margin-top: 10px; display: none;
-  }
-
-  /* Results */
-  #results { display: none; }
-  #results.visible { display: block; }
-
-  .sqft-summary {
-    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
-    gap: 8px; margin-bottom: 14px;
-  }
-  .sqft-box {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 8px; padding: 10px 12px; text-align: center;
-  }
-  .sqft-box .val {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700; font-size: 18px; color: var(--text);
-  }
-  .sqft-box .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
-
-  .result-block {
-    border-radius: 12px; border: 1px solid var(--border);
-    overflow: hidden; margin-bottom: 14px;
-  }
-  .result-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 16px; font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700; font-size: 17px; text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .result-header.toro-header { background: rgba(50,255,100,0.08); border-bottom: 1px solid rgba(50,255,100,0.2); color: var(--toro-color); }
-  .result-header.power-header { background: rgba(56,189,248,0.08); border-bottom: 1px solid rgba(56,189,248,0.2); color: var(--power-color); }
-  .result-header.bg-header { background: rgba(251,191,36,0.08); border-bottom: 1px solid rgba(251,191,36,0.2); color: #fbbf24; }
-  .result-header.rock-header { background: rgba(168,85,247,0.08); border-bottom: 1px solid rgba(168,85,247,0.2); color: #c084fc; }
-
-  .gal-badge {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 900; font-size: 22px;
-    padding: 4px 12px; border-radius: 6px;
-  }
-  .toro-header .gal-badge { background: rgba(50,255,100,0.15); color: var(--toro-color); }
-  .power-header .gal-badge { background: rgba(56,189,248,0.15); color: var(--power-color); }
-  .rock-header .gal-badge { background: rgba(168,85,247,0.15); color: #c084fc; }
-
-  .result-body { background: var(--card); padding: 14px 16px; }
-  .mix-meta { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
-
-  .product-row {
-    display: flex; align-items: flex-start; justify-content: space-between;
-    padding: 10px 0; border-bottom: 1px solid var(--border);
-    gap: 10px;
-  }
-  .product-row:last-of-type { border-bottom: none; }
-  .product-name { font-size: 15px; color: var(--text); flex: 1; line-height: 1.3; }
-  .product-name small { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .product-amount {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700; font-size: 20px; text-align: right; white-space: nowrap;
-  }
-  .product-amount.toro-amt { color: var(--toro-color); }
-  .product-amount.power-amt { color: var(--power-color); }
-  .product-amount.flowzone-amt { color: #fbbf24; }
-  .product-amount.glypho-amt { color: #c084fc; }
-  .product-amount small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); }
-
-  .warning-box {
-    background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2);
-    border-radius: 6px; padding: 10px 12px; font-size: 12px; color: #fbbf24;
-    margin-top: 12px; line-height: 1.5;
-  }
-  .atrazine-gate {
-    background: rgba(220,38,38,0.1); border: 1px solid rgba(220,38,38,0.3);
-    border-radius: 6px; padding: 10px 12px; font-size: 12px; color: #fca5a5;
-    margin-top: 12px; line-height: 1.5;
-  }
-  .na-box {
-    font-size: 13px; color: var(--muted); padding: 4px 0; line-height: 1.5;
-  }
-  .divider { height: 1px; background: var(--border); margin: 12px 0; }
-
-  .atrazineWarning {
-    background: rgba(220,38,38,0.1); border: 1px solid rgba(220,38,38,0.3);
-    border-radius: 8px; padding: 12px 14px; font-size: 13px; color: #fca5a5;
-    margin-top: 12px; display: none; line-height: 1.5;
-  }
-  .atrazineWarning.show { display: block; }
-
-  /* Property names list under header */
-  .prop-names-list {
-    font-size: 11px; color: var(--muted); padding: 6px 16px 0;
-    background: var(--card); line-height: 1.6;
-  }
-
-  /* Install banner */
-  .install-banner {
-    display: none; position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--green); padding: 14px 16px; z-index: 999;
-    align-items: center; gap: 12px;
-    box-shadow: 0 -4px 20px rgba(50,255,100,0.3);
-    padding-bottom: max(14px, env(safe-area-inset-bottom));
-  }
-  .install-banner.show { display: flex; }
-  .install-banner-text { flex: 1; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; color: var(--black); line-height: 1.3; }
-  .install-banner-text small { display: block; font-weight: 400; font-size: 12px; color: #005520; margin-top: 2px; }
-  .install-btn { background: var(--black); color: var(--green); border: none; border-radius: 8px; padding: 10px 16px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer; white-space: nowrap; text-transform: uppercase; }
-  .install-dismiss { background: none; border: none; color: var(--black); font-size: 22px; cursor: pointer; padding: 4px; line-height: 1; opacity: 0.6; }
-
-  .footer { text-align: center; font-size: 11px; color: #444; padding: 20px 16px 8px; }
+:root{--green:#32ff64;--black:#0a0a0a;--card:#141414;--border:#2a2a2a;--text:#e8e8e8;--muted:#888;--toro:#32ff64;--power:#38bdf8;--push:#7dff9e;--rock:#c084fc;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{background:var(--black);color:var(--text);font-family:'Barlow',sans-serif;}
+body{min-height:100vh;padding-bottom:max(80px,env(safe-area-inset-bottom));}
+header{background:var(--black);padding:18px 16px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;}
+header h1{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;color:var(--green);text-transform:uppercase;letter-spacing:.5px;}
+header p{font-size:12px;color:var(--muted);margin-top:2px;}
+.back-btn{background:none;border:none;color:var(--muted);font-family:'Barlow',sans-serif;font-size:13px;cursor:pointer;padding:0;display:none;align-items:center;gap:4px;margin-top:3px;}
+.back-btn.show{display:flex;}
+.container{max-width:600px;margin:0 auto;padding:16px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;}
+.card-title{display:flex;align-items:center;gap:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;}
+.icon{width:28px;height:28px;border-radius:50%;background:var(--green);color:var(--black);font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.field-group{margin-bottom:14px;}.field-group:last-child{margin-bottom:0;}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+label span{font-weight:400;text-transform:none;letter-spacing:0;}
+select,input[type="number"],input[type="text"]{width:100%;background:#1e1e1e;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Barlow',sans-serif;font-size:16px;padding:12px 14px;outline:none;appearance:none;-webkit-appearance:none;}
+select:focus,input:focus{border-color:var(--green);}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;}
+.round-badge{display:inline-flex;align-items:center;background:rgba(50,255,100,.1);border:1px solid rgba(50,255,100,.3);border-radius:6px;padding:4px 10px;margin-top:6px;font-size:12px;color:var(--green);}
+.round-badge.override{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3);color:#fbbf24;}
+.upload-area{border:2px dashed var(--border);border-radius:10px;padding:24px 16px;text-align:center;cursor:pointer;position:relative;background:#1a1a1a;transition:border-color .2s,background .2s;}
+.upload-area:hover,.upload-area.drag-over{border-color:var(--power);background:rgba(56,189,248,.05);}
+.upload-area input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;font-size:0;}
+.upload-icon{font-size:32px;margin-bottom:8px;}
+.upload-area p{font-size:14px;color:var(--text);font-weight:600;}
+.upload-area small{font-size:12px;color:var(--muted);margin-top:4px;display:block;}
+.preview-strip{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.preview-strip img{height:72px;width:72px;object-fit:cover;border-radius:6px;border:1px solid var(--border);}
+.preview-count{font-size:12px;color:var(--power);margin-top:6px;}
+.progress-wrap{margin-top:10px;display:none;}
+.progress-label{font-size:12px;color:var(--power);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--power);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--power);border-radius:2px;width:0;transition:width .4s ease;}
+.error-box{background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#fca5a5;margin-top:10px;display:none;}
+.prop-item{display:grid;grid-template-columns:1fr 80px auto auto;gap:8px;align-items:center;margin-bottom:8px;}
+.prop-item input{padding:8px 10px;font-size:13px;border-radius:6px;}
+.prop-badge{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:4px 8px;border-radius:4px;text-align:center;white-space:nowrap;}
+.badge-power{background:rgba(56,189,248,.15);color:var(--power);border:1px solid rgba(56,189,248,.3);}
+.badge-toro{background:rgba(50,255,100,.12);color:var(--toro);border:1px solid rgba(50,255,100,.3);}
+.badge-rock{background:rgba(192,132,252,.15);color:var(--rock);border:1px solid rgba(192,132,252,.3);}
+.rm-btn{background:none;border:none;color:#555;cursor:pointer;font-size:18px;padding:2px 6px;line-height:1;}
+.rm-btn:hover{color:#e05;}
+.summary-chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0;}
+.chip{background:#1e1e1e;border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:12px;color:var(--muted);}
+.chip strong{color:var(--text);font-weight:600;}
+.chip.power-chip{border-color:rgba(56,189,248,.3);}
+.chip.power-chip strong{color:var(--power);}
+.chip.toro-chip{border-color:rgba(50,255,100,.3);}
+.chip.toro-chip strong{color:var(--toro);}
+.calc-btn{width:100%;background:var(--green);color:var(--black);border:none;border-radius:10px;padding:16px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;text-transform:uppercase;letter-spacing:1px;cursor:pointer;margin-top:14px;transition:opacity .15s;}
+.calc-btn:active{opacity:.85;}
+.reset-btn{width:100%;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:'Barlow',sans-serif;font-size:14px;cursor:pointer;margin-top:8px;}
+#results{display:none;}
+.sqft-summary{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:14px;}
+.sqft-box{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;text-align:center;}
+.sqft-box .val{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:18px;color:var(--text);}
+.sqft-box .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+.result-block{border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:14px;}
+.result-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;text-transform:uppercase;letter-spacing:.5px;}
+.result-header.toro-header{background:rgba(50,255,100,.08);border-bottom:1px solid rgba(50,255,100,.2);color:var(--toro);}
+.result-header.power-header{background:rgba(56,189,248,.08);border-bottom:1px solid rgba(56,189,248,.2);color:var(--power);}
+.result-header.push-header{background:rgba(50,255,100,.06);border-bottom:1px solid rgba(50,255,100,.15);color:#7dff9e;}
+.result-header.bg-header{background:rgba(251,191,36,.08);border-bottom:1px solid rgba(251,191,36,.2);color:#fbbf24;}
+.result-header.rock-header{background:rgba(192,132,252,.08);border-bottom:1px solid rgba(192,132,252,.2);color:var(--rock);}
+.gal-badge{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;padding:4px 12px;border-radius:6px;}
+.toro-header .gal-badge{background:rgba(50,255,100,.15);color:var(--toro);}
+.power-header .gal-badge{background:rgba(56,189,248,.15);color:var(--power);}
+.push-header .gal-badge{background:rgba(50,255,100,.12);color:#7dff9e;}
+.rock-header .gal-badge{background:rgba(192,132,252,.15);color:var(--rock);}
+.result-body{background:var(--card);padding:14px 16px;}
+.mix-meta{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5;}
+.prop-names-list{font-size:11px;color:var(--muted);padding:6px 16px 0;background:var(--card);line-height:1.6;}
+.product-row{display:flex;align-items:flex-start;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);gap:10px;}
+.product-row:last-of-type{border-bottom:none;}
+.product-name{font-size:15px;color:var(--text);flex:1;line-height:1.3;}
+.product-name small{display:block;font-size:11px;color:var(--muted);margin-top:2px;}
+.product-amount{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;text-align:right;white-space:nowrap;}
+.product-amount.toro-amt{color:var(--toro);}
+.product-amount.power-amt{color:var(--power);}
+.product-amount.push-amt{color:#7dff9e;}
+.product-amount.bg-amt{color:#fbbf24;}
+.product-amount.rock-amt{color:var(--rock);}
+.product-amount small{display:block;font-size:11px;font-weight:400;color:var(--muted);}
+.warning-box{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:6px;padding:10px 12px;font-size:12px;color:#fbbf24;margin-top:12px;line-height:1.5;}
+.atrazine-gate{background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:6px;padding:10px 12px;font-size:12px;color:#fca5a5;margin-top:12px;line-height:1.5;}
+.na-box{font-size:13px;color:var(--muted);padding:4px 0;line-height:1.5;}
+.atrazineWarning{background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;padding:12px 14px;font-size:13px;color:#fca5a5;margin-top:12px;display:none;line-height:1.5;}
+.atrazineWarning.show{display:block;}
+/* Mode screen */
+#modeScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 80px);padding:24px 16px;}
+.mode-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:28px;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;text-align:center;}
+.mode-sub{font-size:13px;color:var(--muted);margin-bottom:40px;text-align:center;}
+.mode-btn{width:100%;max-width:420px;border-radius:14px;padding:22px 20px;margin-bottom:14px;cursor:pointer;border:none;text-align:left;display:flex;align-items:center;gap:16px;transition:opacity .15s;}
+.mode-btn:active{opacity:.85;}
+.mode-btn-day{background:var(--green);color:var(--black);}
+.mode-btn-fly{background:var(--card);color:var(--text);border:1px solid var(--border)!important;}
+.mode-icon{font-size:36px;flex-shrink:0;line-height:1;}
+.mode-text-wrap{flex:1;}
+.mode-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;text-transform:uppercase;letter-spacing:.5px;line-height:1.1;margin-bottom:4px;}
+.mode-btn-day .mode-title{color:var(--black);}
+.mode-btn-fly .mode-title{color:var(--text);}
+.mode-desc{font-size:13px;line-height:1.4;}
+.mode-btn-day .mode-desc{color:rgba(0,0,0,.6);}
+.mode-btn-fly .mode-desc{color:var(--muted);}
+.mode-arrow{font-size:22px;flex-shrink:0;opacity:.5;}
+.mode-btn-day .mode-arrow{color:var(--black);}
+.install-inline-btn{display:none;align-items:center;justify-content:center;gap:8px;width:100%;max-width:420px;margin-top:6px;background:none;border:1px solid rgba(50,255,100,.3);border-radius:10px;padding:12px 16px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:var(--green);text-transform:uppercase;letter-spacing:.5px;}
+.install-inline-btn.show{display:flex;}
+.install-inline-ios{display:none;width:100%;max-width:420px;margin-top:6px;background:rgba(50,255,100,.06);border:1px solid rgba(50,255,100,.2);border-radius:10px;padding:12px 16px;font-size:12px;color:var(--green);line-height:1.6;text-align:center;}
+.install-inline-ios.show{display:block;}
+#flyScreen{display:none;}
+#dayScreen{display:none;}
+.fly-note{background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--power);margin-bottom:14px;line-height:1.5;}
+.install-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--green);padding:14px 16px;z-index:999;align-items:center;gap:12px;box-shadow:0 -4px 20px rgba(50,255,100,.3);padding-bottom:max(14px,env(safe-area-inset-bottom));}
+.install-banner.show{display:flex;}
+.install-banner-text{flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:var(--black);line-height:1.3;}
+.install-banner-text small{display:block;font-weight:400;font-size:12px;color:#005520;margin-top:2px;}
+.install-btn{background:var(--black);color:var(--green);border:none;border-radius:8px;padding:10px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;cursor:pointer;white-space:nowrap;text-transform:uppercase;}
+.install-dismiss{background:none;border:none;color:var(--black);font-size:22px;cursor:pointer;padding:4px;line-height:1;opacity:.6;}
+.footer{text-align:center;font-size:11px;color:#444;padding:20px 16px 8px;}
+.add-prop-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:12px;padding:4px 10px;cursor:pointer;font-family:'Barlow',sans-serif;}
+.props-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.prop-count{font-size:12px;color:var(--muted);}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>⚡ FLEX MIX CALCULATOR</h1>
-  <p>Morning tank mix — zero math required</p>
+  <h1>&#9889; FLEX MIX CALCULATOR</h1>
+  <p id="modeLabel"></p>
+  <button class="back-btn" id="backBtn" onclick="goHome()">&#8592; Back</button>
 </header>
 
-<div class="container">
+<div id="modeScreen">
+  <div class="mode-logo">&#9889; Flex Mix Calculator</div>
+  <div class="mode-sub">What are you doing right now?</div>
+  <button class="mode-btn mode-btn-day" onclick="setMode('day')">
+    <div class="mode-icon">&#127749;</div>
+    <div class="mode-text-wrap">
+      <div class="mode-title">Mixing for the Day</div>
+      <div class="mode-desc">Upload your route screenshot &#8212; auto-calculates everything</div>
+    </div>
+    <div class="mode-arrow">&#8250;</div>
+  </button>
+  <button class="mode-btn mode-btn-fly" onclick="setMode('fly')">
+    <div class="mode-icon">&#9889;</div>
+    <div class="mode-text-wrap">
+      <div class="mode-title">Mix on the Fly</div>
+      <div class="mode-desc">Ran out mid-route &#8212; enter sqft manually for a quick refill</div>
+    </div>
+    <div class="mode-arrow">&#8250;</div>
+  </button>
+  <button class="install-inline-btn" id="installInlineBtn" onclick="triggerInstall()">&#11015; Add to Home Screen</button>
+  <div class="install-inline-ios" id="installInlineIos">&#128242; To install: tap <strong>Share</strong> &#8594; <strong>"Add to Home Screen"</strong></div>
+</div>
 
-  <!-- STEP 1: ROUTE INFO -->
+<div id="dayScreen">
+<div class="container">
   <div class="card">
     <div class="card-title"><div class="icon">1</div> Route Info</div>
-
     <div class="field-group">
       <label>Turf Type <span>(today's route)</span></label>
       <select id="turfType" onchange="onTurfChange()">
-        <option value="">— Select —</option>
+        <option value="">&#8212; Select &#8212;</option>
         <option value="warm">Warm Season (Bermuda / Zoysia)</option>
         <option value="cool">Cool Season (Tall Fescue)</option>
       </select>
     </div>
-
     <div class="field-group">
-      <label>Round <span>(auto-detected — override if needed)</span></label>
+      <label>Default Round <span>(auto-detected &#8212; override if needed)</span></label>
       <select id="round" onchange="onRoundChange()">
-        <option value="">— Select —</option>
-        <option value="1">Round 1 — Jan 25 – Feb 28</option>
-        <option value="2">Round 2 — Mar 1 – Apr 14</option>
-        <option value="3">Round 3 — Apr 15 – May 31</option>
-        <option value="4">Round 4 — Jun 1 – Jul 15</option>
-        <option value="5">Round 5 — Aug 1 – Sep 15</option>
-        <option value="6">Round 6 — Sep 16 – Oct 15</option>
-        <option value="7">Round 7 — Oct 16 – Nov 30</option>
+        <option value="">&#8212; Select &#8212;</option>
+        <option value="1">Round 1 &#8212; Jan 25 &#8211; Feb 28</option>
+        <option value="2">Round 2 &#8212; Mar 1 &#8211; Apr 14</option>
+        <option value="3">Round 3 &#8212; Apr 15 &#8211; May 31</option>
+        <option value="4">Round 4 &#8212; Jun 1 &#8211; Jul 15</option>
+        <option value="5">Round 5 &#8212; Aug 1 &#8211; Sep 15</option>
+        <option value="6">Round 6 &#8212; Sep 16 &#8211; Oct 15</option>
+        <option value="7">Round 7 &#8212; Oct 16 &#8211; Nov 30</option>
       </select>
-      <div id="roundBadge" class="round-auto-badge" style="display:none"></div>
+      <div id="roundBadge" class="round-badge" style="display:none"></div>
     </div>
-
-    <div id="atrazineWarning" class="atrazineWarning">
-      ⛔ TODAY IS AFTER MARCH 10 — ATRAZINE IS NOT PERMITTED. Mix Stonewall + Three-Way + Surfactant only.
-    </div>
+    <div id="atrazineWarning" class="atrazineWarning">&#9940; TODAY IS AFTER MARCH 10 &#8212; ATRAZINE IS NOT PERMITTED.</div>
   </div>
 
-  <!-- STEP 2: UPLOAD SCREENSHOT -->
   <div class="card">
     <div class="card-title"><div class="icon">2</div> Upload Route Screenshot</div>
-
     <div class="upload-area" id="uploadArea">
       <input type="file" id="fileInput" accept="image/*" multiple>
-      <div class="upload-icon">📸</div>
+      <div class="upload-icon">&#128248;</div>
       <p>Tap to upload your FieldRoutes schedule screenshot</p>
-      <small>Select multiple screenshots at once — all properties combined automatically</small>
+      <small>Select multiple screenshots at once &#8212; all properties combined automatically</small>
     </div>
     <div class="preview-strip" id="previewStrip"></div>
     <div class="preview-count" id="previewCount"></div>
-
     <div class="progress-wrap" id="progressWrap">
-      <div class="progress-label">
-        <div class="spinner"></div>
-        <span id="progressLabel">Reading screenshot...</span>
-      </div>
+      <div class="progress-label"><div class="spinner"></div><span id="progressLabel">Reading...</span></div>
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     </div>
     <div class="error-box" id="errorBox"></div>
+    <button class="reset-btn" id="uploadResetBtn" onclick="resetAll()" style="display:none;margin-top:10px">&#x21BA; Start Over</button>
   </div>
 
-  <!-- STEP 3: PROPERTIES -->
   <div class="card" id="propsCard" style="display:none">
     <div class="card-title"><div class="icon">3</div> Properties</div>
-
     <div class="props-header">
       <span class="prop-count" id="propCount">0 properties</span>
       <button class="add-prop-btn" onclick="addProp()">+ Add property</button>
     </div>
-
     <div id="propList"></div>
-
     <div class="summary-chips" id="summaryChips"></div>
-
-    <button class="calc-btn" onclick="calculate()">Calculate My Mix →</button>
-    <button class="reset-btn" onclick="resetAll()">↺ Start Over</button>
+    <button class="calc-btn" onclick="calculate()">Calculate My Mix &#8594;</button>
+    <button class="reset-btn" onclick="resetAll()">&#x21BA; Start Over</button>
   </div>
 
-  <!-- RESULTS -->
   <div id="results">
-
     <div class="sqft-summary">
-      <div class="sqft-box"><div class="val" id="sum-power">—</div><div class="lbl">Power Spray</div></div>
-      <div class="sqft-box"><div class="val" id="sum-toro">—</div><div class="lbl">Toro</div></div>
-      <div class="sqft-box"><div class="val" id="sum-rock">—</div><div class="lbl">Rock Beds</div></div>
+      <div class="sqft-box"><div class="val" id="sum-power">&#8212;</div><div class="lbl">Power/Push</div></div>
+      <div class="sqft-box"><div class="val" id="sum-toro">&#8212;</div><div class="lbl">Toro</div></div>
+      <div class="sqft-box"><div class="val" id="sum-rock">&#8212;</div><div class="lbl">Rock Yards</div></div>
       <div class="sqft-box"><div class="val">5,000</div><div class="lbl">Buffer</div></div>
     </div>
-
-    <!-- POWER SPRAY RIG (PRIMARY) -->
-    <div class="result-block" id="power-block" style="display:none">
-      <div class="result-header power-header">
-        <span>💧 Power Spray Rig <small style="font-size:12px;font-weight:400;opacity:0.7">(primary — &lt;13K sqft props)</small></span>
-        <span class="gal-badge" id="power-gal-badge">— gal</span>
-      </div>
-      <div class="prop-names-list" id="power-prop-names"></div>
-      <div class="result-body">
-        <div class="mix-meta">Calibration: 1.14 gal / 1,000 sqft @ 3.0 MPH — 6 ft spray width</div>
-        <div id="power-products"></div>
-      </div>
-    </div>
-
-    <!-- TORO (SECONDARY) -->
-    <div class="result-block" id="toro-block" style="display:none">
-      <div class="result-header toro-header">
-        <span>🚜 Toro SprayMaster <small style="font-size:12px;font-weight:400;opacity:0.7">(≥13K sqft props)</small></span>
-        <span class="gal-badge" id="toro-gal-badge">— gal</span>
-      </div>
-      <div class="prop-names-list" id="toro-prop-names"></div>
-      <div class="result-body">
-        <div class="mix-meta">Calibration: 0.34 gal / 1,000 sqft @ 5 MPH — Purple tips — 40 PSI</div>
-        <div id="toro-products"></div>
-      </div>
-    </div>
-
-    <!-- B&G SPOT WEEDS -->
-    <div class="result-block" id="bg-block" style="display:none">
-      <div class="result-header bg-header">
-        🪣 B&amp;G — Spot Weeds
-        <span style="font-size:14px;font-weight:400;opacity:0.7">1 gal batch</span>
-      </div>
-      <div class="result-body">
-        <div class="mix-meta">Mix 1 gallon at a time — on foot as needed</div>
-        <div id="bg-products"></div>
-      </div>
-    </div>
-
-    <!-- ROCK BEDS -->
-    <div class="result-block" id="rock-block" style="display:none">
-      <div class="result-header rock-header">
-        🪨 FlowZone — Rock Beds
-        <span class="gal-badge" id="rock-gal-badge">— gal</span>
-      </div>
-      <div class="result-body">
-        <div id="rock-products"></div>
-      </div>
-    </div>
-
-  </div><!-- /results -->
-
-  <div class="footer">Flex Lawn Care · Mix Calculator v2.0 · Power Spray primary / Toro secondary</div>
-
-</div><!-- /container -->
-
-<!-- Install Banner -->
-<div class="install-banner" id="installBanner">
-  <div class="install-banner-text">
-    Add to Home Screen
-    <small>Works offline — no signal needed</small>
+    <div id="results-wrap"></div>
   </div>
+  <div class="footer">Flex Lawn Care &#183; Mix Calculator v3.0 &#183; Power Spray primary / Toro secondary</div>
+</div>
+</div>
+
+<div id="flyScreen">
+<div class="container">
+  <div class="fly-note">&#9889; Mid-route refill mode &#8212; enter the sqft you still need to cover.</div>
+  <div class="card">
+    <div class="card-title"><div class="icon">1</div> Route Info</div>
+    <div class="field-group">
+      <label>Turf Type</label>
+      <select id="flyTurf" onchange="flyCheckAtrazine()">
+        <option value="">&#8212; Select &#8212;</option>
+        <option value="warm">Warm Season (Bermuda / Zoysia)</option>
+        <option value="cool">Cool Season (Tall Fescue)</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label>Round</label>
+      <select id="flyRound" onchange="flyCheckAtrazine()">
+        <option value="">&#8212; Select &#8212;</option>
+        <option value="1">Round 1</option><option value="2">Round 2</option>
+        <option value="3">Round 3</option><option value="4">Round 4</option>
+        <option value="5">Round 5</option><option value="6">Round 6</option>
+        <option value="7">Round 7</option>
+      </select>
+      <div id="flyRoundBadge" class="round-badge" style="display:none"></div>
+    </div>
+    <div id="flyAtrazineWarning" class="atrazineWarning">&#9940; TODAY IS AFTER MARCH 10 &#8212; ATRAZINE IS NOT PERMITTED.</div>
+  </div>
+  <div class="card">
+    <div class="card-title"><div class="icon">2</div> Sqft to Cover</div>
+    <div class="field-group">
+      <label>Equipment</label>
+      <select id="flyEquip">
+        <option value="power">&#128167; Power Spray Rig (1.14 gal/1,000 sqft)</option>
+        <option value="toro">&#128668; Toro SprayMaster (0.34 gal/1,000 sqft)</option>
+        <option value="bg">&#129635; B&amp;G Hand Sprayer (1 gal batch)</option>
+        <option value="rock">&#129704; FlowZone Rock Beds (1 gal/1,625 sqft)</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label>Sqft remaining</label>
+      <input type="number" id="flySqft" placeholder="e.g. 8500" inputmode="numeric">
+    </div>
+    <button class="calc-btn" onclick="flyCalculate()">Calculate Refill &#8594;</button>
+    <button class="reset-btn" onclick="flyReset()">&#x21BA; Clear</button>
+  </div>
+  <div id="flyResults" style="display:none"></div>
+  <div class="footer">Flex Lawn Care &#183; Mix on the Fly &#183; Mid-route refill</div>
+</div>
+</div>
+
+<div class="install-banner" id="installBanner">
+  <div class="install-banner-text">Add to Home Screen<small>Works offline &#8212; no signal needed</small></div>
   <button class="install-btn" id="installBtn">Install</button>
-  <button class="install-dismiss" id="dismissBtn">×</button>
+  <button class="install-dismiss" id="dismissBtn">&#215;</button>
 </div>
 
 <script>
-// ─── ROUND AUTO-DETECTION ──────────────────────────────────────────────────
-const ROUND_DATES = [
-  { n: 1, start: [1,25],  end: [2,28]  },
-  { n: 2, start: [3,1],   end: [4,14]  },
-  { n: 3, start: [4,15],  end: [5,31]  },
-  { n: 4, start: [6,1],   end: [7,15]  },
-  { n: 5, start: [8,1],   end: [9,15]  },
-  { n: 6, start: [9,16],  end: [10,15] },
-  { n: 7, start: [10,16], end: [11,30] },
-];
+const ROUND_DATES=[{n:1,start:[1,25],end:[2,28]},{n:2,start:[3,1],end:[4,14]},{n:3,start:[4,15],end:[5,31]},{n:4,start:[6,1],end:[7,15]},{n:5,start:[8,1],end:[9,15]},{n:6,start:[9,16],end:[10,15]},{n:7,start:[10,16],end:[11,30]}];
+function getAutoRound(){const d=new Date(),m=d.getMonth()+1,day=d.getDate();for(const r of ROUND_DATES){const[sm,sd]=r.start,[em,ed]=r.end;if(((m>sm)||(m===sm&&day>=sd))&&((m<em)||(m===em&&day<=ed)))return r.n;}return null;}
+function isAfterMarch10(){const n=new Date();return n>new Date(n.getFullYear(),2,10);}
+const TORO_COV=0.34,POWER_COV=1.14,SQFT_THRESHOLD=10000,BUFFER=5000;
+function sqftToGalsToro(s){return s*TORO_COV/1000;}
+function sqftToGalsPower(s){return s*POWER_COV/1000;}
+function roundGals(g){return Math.max(3,Math.ceil(g));}
+function fmtOz(v){if(v===0)return'0';if(v<1)return v.toFixed(2);if(v<10)return v.toFixed(1);return v.toFixed(0);}
+function fmtNum(n){return n.toLocaleString();}
 
-function getAutoRound() {
-  const d = new Date(), m = d.getMonth() + 1, day = d.getDate();
-  for (const r of ROUND_DATES) {
-    const [sm, sd] = r.start, [em, ed] = r.end;
-    const after = (m > sm) || (m === sm && day >= sd);
-    const before = (m < em) || (m === em && day <= ed);
-    if (after && before) return r.n;
-  }
-  return null;
-}
-
-let autoRound = getAutoRound();
-let userOverrode = false;
-
-function initRound() {
-  const sel = document.getElementById('round');
-  const badge = document.getElementById('roundBadge');
-  if (autoRound) {
-    sel.value = autoRound;
-    badge.style.display = 'inline-flex';
-    badge.textContent = '✓ Auto-detected from today\'s date — change above to override';
-    badge.className = 'round-auto-badge';
-  }
-  checkAtrazine();
-}
-
-function onRoundChange() {
-  const sel = document.getElementById('round');
-  const badge = document.getElementById('roundBadge');
-  userOverrode = true;
-  if (autoRound && parseInt(sel.value) !== autoRound) {
-    badge.style.display = 'inline-flex';
-    badge.textContent = '⚠ Manual override — auto-detected Round ' + autoRound;
-    badge.className = 'round-auto-badge override';
-  } else if (autoRound) {
-    badge.textContent = '✓ Auto-detected from today\'s date';
-    badge.className = 'round-auto-badge';
-  }
-  clearResults();
-  checkAtrazine();
-}
-
-// ─── MIX DATA ─────────────────────────────────────────────────────────────
-const TORO_COV = 0.34;
-const POWER_COV = 1.14;
-const ROCK_COV = 1 / 1.625;
-const SQFT_THRESHOLD = 13000;
-const BUFFER = 5000;
-
-const ROUNDS = {
-  1: {
-    warm: {
-      toro:  [ { name:'Stonewall 4L', unit:'oz', rate:2.18, note:'Pre-emergent' }, { name:'Three-Way', unit:'oz', rate:4.32, note:'Broadleaf' }, { name:'90/10 Surfactant', unit:'oz', rate:0.82, note:'' }, { name:'Atrazine', unit:'oz', rate:3.24, note:'DORMANT BERMUDA ONLY — see gate', atrazine:true } ],
-      power: [ { name:'Stonewall 4L', unit:'oz', rate:2.18, note:'Pre-emergent' }, { name:'Three-Way', unit:'oz', rate:4.32, note:'Broadleaf' }, { name:'90/10 Surfactant', unit:'oz', rate:0.82, note:'' }, { name:'Atrazine', unit:'oz', rate:3.24, note:'DORMANT BERMUDA ONLY — see gate', atrazine:true } ],
-      flowzone: null,
-      toroNote: 'Blanket application. Atrazine permitted Jan 25–Mar 10 ONLY on fully dormant bermuda.',
-      powerNote: 'Primary blanket equipment. Same warm-season mix.',
-    },
-    cool: {
-      toro: null,
-      power: [ { name:'Stonewall 4L', unit:'oz', rate:0.65, note:'Pre-emergent' }, { name:'Three-Way', unit:'oz', rate:1.29, note:'Broadleaf' }, { name:'90/10 Surfactant', unit:'oz', rate:0.25, note:'' } ],
-      flowzone: null,
-      powerNote: 'Cool-season blanket. NO Atrazine. NO Simazine. Ever.',
-      toroNote: null,
-    }
+const ROUNDS={
+  1:{
+    warm:{toro:[{name:'Stonewall 4L',unit:'oz',rate:2.18,note:'Pre-emergent'},{name:'Three-Way',unit:'oz',rate:4.32,note:'Broadleaf'},{name:'90/10 Surfactant',unit:'oz',rate:0.82,note:''},{name:'Atrazine',unit:'oz',rate:3.24,note:'DORMANT BERMUDA ONLY',atrazine:true}],power:[{name:'Stonewall 4L',unit:'oz',rate:2.18,note:'Pre-emergent'},{name:'Three-Way',unit:'oz',rate:4.32,note:'Broadleaf'},{name:'90/10 Surfactant',unit:'oz',rate:0.82,note:''},{name:'Atrazine',unit:'oz',rate:3.24,note:'DORMANT BERMUDA ONLY',atrazine:true}],toroNote:'Blanket. Atrazine only on fully dormant bermuda Jan 25-Mar 10.',powerNote:'Same warm-season mix.'},
+    cool:{toro:null,power:[{name:'Stonewall 4L',unit:'oz',rate:0.65,note:'Pre-emergent'},{name:'Three-Way',unit:'oz',rate:1.29,note:'Broadleaf'},{name:'90/10 Surfactant',unit:'oz',rate:0.25,note:''}],powerNote:'Cool-season only. NO Atrazine. NO Simazine. Ever.',toroNote:null}
   },
-  2: {
-    warm: {
-      toro:  [ { name:'Prodiamine (Stonewall 4FL)', unit:'oz', rate:1.03, note:'Pre-emergent' }, { name:'Triad Select (warm rate)', unit:'oz', rate:2.65, note:'Broadleaf cleanup' }, { name:'Quin-Way', unit:'oz', rate:1.45, note:'Grassy weed coverage' } ],
-      power: [ { name:'Prodiamine (Stonewall 4FL)', unit:'oz', rate:1.03, note:'Pre-emergent' }, { name:'Triad Select (warm rate)', unit:'oz', rate:2.65, note:'Broadleaf cleanup' }, { name:'Quin-Way', unit:'oz', rate:1.45, note:'Grassy weed coverage' } ],
-      flowzone: null,
-      toroNote: 'Blanket. Finish spring pre-emergent barrier.',
-      powerNote: 'Primary blanket equipment. Same warm-season mix.',
-    },
-    cool: {
-      toro: null,
-      power: [ { name:'Prodiamine (Stonewall 4FL)', unit:'oz', rate:1.03, note:'Pre-emergent' }, { name:'Triad Select (COOL rate)', unit:'oz', rate:3.24, note:'Higher rate for fescue' } ],
-      flowzone: null,
-      powerNote: 'Cool-season dedicated tank. NO Atrazine. NO warm-season products.',
-      toroNote: null,
-    }
+  2:{
+    warm:{toro:[{name:'Prodiamine (Stonewall 4FL)',unit:'oz',rate:1.03,note:'Pre-emergent'},{name:'Triad Select (warm rate)',unit:'oz',rate:2.65,note:'Broadleaf'},{name:'Quin-Way',unit:'oz',rate:1.45,note:'Grassy weed coverage'}],power:[{name:'Prodiamine (Stonewall 4FL)',unit:'oz',rate:1.03,note:'Pre-emergent'},{name:'Triad Select (warm rate)',unit:'oz',rate:2.65,note:'Broadleaf'},{name:'Quin-Way',unit:'oz',rate:1.45,note:'Grassy weed coverage'}],toroNote:'Finish spring pre-emergent barrier.',powerNote:'Same warm-season mix.'},
+    cool:{toro:null,power:[{name:'Prodiamine (Stonewall 4FL)',unit:'oz',rate:1.03,note:'Pre-emergent'},{name:'Triad Select (COOL rate)',unit:'oz',rate:3.24,note:'Higher rate for fescue'}],powerNote:'Cool-season only. NO Atrazine. NO warm-season products.',toroNote:null}
   },
-  3: {
-    warm: {
-      toro: null, power: null,
-      bg: [ { name:'Three-Way', unit:'oz', rate:1.4, note:'Broadleaf spot spray' }, { name:'90/10 Surfactant', unit:'oz', rate:0.25, note:'' }, { name:'Revolver', unit:'oz', rate:0.6, note:'Grassy weeds' }, { name:'SedgeHammer', unit:'g', rate:0.9, note:'Nutsedge / Kyllinga' } ],
-      toroNote: 'GRANULAR ROUND — Toro hopper spreader. Lesco 32-0-0 PolyPlus OPTI45 at 3.13 lbs/1,000 sqft.',
-      powerNote: null,
-      bgNote: 'B&G 1-gal — spot spray only where weeds are visible. Mix 1 gallon at a time.',
-      granular: true,
-    },
-    cool: {
-      toro: null, power: null,
-      bg: [ { name:'Three-Way', unit:'oz', rate:1.4, note:'Broadleaf spot spray only' } ],
-      toroNote: 'GRANULAR ROUND — Push spreader. Lesco 32-0-0 PolyPlus OPTI45 at 2.5 lbs/1,000 sqft.',
-      powerNote: null,
-      bgNote: 'B&G 1-gal — spot spray broadleaf weeds only. Cool-season turf.',
-      granular: true,
-    }
+  3:{
+    warm:{toro:null,power:null,bg:[{name:'Three-Way',unit:'oz',rate:1.4,note:'Broadleaf spot spray'},{name:'90/10 Surfactant',unit:'oz',rate:0.25,note:''},{name:'Revolver',unit:'oz',rate:0.6,note:'Grassy weeds'},{name:'SedgeHammer',unit:'g',rate:0.9,note:'Nutsedge/Kyllinga'}],granular:true,granularProduct:'Lesco 32-0-0 w/ 20% PolyPlus OPTI45',granularRatePush:3.13,granularRateToro:3.13,bgNote:'B&G 1-gal - spot spray where weeds visible.',toroNote:'GRANULAR ROUND - Toro hopper at 3.13 lbs/1,000 sqft.',powerNote:null},
+    cool:{toro:null,power:null,bg:[{name:'Three-Way',unit:'oz',rate:1.4,note:'Broadleaf spot spray only'}],granular:true,granularProduct:'Lesco 32-0-0 w/ 20% PolyPlus OPTI45',granularRatePush:2.5,granularRateToro:null,granularHardStop:'MAY 1 HARD STOP - Skip granular after May 1. Spot weeds only.',bgNote:'B&G 1-gal - broadleaf spot spray only.',toroNote:'GRANULAR ROUND - push spreader only. 2.5 lbs/1,000 sqft.',powerNote:null}
   },
-  4: {
-    warm: {
-      toro:  [ { name:'Terra Ally TA 22-0-0', unit:'fl oz', rate:44.1, note:'Liquid N — Tank A' }, { name:'Artavia SC', unit:'fl oz', rate:2.25, note:'Fungicide — Tank A' }, { name:'Surfactant', unit:'oz', rate:0.82, note:'Tank A' } ],
-      power: [ { name:'Terra Ally TA 22-0-0', unit:'fl oz', rate:44.1, note:'Liquid N' }, { name:'Artavia SC', unit:'fl oz', rate:2.25, note:'Fungicide' }, { name:'Surfactant', unit:'oz', rate:0.82, note:'' } ],
-      bg: [ { name:'Celsius', unit:'oz', rate:0.10, note:'Warm-season weeds' }, { name:'Momentum (Halosulfuron)', unit:'g', rate:0.9, note:'Sedge' }, { name:'Manuscript', unit:'oz', rate:0.44, note:'Dallisgrass' }, { name:'MSO (Adigor)', unit:'oz', rate:0.44, note:'With Manuscript only' } ],
-      toroNote: 'TANK A ONLY — health tank. No herbicides in Tank A. Spot weeds via B&G only.',
-      powerNote: 'Primary health tank. Same Tank A mix.',
-      bgNote: 'B&G 1-gal — spot spray only. Heat rules apply — check time and temp before spraying.',
-    },
-    cool: {
-      toro: null,
-      power: [ { name:'Terra Ally TA 22-0-0', unit:'fl oz', rate:44.1, note:'Liquid N' }, { name:'Artavia SC', unit:'fl oz', rate:2.25, note:'Fungicide' }, { name:'Surfactant', unit:'oz', rate:0.82, note:'' } ],
-      bg: [ { name:'Three-Way', unit:'oz', rate:1.4, note:'Broadleaf spot spray' }, { name:'Surfactant', unit:'oz', rate:0.25, note:'' } ],
-      toroNote: null,
-      powerNote: 'Cool-season health tank. Same rates as warm-season.',
-      bgNote: 'B&G 1-gal — spot spray broadleaf weeds only.',
-    }
+  4:{
+    warm:{toro:[{name:'Terra Ally TA 22-0-0',unit:'fl oz',rate:44.1,note:'Liquid N - Tank A'},{name:'Artavia SC',unit:'fl oz',rate:2.25,note:'Fungicide - Tank A'},{name:'Surfactant',unit:'oz',rate:0.82,note:'Tank A'}],power:[{name:'Terra Ally TA 22-0-0',unit:'fl oz',rate:44.1,note:'Liquid N'},{name:'Artavia SC',unit:'fl oz',rate:2.25,note:'Fungicide'},{name:'Surfactant',unit:'oz',rate:0.82,note:''}],bg:[{name:'Celsius',unit:'oz',rate:0.10,note:'Warm-season weeds'},{name:'Momentum (Halosulfuron)',unit:'g',rate:0.9,note:'Sedge'},{name:'Manuscript',unit:'oz',rate:0.44,note:'Dallisgrass'},{name:'MSO (Adigor)',unit:'oz',rate:0.44,note:'With Manuscript only'}],toroNote:'Tank A - health tank. Spot weeds via B&G only.',powerNote:'Same Tank A mix.',bgNote:'B&G 1-gal - spot spray only.'},
+    cool:{toro:null,power:[{name:'Terra Ally TA 22-0-0',unit:'fl oz',rate:44.1,note:'Liquid N'},{name:'Artavia SC',unit:'fl oz',rate:2.25,note:'Fungicide'},{name:'Surfactant',unit:'oz',rate:0.82,note:''}],bg:[{name:'Three-Way',unit:'oz',rate:1.4,note:'Broadleaf spot spray'},{name:'Surfactant',unit:'oz',rate:0.25,note:''}],powerNote:'Cool-season health tank.',bgNote:'B&G 1-gal - spot spray broadleaf only.',toroNote:null}
   },
-  5: {
-    warm: {
-      toro:  [ { name:'Artavia SC', unit:'fl oz', rate:2.25, note:'Fungicide FRAC 11 — Tank A' }, { name:'Propiconazole 14.3', unit:'fl oz', rate:2.94, note:'Fungicide FRAC 3 — MAX 4 fl oz/1,000 sqft/30 days on bermuda' } ],
-      power: [ { name:'Artavia SC', unit:'fl oz', rate:2.25, note:'Fungicide FRAC 11' }, { name:'Propiconazole 14.3', unit:'fl oz', rate:2.94, note:'Fungicide FRAC 3 — MAX 4 fl oz/1,000 sqft/30 days on bermuda' } ],
-      bg: [ { name:'Celsius', unit:'oz', rate:0.10, note:'Broadleaf / warm-season' }, { name:'Quin-Way', unit:'oz', rate:1.45, note:'Broadleaf' }, { name:'Ambition', unit:'oz', rate:0.18, note:'Broadleaf' }, { name:'Manuscript', unit:'oz', rate:0.44, note:'Dallisgrass only' }, { name:'MSO (Adigor)', unit:'oz', rate:0.44, note:'With Manuscript only' } ],
-      toroNote: 'TANK A — dual fungicide (FRAC 11 + FRAC 3). Granular: Lesco 28-0-0 — Bermuda 3.57 lbs/1k, Zoysia 2.75 lbs/1k via Toro hopper.',
-      powerNote: 'Primary equipment — same dual fungicide mix. Granular via push spreader at hose-drag accounts.',
-      bgNote: 'B&G 1-gal — spot spray weeds only. Peak heat rules fully active.',
-    },
-    cool: {
-      toro:  [ { name:'Artavia SC', unit:'fl oz', rate:2.25, note:'Fungicide FRAC 11 — Tank A' }, { name:'Propiconazole 14.3', unit:'fl oz', rate:2.94, note:'Fungicide FRAC 3 — Tank A' } ],
-      power: null,
-      bg: [ { name:'Quin-Way', unit:'oz', rate:1.45, note:'Spot weeds' }, { name:'Ambition', unit:'oz', rate:0.18, note:'Spot weeds' } ],
-      toroNote: 'Dual fungicide via Toro Tank A. Granular: 6-3-0 w/ 2% Fe at 3.0 lbs/1k — push spreader ONLY.',
-      powerNote: null,
-      bgNote: 'B&G 1-gal — spot weeds only.',
-    }
+  5:{
+    warm:{toro:[{name:'Artavia SC',unit:'fl oz',rate:2.25,note:'Fungicide FRAC 11 - Tank A'},{name:'Propiconazole 14.3',unit:'fl oz',rate:2.94,note:'Fungicide FRAC 3 - MAX 4 fl oz/1k/30 days on bermuda'}],power:[{name:'Artavia SC',unit:'fl oz',rate:2.25,note:'Fungicide FRAC 11'},{name:'Propiconazole 14.3',unit:'fl oz',rate:2.94,note:'Fungicide FRAC 3'}],bg:[{name:'Celsius',unit:'oz',rate:0.10,note:'Broadleaf'},{name:'Quin-Way',unit:'oz',rate:1.45,note:'Broadleaf'},{name:'Ambition',unit:'oz',rate:0.18,note:'Broadleaf'},{name:'Manuscript',unit:'oz',rate:0.44,note:'Dallisgrass only'},{name:'MSO (Adigor)',unit:'oz',rate:0.44,note:'With Manuscript only'}],granularProduct:'Lesco 28-0-0 w/ 20% PolyPlus OPTI45 + 1.2% Fe',granularRatePush:3.57,granularRateToro:3.57,toroNote:'Dual fungicide FRAC 11+3. Apply granular same visit via Toro hopper.',powerNote:'Same dual fungicide. Apply granular via push spreader same visit.',bgNote:'B&G 1-gal - spot spray only. Peak heat rules active.'},
+    cool:{toro:[{name:'Artavia SC',unit:'fl oz',rate:2.25,note:'Fungicide FRAC 11'},{name:'Propiconazole 14.3',unit:'fl oz',rate:2.94,note:'Fungicide FRAC 3'}],power:null,bg:[{name:'Quin-Way',unit:'oz',rate:1.45,note:'Spot weeds'},{name:'Ambition',unit:'oz',rate:0.18,note:'Spot weeds'}],granularProduct:'6-3-0 w/ 2% Fe',granularRatePush:3.0,granularRateToro:null,toroNote:'Dual fungicide via Toro Tank A. Granular: 6-3-0 via push spreader.',powerNote:null,bgNote:'B&G 1-gal - spot weeds only.'}
   },
-  6: {
-    warm: {
-      toro:  [ { name:'Celsius', unit:'oz', rate:0.10, note:'Tank B — warm-season weeds' }, { name:'Quin-Way', unit:'oz', rate:1.45, note:'Tank B' }, { name:'Ambition', unit:'oz', rate:0.18, note:'Tank B' } ],
-      power: [ { name:'Celsius', unit:'oz', rate:0.10, note:'Warm-season weeds' }, { name:'Quin-Way', unit:'oz', rate:1.45, note:'' }, { name:'Ambition', unit:'oz', rate:0.18, note:'' } ],
-      bg: [ { name:'Manuscript', unit:'oz', rate:0.44, note:'Dallisgrass clumps ONLY' }, { name:'MSO (Adigor)', unit:'oz', rate:0.44, note:'With Manuscript only' } ],
-      toroNote: 'TANK B spot weeds. Granular: Lesco 5-0-25 w/ 10% Fe at 4.0 lbs/1k via Toro spreader.',
-      powerNote: 'Primary spot weed spray. Same mix.',
-      bgNote: 'B&G 1-gal — Dallisgrass spot spray only.',
-    },
-    cool: {
-      toro: null, power: null,
-      bg: [ { name:'Quin-Way', unit:'oz', rate:1.45, note:'Spot weeds' }, { name:'Ambition', unit:'oz', rate:0.18, note:'Spot weeds' } ],
-      toroNote: 'GRANULAR ONLY — 6-3-0 w/ 2% Fe at 3.0 lbs/1k — push spreader only.',
-      powerNote: null,
-      bgNote: 'B&G 1-gal — cool-season spot weeds only.',
-      granular: true,
-    }
+  6:{
+    warm:{toro:null,power:null,bg:[{name:'Celsius',unit:'oz',rate:0.10,note:'Warm-season weeds'},{name:'Quin-Way',unit:'oz',rate:1.45,note:''},{name:'Ambition',unit:'oz',rate:0.18,note:''}],granular:true,granularProduct:'Lesco 5-0-25 w/ 10% Fe',granularRatePush:4.0,granularRateToro:4.0,bgNote:'B&G spot weeds. Dallisgrass: Manuscript+MSO 0.44oz each per gal.',toroNote:'Granular only round.',powerNote:null},
+    cool:{toro:null,power:null,bg:[{name:'Quin-Way',unit:'oz',rate:1.45,note:'Spot weeds'},{name:'Ambition',unit:'oz',rate:0.18,note:'Spot weeds'}],granular:true,granularProduct:'6-3-0 w/ 2% Fe',granularRatePush:3.0,granularRateToro:null,bgNote:'B&G 1-gal - cool-season spot weeds only.',toroNote:'GRANULAR ONLY - push spreader only.',powerNote:null}
   },
-  7: {
-    warm: {
-      toro:  [ { name:'Specticle', unit:'oz', rate:0.10, note:'Winter annual pre-emergent' }, { name:'Simazine', unit:'oz', rate:0.73, note:'WARM-SEASON ONLY — never on fescue' }, { name:'Three-Way', unit:'oz', rate:1.47, note:'Fall broadleaf cleanup' }, { name:'90/10 Surfactant', unit:'oz', rate:0.28, note:'' } ],
-      power: [ { name:'Specticle', unit:'oz', rate:0.10, note:'Winter annual pre-emergent' }, { name:'Simazine', unit:'oz', rate:0.73, note:'WARM-SEASON ONLY' }, { name:'Three-Way', unit:'oz', rate:1.47, note:'Fall broadleaf' }, { name:'90/10 Surfactant', unit:'oz', rate:0.28, note:'' } ],
-      flowzone: null,
-      toroNote: 'Broadcast OK this round. No nitrogen. No fungicide. Simazine NEVER touches fescue.',
-      powerNote: 'Primary equipment. Same warm-season mix. Simazine NEVER on fescue.',
-    },
-    cool: {
-      toro: null, power: null,
-      bg: [ { name:'Three-Way', unit:'oz', rate:1.4, note:'Spot spray visible weeds' }, { name:'Surfactant', unit:'oz', rate:0.25, note:'' } ],
-      toroNote: 'GRANULAR ONLY — Lesco 32-0-0 PolyPlus OPTI45 at 3.13 lbs/1k — push spreader ONLY.',
-      powerNote: null,
-      bgNote: 'B&G 1-gal — spot spray only. No Simazine. No warm-season products.',
-      granular: true,
-    }
+  7:{
+    warm:{toro:[{name:'Specticle',unit:'oz',rate:0.10,note:'Winter annual pre-emergent'},{name:'Simazine',unit:'oz',rate:0.73,note:'WARM-SEASON ONLY - never on fescue'},{name:'Three-Way',unit:'oz',rate:1.47,note:'Fall broadleaf cleanup'},{name:'90/10 Surfactant',unit:'oz',rate:0.28,note:''}],power:[{name:'Specticle',unit:'oz',rate:0.10,note:'Winter annual pre-emergent'},{name:'Simazine',unit:'oz',rate:0.73,note:'WARM-SEASON ONLY'},{name:'Three-Way',unit:'oz',rate:1.47,note:'Fall broadleaf'},{name:'90/10 Surfactant',unit:'oz',rate:0.28,note:''}],toroNote:'Broadcast OK. Simazine NEVER on fescue.',powerNote:'Same warm-season mix. Simazine NEVER on fescue.'},
+    cool:{toro:null,power:null,bg:[{name:'Three-Way',unit:'oz',rate:1.4,note:'Spot spray visible weeds'},{name:'Surfactant',unit:'oz',rate:0.25,note:''}],granular:true,granularProduct:'Lesco 32-0-0 w/ 20% PolyPlus OPTI45',granularRatePush:3.13,granularRateToro:null,bgNote:'B&G 1-gal - spot spray only.',toroNote:'GRANULAR ONLY - push spreader only. 3.13 lbs/1k.',powerNote:null}
   }
 };
 
-// ─── PROPERTIES STATE ─────────────────────────────────────────────────────
-let props = [];
+let props=[],detectedTotal=null;
+let autoRound=getAutoRound(),userOverrode=false;
 
-function sqftToGalsToro(sqft)  { return sqft * TORO_COV / 1000; }
-function sqftToGalsPower(sqft) { return sqft * POWER_COV / 1000; }
-function roundGals(g)          { return Math.max(3, Math.ceil(g)); }
-function fmtOz(v) { if (v===0) return '0'; if (v<1) return v.toFixed(2); if (v<10) return v.toFixed(1); return v.toFixed(0); }
-function fmtNum(n) { return n.toLocaleString(); }
-function isAfterMarch10() { const n=new Date(); return n > new Date(n.getFullYear(),2,10); }
+function initRound(){
+  const sel=document.getElementById('round'),badge=document.getElementById('roundBadge');
+  if(autoRound){sel.value=autoRound;badge.style.display='inline-flex';badge.textContent='checkmark Auto-detected from today date - change above to override';badge.className='round-badge';}
+  checkAtrazine();
+}
+function onRoundChange(){
+  const sel=document.getElementById('round'),badge=document.getElementById('roundBadge');
+  userOverrode=true;
+  if(autoRound&&parseInt(sel.value)!==autoRound){badge.style.display='inline-flex';badge.textContent='Manual override - auto-detected Round '+autoRound;badge.className='round-badge override';}
+  else if(autoRound){badge.textContent='Auto-detected from today date';badge.className='round-badge';}
+  clearResults();checkAtrazine();
+}
+function onTurfChange(){clearResults();checkAtrazine();}
+function checkAtrazine(){
+  const r=document.getElementById('round').value,t=document.getElementById('turfType').value;
+  document.getElementById('atrazineWarning').classList.toggle('show',r==='1'&&t==='warm'&&isAfterMarch10());
+}
+function clearResults(){document.getElementById('results').style.display='none';}
 
-// ─── SCREENSHOT READER ────────────────────────────────────────────────────
-document.getElementById('fileInput').addEventListener('change', function(e) {
-  const files = Array.from(e.target.files);
-  if (!files.length) return;
-
-  // Show thumbnails
-  const strip = document.getElementById('previewStrip');
-  const countEl = document.getElementById('previewCount');
-  strip.innerHTML = '';
-  files.forEach(file => {
-    const img = document.createElement('img');
-    img.src = URL.createObjectURL(file);
-    strip.appendChild(img);
-  });
-  countEl.textContent = files.length > 1 ? `${files.length} screenshots selected — reading all...` : '1 screenshot selected — reading...';
-
-  document.getElementById('errorBox').style.display = 'none';
-  document.getElementById('propsCard').style.display = 'none';
-  props = []; detectedTotal = null;
-
+document.getElementById('fileInput').addEventListener('change',function(e){
+  const files=Array.from(e.target.files);
+  if(!files.length)return;
+  const strip=document.getElementById('previewStrip'),countEl=document.getElementById('previewCount');
+  strip.innerHTML='';
+  files.forEach(file=>{const img=document.createElement('img');img.src=URL.createObjectURL(file);strip.appendChild(img);});
+  countEl.textContent=files.length>1?files.length+' screenshots selected - reading all...':'1 screenshot selected - reading...';
+  document.getElementById('errorBox').style.display='none';
+  document.getElementById('uploadResetBtn').style.display='none';
+  document.getElementById('propsCard').style.display='none';
+  props=[];detectedTotal=null;
   processAllFiles(files);
 });
 
-async function processAllFiles(files) {
-  setProgress(true, `Reading ${files.length} screenshot${files.length > 1 ? 's' : ''}...`, 10);
-  let allProps = [];
-  let combinedTotal = 0;
-
-  for (let i = 0; i < files.length; i++) {
-    const pct = 10 + Math.round(((i + 1) / files.length) * 80);
-    setProgress(true, `Reading screenshot ${i + 1} of ${files.length}...`, pct);
-    try {
-      const result = await readOneFile(files[i]);
-      allProps = allProps.concat(result.properties || []);
-      if (result.total) combinedTotal += result.total;
-    } catch(err) {
-      showError(`Error on screenshot ${i + 1}: ${err.message}`);
-      setProgress(false);
-      return;
+async function processAllFiles(files){
+  setProgress(true,'Reading '+files.length+' screenshot'+(files.length>1?'s':'')+'...',10);
+  let allProps=[],combinedTotal=0;
+  for(let i=0;i<files.length;i++){
+    setProgress(true,'Reading screenshot '+(i+1)+' of '+files.length+'...',10+Math.round(((i+1)/files.length)*80));
+    try{
+      const result=await readOneFile(files[i]);
+      allProps=allProps.concat(result.properties||[]);
+      if(result.total)combinedTotal+=result.total;
+    }catch(err){
+      showError('Error on screenshot '+(i+1)+': '+err.message);
+      setProgress(false);return;
     }
   }
-
-  setProgress(true, 'Done — combining results...', 95);
-  props = allProps.map(p => ({ name: p.name, sqft: parseInt(p.sqft) || 0 }));
-  if (combinedTotal) detectedTotal = combinedTotal;
-
-  document.getElementById('previewCount').textContent =
-    `${files.length} screenshot${files.length > 1 ? 's' : ''} read — ${props.length} properties found`;
-
+  setProgress(true,'Done - combining results...',95);
+  props=allProps.map(p=>({name:p.name,sqft:p.rockYard?0:(parseInt(p.sqft)||0),round:p.round||null,rockYard:!!p.rockYard,rockSqft:p.rockYard?(parseInt(p.sqft)||0):0}));
+  if(combinedTotal)detectedTotal=combinedTotal;
+  document.getElementById('previewCount').textContent=files.length+' screenshot'+(files.length>1?'s':'')+' read - '+props.length+' properties found';
   setProgress(false);
   renderProps();
 }
 
-async function readOneFile(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-      const b64 = e.target.result.split(',')[1];
-      const mediaType = file.type || 'image/jpeg';
-      try {
-        const resp = await fetch('https://flex-proxy.mike-8e3.workers.dev', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 800,
-            messages: [{
-              role: 'user',
-              content: [
-                { type: 'image', source: { type: 'base64', media_type: mediaType, data: b64 } },
-                { type: 'text', text: `Extract property data from this FieldRoutes schedule screenshot.
-
-Return ONLY raw JSON — no markdown, no explanation, no backticks. Format:
-{"properties":[{"name":"Last, First","sqft":6500}],"total":43100}
-
-Rules:
-- Only include cards that show "MEASUREMENTS: X.XK SF" or "MEASUREMENTS: XXXK SF"
-- Convert K values: 6.5K=6500, 12K=12000, 43.1K=43100
-- total = the number from "Meas. SF/LF XX.XK SF" at the top header. If not visible omit total field.
-- Clean names: use "Smith, John" format, remove & symbols
-- Skip time slots, LUNCH blocks, END entries, empty slots` }
-              ]
-            }]
-          })
+async function readOneFile(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=async function(e){
+      const b64=e.target.result.split(',')[1];
+      const mediaType=file.type||'image/jpeg';
+      try{
+        const resp=await fetch('https://flex-proxy.mike-8e3.workers.dev',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({messages:[{role:'user',content:[
+            {type:'image',source:{type:'base64',media_type:mediaType,data:b64}},
+            {type:'text',text:'Extract property data from this FieldRoutes schedule screenshot. RESPOND WITH ONLY A JSON OBJECT. No text before or after. No markdown. No backticks. Format: {"properties":[{"name":"Smith, John","sqft":6500,"round":2,"rockYard":false}],"total":43100} For each property CARD showing MEASUREMENTS: name=Last First format remove & symbols, sqft=convert K value 6.5K=6500 13.8K=13800 5.1K=5100, round=R1=1 R2=2 R3=3 RS=2 R4=4 default 2 if unclear, rockYard=true ONLY if red notes say ALL ROCK YARD or rock bed or rock yard. total=the XX.XK SF from header omit if not visible. SKIP time slots LUNCH MEETING END cancelled cards without MEASUREMENTS. If nothing visible return {"properties":[]}'}
+          ]}]})
         });
-        const data = await resp.json();
-        const raw = (data.content?.[0]?.text || '').replace(/```json|```/g,'').trim();
-        try { resolve(JSON.parse(raw)); }
-        catch(err) { reject(new Error('Could not parse screenshot. Try a clearer image.')); }
-      } catch(err) { reject(err); }
+        const data=await resp.json();
+        const rawText=(data.content?.[0]?.text||'').trim();
+        const raw=rawText.replace(/```json|```/g,'').trim();
+        try{resolve(JSON.parse(raw));return;}catch(e1){}
+        const m=raw.match(/\{[\s\S]*\}/);
+        if(m){try{resolve(JSON.parse(m[0]));return;}catch(e2){}}
+        console.error('Parse failed:',raw.substring(0,300));
+        reject(new Error('Could not read screenshot. Got: '+raw.substring(0,80)));
+      }catch(err){reject(err);}
     };
     reader.readAsDataURL(file);
   });
 }
 
-function setProgress(on, msg, pct) {
-  document.getElementById('progressWrap').style.display = on ? 'block' : 'none';
-  if (on) {
-    document.getElementById('progressLabel').textContent = msg;
-    document.getElementById('progressFill').style.width = (pct || 0) + '%';
-  }
+function setProgress(on,msg,pct){
+  document.getElementById('progressWrap').style.display=on?'block':'none';
+  if(on){document.getElementById('progressLabel').textContent=msg;document.getElementById('progressFill').style.width=(pct||0)+'%';}
+}
+function showError(msg){
+  const eb=document.getElementById('errorBox');eb.textContent=msg;eb.style.display='block';
+  document.getElementById('uploadResetBtn').style.display='block';
 }
 
-function showError(msg) {
-  const eb = document.getElementById('errorBox');
-  eb.textContent = msg;
-  eb.style.display = 'block';
+function renderProps(){
+  document.getElementById('propsCard').style.display='block';
+  document.getElementById('results').style.display='none';
+  rebuildPropList();updateChips();
 }
-
-let detectedTotal = null;
-function showSummaryTotal(t) { detectedTotal = t; updateChips(); }
-
-// ─── PROPS RENDERING ──────────────────────────────────────────────────────
-function renderProps() {
-  document.getElementById('propsCard').style.display = 'block';
-  document.getElementById('results').style.display = 'none';
-  rebuildPropList();
-  updateChips();
-}
-
-function rebuildPropList() {
-  const list = document.getElementById('propList');
-  list.innerHTML = '';
-  props.forEach((p, i) => {
-    const isPower = p.sqft < SQFT_THRESHOLD;
-    const div = document.createElement('div');
-    div.className = 'prop-item';
-    div.innerHTML = `
-      <input type="text" value="${p.name}" oninput="props[${i}].name=this.value" placeholder="Customer name">
-      <input type="number" value="${p.sqft}" oninput="props[${i}].sqft=parseInt(this.value)||0;updateChips()" placeholder="sqft">
-      <span class="prop-badge ${isPower ? 'badge-power' : 'badge-toro'}">${isPower ? 'Power' : 'Toro'}</span>
-      <button class="rm-btn" onclick="removeProp(${i})">×</button>
-    `;
+function rebuildPropList(){
+  const list=document.getElementById('propList');list.innerHTML='';
+  props.forEach((p,i)=>{
+    const div=document.createElement('div');div.className='prop-item';
+    const isRock=p.rockYard,isPush=!isRock&&p.sqft<SQFT_THRESHOLD;
+    const badge=isRock?'<span class="prop-badge badge-rock">Rock</span>':(isPush?'<span class="prop-badge badge-power">Power</span>':'<span class="prop-badge badge-toro">Toro</span>');
+    const rTag=p.round?'<span style="font-size:10px;color:var(--muted);margin-left:2px">R'+p.round+'</span>':'';
+    div.innerHTML='<input type="text" value="'+p.name.replace(/"/g,'&quot;')+'" oninput="props['+i+'].name=this.value" placeholder="Customer name">'+'<input type="number" value="'+(p.rockYard?p.rockSqft:p.sqft)+'" oninput="props['+i+'].sqft=parseInt(this.value)||0;updateChips()" placeholder="sqft">'+badge+rTag+'<button class="rm-btn" onclick="removeProp('+i+')">x</button>';
     list.appendChild(div);
   });
-  document.getElementById('propCount').textContent = props.length + ' properties';
+  document.getElementById('propCount').textContent=props.length+' properties';
 }
-
-function updateChips() {
-  const toroPx = props.filter(p => p.sqft >= SQFT_THRESHOLD);
-  const powerPx = props.filter(p => p.sqft < SQFT_THRESHOLD);
-  const toroSqft = toroPx.reduce((a, p) => a + p.sqft, 0);
-  const powerSqft = powerPx.reduce((a, p) => a + p.sqft, 0);
-  const total = toroSqft + powerSqft;
-
-  let html = `
-    <div class="chip"><strong>${fmtNum(total)}</strong> total sqft</div>
-    <div class="chip power-chip"><strong>${powerPx.length}</strong> props → Power Sprayer (<strong>${fmtNum(powerSqft)}</strong> sqft)</div>
-    <div class="chip toro-chip"><strong>${toroPx.length}</strong> props → Toro (<strong>${fmtNum(toroSqft)}</strong> sqft)</div>
-  `;
-  if (detectedTotal) {
-    html += `<div class="chip" style="font-size:11px;opacity:0.6">Route total from screenshot: ${fmtNum(detectedTotal)} sqft</div>`;
-  }
-  document.getElementById('summaryChips').innerHTML = html;
+function updateChips(){
+  const rockPx=props.filter(p=>p.rockYard),lawnPx=props.filter(p=>!p.rockYard);
+  const toroPx=lawnPx.filter(p=>p.sqft>=SQFT_THRESHOLD),pushPx=lawnPx.filter(p=>p.sqft<SQFT_THRESHOLD);
+  const toroSqft=toroPx.reduce((a,p)=>a+p.sqft,0),pushSqft=pushPx.reduce((a,p)=>a+p.sqft,0),rockSqft=rockPx.reduce((a,p)=>a+p.rockSqft,0);
+  let html='<div class="chip"><strong>'+fmtNum(toroSqft+pushSqft+rockSqft)+'</strong> total sqft</div>';
+  html+='<div class="chip power-chip"><strong>'+pushPx.length+'</strong> props Power/Push (<strong>'+fmtNum(pushSqft)+'</strong> sqft)</div>';
+  html+='<div class="chip toro-chip"><strong>'+toroPx.length+'</strong> props Toro (<strong>'+fmtNum(toroSqft)+'</strong> sqft)</div>';
+  if(rockPx.length>0)html+='<div class="chip" style="border-color:rgba(192,132,252,.3)"><strong style="color:var(--rock)">'+rockPx.length+'</strong> rock yards FlowZone</div>';
+  if(detectedTotal)html+='<div class="chip" style="font-size:11px;opacity:.6">Route total: '+fmtNum(detectedTotal)+' sqft</div>';
+  document.getElementById('summaryChips').innerHTML=html;
 }
+function addProp(){props.push({name:'New Property',sqft:5000,round:null,rockYard:false,rockSqft:0});rebuildPropList();updateChips();}
+function removeProp(i){props.splice(i,1);rebuildPropList();updateChips();}
 
-function addProp() {
-  props.push({ name: 'New Property', sqft: 5000 });
-  rebuildPropList();
-  updateChips();
+function buildBlock(hClass,icon,title,badge,propNames,meta,prods,note,extra){
+  let h='<div class="result-block" style="margin-bottom:14px"><div class="result-header '+hClass+'"><span>'+icon+' '+title+'</span><span class="gal-badge">'+badge+'</span></div>';
+  if(propNames)h+='<div class="prop-names-list">'+propNames+'</div>';
+  h+='<div class="result-body">';
+  if(meta)h+='<div class="mix-meta">'+meta+'</div>';
+  h+=prods;
+  if(note)h+=note;if(extra)h+=extra;
+  h+='</div></div>';return h;
 }
-
-function removeProp(i) {
-  props.splice(i, 1);
-  rebuildPropList();
-  updateChips();
-}
-
-// ─── CALCULATE ────────────────────────────────────────────────────────────
-function calculate() {
-  const turf = document.getElementById('turfType').value;
-  const round = parseInt(document.getElementById('round').value);
-  if (!turf || !round) { alert('Please select Turf Type and Round first.'); return; }
-  if (props.length === 0) { alert('No properties loaded. Upload a screenshot or add properties manually.'); return; }
-
-  const data = ROUNDS[round][turf];
-  const atrazineBlocked = isAfterMarch10();
-
-  const toroPxList  = props.filter(p => p.sqft >= SQFT_THRESHOLD);
-  const powerPxList = props.filter(p => p.sqft < SQFT_THRESHOLD);
-  const toroSqftRaw  = toroPxList.reduce((a, p) => a + p.sqft, 0);
-  const powerSqftRaw = powerPxList.reduce((a, p) => a + p.sqft, 0);
-
-  // Buffer deducted from Toro (largest equipment) first
-  const toroSqft  = Math.max(0, toroSqftRaw - BUFFER);
-  const powerSqft = powerSqftRaw;
-
-  const toroGals  = roundGals(sqftToGalsToro(toroSqft));
-  const powerGals = roundGals(sqftToGalsPower(powerSqft));
-
-  // Summary
-  document.getElementById('sum-power').textContent = fmtNum(powerSqft) + ' sqft';
-  document.getElementById('sum-toro').textContent  = fmtNum(toroSqft)  + ' sqft';
-  document.getElementById('sum-rock').textContent  = '0 sqft';
-
-  // ── POWER BLOCK (PRIMARY) ──
-  const powerBlock = document.getElementById('power-block');
-  const powerNames = document.getElementById('power-prop-names');
-  const powerProds = document.getElementById('power-products');
-  if (data.power && powerSqft > 0) {
-    powerBlock.style.display = 'block';
-    document.getElementById('power-gal-badge').textContent = powerGals + ' gal';
-    powerNames.textContent = powerPxList.map(p => p.name).join(' · ');
-    let html = makeProductRows(data.power, 'power-amt', powerGals, atrazineBlocked);
-    if (data.powerNote) html += `<div class="warning-box">${data.powerNote}</div>`;
-    if (round === 1 && turf === 'warm' && !atrazineBlocked) {
-      html += `<div class="atrazine-gate">⚠️ ATRAZINE GATE: Visually confirm bermuda is fully dormant (100% brown, zero green tips) before mixing Atrazine. If ANY green is visible → skip Atrazine.</div>`;
-    }
-    powerProds.innerHTML = html;
-  } else if (powerSqft === 0 || !data.power) {
-    powerBlock.style.display = 'block';
-    document.getElementById('power-gal-badge').textContent = 'N/A';
-    powerNames.textContent = '';
-    const note = data.powerNote || (data.granular ? data.toroNote : 'Power spray rig not used this round.');
-    powerProds.innerHTML = `<div class="na-box">${note || 'Not used this round.'}</div>`;
-  }
-
-  // ── TORO BLOCK (SECONDARY) ──
-  const toroBlock = document.getElementById('toro-block');
-  const toroNames = document.getElementById('toro-prop-names');
-  const toroProds = document.getElementById('toro-products');
-  if (data.toro && toroSqft > 0) {
-    toroBlock.style.display = 'block';
-    document.getElementById('toro-gal-badge').textContent = toroGals + ' gal';
-    toroNames.textContent = toroPxList.map(p => p.name).join(' · ');
-    let html = makeProductRows(data.toro, 'toro-amt', toroGals, atrazineBlocked);
-    if (data.toroNote) html += `<div class="warning-box">${data.toroNote}</div>`;
-    toroProds.innerHTML = html;
-  } else {
-    toroBlock.style.display = 'block';
-    document.getElementById('toro-gal-badge').textContent = toroPxList.length === 0 ? 'No props' : 'N/A';
-    toroNames.textContent = toroPxList.length > 0 ? toroPxList.map(p => p.name).join(' · ') : '';
-    const note = toroPxList.length === 0 ? 'No properties ≥13,000 sqft on this route.' : (data.toroNote || 'Toro not used this round.');
-    toroProds.innerHTML = `<div class="na-box">${note}</div>`;
-  }
-
-  // ── B&G BLOCK ──
-  const bgBlock = document.getElementById('bg-block');
-  if (data.bg) {
-    bgBlock.style.display = 'block';
-    let html = makeProductRows(data.bg, 'flowzone-amt', 1, false);
-    if (data.bgNote) html += `<div class="warning-box">${data.bgNote}</div>`;
-    document.getElementById('bg-products').innerHTML = html;
-  } else { bgBlock.style.display = 'none'; }
-
-  // ── ROCK BLOCK ── (manual entry fallback — hidden since we use props now)
-  document.getElementById('rock-block').style.display = 'none';
-
-  document.getElementById('results').style.display = 'block';
-  setTimeout(() => { document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' }); }, 100);
-}
-
-function makeProductRows(products, amtClass, gals, atrazineBlocked) {
-  if (!products || !products.length) return '';
-  let html = '';
-  products.forEach(p => {
-    const blocked = p.atrazine && atrazineBlocked;
-    const total = p.rate * gals;
-    const display = blocked
-      ? `<span style="color:#f87171;font-size:13px;font-weight:700;">SKIP — After Mar 10</span>`
-      : `${fmtOz(total)} <small>${p.unit}</small>`;
-    html += `<div class="product-row" style="${blocked ? 'opacity:0.5;' : ''}">
-      <div class="product-name">${p.name}${p.note ? `<small>${p.note}</small>` : ''}</div>
-      <div class="product-amount ${amtClass}">${display}</div>
-    </div>`;
+function makeRows(products,amtClass,gals,atrazineBlocked){
+  if(!products||!products.length)return'';
+  let h='';
+  products.forEach(p=>{
+    const blocked=p.atrazine&&atrazineBlocked;
+    const total=p.rate*gals;
+    const disp=blocked?'<span style="color:#f87171;font-size:13px;font-weight:700;">SKIP - After Mar 10</span>':fmtOz(total)+' <small>'+p.unit+'</small>';
+    h+='<div class="product-row" style="'+(blocked?'opacity:.5;':'')+'"><div class="product-name">'+p.name+(p.note?'<small>'+p.note+'</small>':'')+'</div><div class="product-amount '+amtClass+'">'+disp+'</div></div>';
   });
-  return html;
+  return h;
+}
+function granularRows(propList,rate){
+  let h='';
+  propList.forEach(p=>{const lbs=(p.sqft/1000*rate).toFixed(1);h+='<div class="product-row"><div class="product-name">'+p.name+'<small>'+fmtNum(p.sqft)+' sqft</small></div><div class="product-amount push-amt">'+lbs+' <small>lbs</small></div></div>';});
+  return h;
 }
 
-// ─── MISC ─────────────────────────────────────────────────────────────────
-function onTurfChange() { clearResults(); checkAtrazine(); }
-function checkAtrazine() {
-  const r = document.getElementById('round').value;
-  const t = document.getElementById('turfType').value;
-  const el = document.getElementById('atrazineWarning');
-  el.classList.toggle('show', r === '1' && t === 'warm' && isAfterMarch10());
-}
-function clearResults() { document.getElementById('results').style.display = 'none'; }
-function resetAll() {
-  props = []; detectedTotal = null;
-  document.getElementById('turfType').value = '';
-  document.getElementById('propsCard').style.display = 'none';
-  document.getElementById('previewStrip').innerHTML = '';
-  document.getElementById('previewCount').textContent = '';
-  document.getElementById('fileInput').value = '';
-  document.getElementById('errorBox').style.display = 'none';
-  initRound();
-  clearResults();
-  window.scrollTo(0, 0);
+function calculate(){
+  const turf=document.getElementById('turfType').value;
+  const defaultRound=parseInt(document.getElementById('round').value);
+  if(!turf||!defaultRound){alert('Please select Turf Type and Round first.');return;}
+  const lawnProps=props.filter(p=>!p.rockYard),rockProps=props.filter(p=>p.rockYard);
+  if(lawnProps.length===0&&rockProps.length===0){alert('No properties loaded.');return;}
+  const atrazineBlocked=isAfterMarch10();
+  const wrap=document.getElementById('results-wrap');wrap.innerHTML='';
+  let sumPush=0,sumToro=0,sumRock=rockProps.reduce((a,p)=>a+p.rockSqft,0);
+
+  const groups={};
+  lawnProps.forEach(p=>{const r=p.round||defaultRound;if(!groups[r])groups[r]=[];groups[r].push(p);});
+
+  Object.keys(groups).sort((a,b)=>parseInt(a)-parseInt(b)).forEach(rNum=>{
+    const rInt=parseInt(rNum);
+    const data=ROUNDS[rInt]?ROUNDS[rInt][turf]:null;
+    if(!data)return;
+    const group=groups[rNum];
+    const toroPx=group.filter(p=>p.sqft>=SQFT_THRESHOLD),pushPx=group.filter(p=>p.sqft<SQFT_THRESHOLD);
+    const toroSqftRaw=toroPx.reduce((a,p)=>a+p.sqft,0),pushSqft=pushPx.reduce((a,p)=>a+p.sqft,0);
+    const toroSqft=Math.max(0,toroSqftRaw-BUFFER);
+    sumPush+=pushSqft;sumToro+=toroSqft;
+    const rLabel=Object.keys(groups).length>1?' - Round '+rNum:'';
+
+    // GRANULAR
+    if(data.granular&&data.granularProduct){
+      if(pushPx.length>0&&data.granularRatePush){
+        const totalLbs=pushPx.reduce((a,p)=>a+(p.sqft/1000*data.granularRatePush),0);
+        const bags=Math.ceil(totalLbs/50);
+        let ph=granularRows(pushPx,data.granularRatePush);
+        ph+='<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name"><strong>'+data.granularProduct+'</strong><small>'+bags+' bag'+(bags!==1?'s':'')+' of 50 lbs total</small></div><div class="product-amount push-amt" style="font-size:22px;">'+totalLbs.toFixed(1)+' <small>lbs</small></div></div>';
+        const note=data.granularHardStop?'<div class="atrazine-gate">Warning: '+data.granularHardStop+'</div>':'';
+        wrap.innerHTML+=buildBlock('push-header','Push Spreader'+rLabel+' (Granular)',totalLbs.toFixed(1)+' lbs','push-header','Push Spreader'+rLabel,totalLbs.toFixed(1)+' lbs',null,'Granular - props under 10K sqft',ph,note,null);
+      }
+      if(toroPx.length>0&&data.granularRateToro){
+        const totalLbs=toroPx.reduce((a,p)=>a+(p.sqft/1000*data.granularRateToro),0);
+        let ph=granularRows(toroPx,data.granularRateToro);
+        ph+='<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name"><strong>'+data.granularProduct+'</strong><small>Toro hopper total</small></div><div class="product-amount toro-amt" style="font-size:22px;">'+totalLbs.toFixed(1)+' <small>lbs</small></div></div>';
+        wrap.innerHTML+=buildBlock('toro-header','Toro Hopper Spreader'+rLabel,totalLbs.toFixed(1)+' lbs',toroPx.map(p=>p.name).join(' - '),'Granular - props 10K sqft and over',ph,null,null);
+      }
+    }
+
+    // LIQUID
+    if(data.power&&pushSqft>0){
+      const gals=roundGals(sqftToGalsPower(pushSqft));
+      let ph=makeRows(data.power,'power-amt',gals,atrazineBlocked);
+      let note='';
+      if(data.powerNote)note+='<div class="warning-box">'+data.powerNote+'</div>';
+      if(rInt===1&&turf==='warm'&&!atrazineBlocked)note+='<div class="atrazine-gate">ATRAZINE GATE: Confirm bermuda 100% brown before mixing Atrazine.</div>';
+      wrap.innerHTML+=buildBlock('power-header','Power Sprayer'+rLabel,gals+' gal',pushPx.map(p=>p.name).join(' - '),'Calibration: 1.14 gal/1,000 sqft @ 3.0 MPH - 6 ft spray width',ph,note,null);
+    }
+    if(data.toro&&toroSqft>0){
+      const gals=roundGals(sqftToGalsToro(toroSqft));
+      let ph=makeRows(data.toro,'toro-amt',gals,atrazineBlocked);
+      let note=data.toroNote?'<div class="warning-box">'+data.toroNote+'</div>':'';
+      wrap.innerHTML+=buildBlock('toro-header','Toro SprayMaster'+rLabel,gals+' gal',toroPx.map(p=>p.name).join(' - '),'Calibration: 0.34 gal/1,000 sqft @ 5 MPH - Purple tips - 40 PSI',ph,note,null);
+    }
+
+    // R5 granular (same visit as fungicide)
+    if(rInt===5&&data.granularProduct){
+      if(pushPx.length>0&&data.granularRatePush){
+        const totalLbs=pushPx.reduce((a,p)=>a+(p.sqft/1000*data.granularRatePush),0);
+        const bags=Math.ceil(totalLbs/50);
+        let ph=granularRows(pushPx,data.granularRatePush);
+        ph+='<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name"><strong>'+data.granularProduct+'</strong><small>'+bags+' bag'+(bags!==1?'s':'')+' - apply same visit as fungicide</small></div><div class="product-amount push-amt" style="font-size:22px;">'+totalLbs.toFixed(1)+' <small>lbs</small></div></div>';
+        wrap.innerHTML+=buildBlock('push-header','Push Spreader - R5 Granular',totalLbs.toFixed(1)+' lbs',null,'Apply immediately after fungicide spray pass',ph,null,null);
+      }
+      if(toroPx.length>0&&data.granularRateToro){
+        const totalLbs=toroPx.reduce((a,p)=>a+(p.sqft/1000*data.granularRateToro),0);
+        let ph=granularRows(toroPx,data.granularRateToro);
+        wrap.innerHTML+=buildBlock('toro-header','Toro Hopper - R5 Granular',totalLbs.toFixed(1)+' lbs',null,'Apply immediately after fungicide spray pass',ph,null,null);
+      }
+    }
+
+    // R7 warm two passes
+    if(rInt===7&&turf==='warm'){
+      wrap.innerHTML+='<div class="warning-box" style="margin-bottom:14px">Round 7 requires TWO spray passes. Herbicide broadcast first, then rinse one tank and apply Artavia SC fungicide as second pass same visit.</div>';
+      if(pushPx.length>0){
+        const pGals=roundGals(sqftToGalsPower(pushSqft));
+        const artOz=(pGals*2.25).toFixed(1);
+        wrap.innerHTML+=buildBlock('power-header','Power Sprayer - Pass 2: Artavia SC',pGals+' gal',null,'Rinse tank after herbicide pass. Spring Dead Spot prevention.','<div class="product-row"><div class="product-name">Artavia SC (Azoxystrobin)<small>FRAC Group 11 - Spring Dead Spot</small></div><div class="product-amount power-amt">'+artOz+' <small>fl oz</small></div></div>','<div class="atrazine-gate">Water in after fungicide - 1/8 inch irrigation or rain required.</div>',null);
+      }
+      if(toroPx.length>0){
+        const tGals=roundGals(sqftToGalsToro(toroSqft));
+        const artOz=(tGals*2.25).toFixed(1);
+        wrap.innerHTML+=buildBlock('toro-header','Toro - Pass 2: Artavia SC',tGals+' gal',null,'Rinse one tank after herbicide pass.','<div class="product-row"><div class="product-name">Artavia SC (Azoxystrobin)<small>FRAC Group 11 - Spring Dead Spot</small></div><div class="product-amount toro-amt">'+artOz+' <small>fl oz</small></div></div>','<div class="atrazine-gate">Water in after fungicide - 1/8 inch irrigation or rain required.</div>',null);
+      }
+    }
+
+    // B&G
+    if(data.bg){
+      let ph=makeRows(data.bg,'bg-amt',1,false);
+      let note=data.bgNote?'<div class="warning-box">'+data.bgNote+'</div>':'';
+      wrap.innerHTML+=buildBlock('bg-header','B&G - Spot Weeds'+rLabel,'1 gal batch',null,'Mix 1 gallon at a time - on foot as needed',ph,note,null);
+    }
+  });
+
+  // FlowZone
+  if(rockProps.length>0){
+    const totalRock=rockProps.reduce((a,p)=>a+p.rockSqft,0);
+    const rockGals=Math.max(1,Math.ceil(totalRock/1625));
+    const rpOz=(2*rockGals).toFixed(1),dyeOz=(0.3*rockGals).toFixed(1);
+    let ph='';
+    rockProps.forEach(p=>{const pg=Math.max(1,Math.ceil(p.rockSqft/1625));ph+='<div class="product-row"><div class="product-name">'+p.name+'<small>'+fmtNum(p.rockSqft)+' sqft rock yard</small></div><div class="product-amount rock-amt">'+pg+' <small>gal</small></div></div>';});
+    ph+='<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name">Ranger Pro (41% glyphosate)</div><div class="product-amount rock-amt">'+rpOz+' <small>oz</small></div></div>';
+    ph+='<div class="product-row"><div class="product-name">Dye</div><div class="product-amount rock-amt">'+dyeOz+' <small>oz</small></div></div>';
+    wrap.innerHTML+=buildBlock('rock-header','FlowZone - Rock Yards',rockGals+' gal',rockProps.map(p=>p.name).join(' - '),'Pre-mix at office. 1 gal per ~1,625 sqft. Glyphosate only.',ph,'<div class="warning-box">Non-selective - keep off all turf and ornamentals.</div>',null);
+  }
+
+  document.getElementById('sum-power').textContent=fmtNum(sumPush)+' sqft';
+  document.getElementById('sum-toro').textContent=fmtNum(sumToro)+' sqft';
+  document.getElementById('sum-rock').textContent=fmtNum(sumRock)+' sqft';
+  document.getElementById('results').style.display='block';
+  setTimeout(()=>document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'}),100);
 }
 
-// ─── INIT ─────────────────────────────────────────────────────────────────
-initRound();
-
-// ─── SERVICE WORKER ───────────────────────────────────────────────────────
-// Kill any old service workers so updates always load instantly
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
-  caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+function resetAll(){
+  props=[];detectedTotal=null;
+  document.getElementById('turfType').value='';
+  document.getElementById('propsCard').style.display='none';
+  document.getElementById('previewStrip').innerHTML='';
+  document.getElementById('previewCount').textContent='';
+  document.getElementById('fileInput').value='';
+  document.getElementById('errorBox').style.display='none';
+  document.getElementById('uploadResetBtn').style.display='none';
+  clearResults();goHome();
 }
 
-// ─── PWA INSTALL ──────────────────────────────────────────────────────────
-let deferredPrompt = null;
-const banner = document.getElementById('installBanner');
-const installBtn = document.getElementById('installBtn');
-const dismissBtn = document.getElementById('dismissBtn');
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault(); deferredPrompt = e;
-  if (!sessionStorage.getItem('installDismissed')) banner.classList.add('show');
-});
-installBtn.addEventListener('click', () => {
-  banner.classList.remove('show');
-  if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then(() => { deferredPrompt = null; }); }
-});
-dismissBtn.addEventListener('click', () => {
-  banner.classList.remove('show');
-  sessionStorage.setItem('installDismissed', '1');
-});
-window.addEventListener('appinstalled', () => { banner.classList.remove('show'); deferredPrompt = null; });
-const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-const isStandalone = window.navigator.standalone === true;
-if (isIOS && !isStandalone && !sessionStorage.getItem('installDismissed')) {
-  document.querySelector('.install-banner-text').innerHTML = 'Add to Home Screen<small>Tap the Share button → "Add to Home Screen"</small>';
-  installBtn.style.display = 'none';
-  banner.classList.add('show');
+function setMode(mode){
+  document.getElementById('modeScreen').style.display='none';
+  document.getElementById('backBtn').classList.add('show');
+  document.getElementById('modeLabel').textContent=mode==='day'?'Mixing for the Day':'Mix on the Fly';
+  if(mode==='day'){document.getElementById('dayScreen').style.display='block';document.getElementById('flyScreen').style.display='none';initRound();}
+  else{document.getElementById('flyScreen').style.display='block';document.getElementById('dayScreen').style.display='none';flyInitRound();}
 }
+function goHome(){
+  document.getElementById('modeScreen').style.display='flex';
+  document.getElementById('dayScreen').style.display='none';
+  document.getElementById('flyScreen').style.display='none';
+  document.getElementById('backBtn').classList.remove('show');
+  document.getElementById('modeLabel').textContent='';
+}
+
+function flyInitRound(){
+  const ar=getAutoRound(),sel=document.getElementById('flyRound'),badge=document.getElementById('flyRoundBadge');
+  if(ar){sel.value=ar;badge.style.display='inline-flex';badge.textContent='Auto-detected from today date';badge.className='round-badge';}
+  flyCheckAtrazine();
+}
+function flyCheckAtrazine(){
+  const r=document.getElementById('flyRound').value,t=document.getElementById('flyTurf').value;
+  document.getElementById('flyAtrazineWarning').classList.toggle('show',r==='1'&&t==='warm'&&isAfterMarch10());
+}
+function flyReset(){document.getElementById('flySqft').value='';document.getElementById('flyResults').style.display='none';document.getElementById('flyResults').innerHTML='';}
+function flyCalculate(){
+  const turf=document.getElementById('flyTurf').value,round=parseInt(document.getElementById('flyRound').value),equip=document.getElementById('flyEquip').value,sqft=parseInt(document.getElementById('flySqft').value)||0;
+  if(!turf||!round){alert('Please select Turf Type and Round first.');return;}
+  const resultsEl=document.getElementById('flyResults');resultsEl.style.display='block';
+  const data=ROUNDS[round]?ROUNDS[round][turf]:null;
+  const atrazineBlocked=isAfterMarch10();
+  if(!data){resultsEl.innerHTML='<div class="card"><div class="na-box">No data for this round/turf.</div></div>';return;}
+  if(equip==='bg'){
+    if(!data.bg){resultsEl.innerHTML='<div class="card"><div class="na-box">No B&G mix for this round/turf.</div></div>';return;}
+    let h='<div class="result-block"><div class="result-header bg-header">B&G - Spot Weeds <span style="font-size:14px;font-weight:400;opacity:.7">1 gal batch</span></div><div class="result-body"><div class="mix-meta">Mix 1 gallon at a time</div>';
+    h+=makeRows(data.bg,'bg-amt',1,false);
+    if(data.bgNote)h+='<div class="warning-box">'+data.bgNote+'</div>';
+    h+='</div></div>';resultsEl.innerHTML=h;return;
+  }
+  if(equip==='rock'){
+    if(sqft<=0){alert('Enter sqft of rock beds.');return;}
+    const rg=Math.max(1,Math.ceil(sqft/1625));
+    resultsEl.innerHTML='<div class="result-block"><div class="result-header rock-header">FlowZone - Rock Beds <span class="gal-badge" style="background:rgba(192,132,252,.15);color:var(--rock)">'+rg+' gal</span></div><div class="result-body"><div class="mix-meta">~1,625 sqft/gal</div><div class="product-row"><div class="product-name">Ranger Pro (41% glyphosate)</div><div class="product-amount rock-amt">'+(2*rg).toFixed(1)+' <small>oz</small></div></div><div class="product-row"><div class="product-name">Dye</div><div class="product-amount rock-amt">'+(0.3*rg).toFixed(1)+' <small>oz</small></div></div><div class="warning-box">Non-selective - keep off turf and ornamentals.</div></div></div>';return;
+  }
+  if(sqft<=0){alert('Enter the sqft to cover.');return;}
+  let products,gals,hClass,hLabel,amtClass,calNote;
+  if(equip==='power'){gals=roundGals(sqftToGalsPower(sqft));products=data.power;hClass='power-header';hLabel='Power Spray Rig';amtClass='power-amt';calNote='Calibration: 1.14 gal/1,000 sqft @ 3.0 MPH - 6 ft spray width';}
+  else{gals=roundGals(sqftToGalsToro(sqft));products=data.toro;hClass='toro-header';hLabel='Toro SprayMaster';amtClass='toro-amt';calNote='Calibration: 0.34 gal/1,000 sqft @ 5 MPH - Purple tips - 40 PSI';}
+  let h='<div class="result-block"><div class="result-header '+hClass+'">'+hLabel+' <span class="gal-badge">'+gals+' gal</span></div><div class="result-body"><div class="mix-meta">'+calNote+'<br>'+fmtNum(sqft)+' sqft - fill to '+gals+' gal</div>';
+  if(!products){h+='<div class="na-box">'+(data.granular?data.toroNote||data.powerNote:'Not used this round.')+'</div>';}
+  else{h+=makeRows(products,amtClass,gals,atrazineBlocked);const note=equip==='power'?data.powerNote:data.toroNote;if(note)h+='<div class="warning-box">'+note+'</div>';if(round===1&&turf==='warm'&&!atrazineBlocked)h+='<div class="atrazine-gate">ATRAZINE GATE: Confirm bermuda fully dormant before mixing Atrazine.</div>';}
+  h+='</div></div>';resultsEl.innerHTML=h;resultsEl.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+let deferredPrompt=null;
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone=window.navigator.standalone===true||window.matchMedia('(display-mode:standalone)').matches;
+const banner=document.getElementById('installBanner'),installBtn=document.getElementById('installBtn'),dismissBtn=document.getElementById('dismissBtn');
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('installInlineBtn').classList.add('show');if(!sessionStorage.getItem('installDismissed'))banner.classList.add('show');});
+installBtn.addEventListener('click',()=>{banner.classList.remove('show');if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;});}});
+dismissBtn.addEventListener('click',()=>{banner.classList.remove('show');sessionStorage.setItem('installDismissed','1');});
+window.addEventListener('appinstalled',()=>{banner.classList.remove('show');deferredPrompt=null;document.getElementById('installInlineBtn').classList.remove('show');});
+function triggerInstall(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(c=>{if(c.outcome==='accepted')document.getElementById('installInlineBtn').classList.remove('show');deferredPrompt=null;});}else alert("To install: tap the 3-dot menu in Chrome -> Add to Home Screen");}
+if(isIOS&&!isStandalone)document.getElementById('installInlineIos').classList.add('show');
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(regs=>regs.forEach(r=>r.unregister()));
+  caches.keys().then(keys=>keys.forEach(k=>caches.delete(k)));
+}
+
+document.getElementById('modeScreen').style.display='flex';
+document.getElementById('dayScreen').style.display='none';
+document.getElementById('flyScreen').style.display='none';
 </script>
-
 </body>
 </html>
