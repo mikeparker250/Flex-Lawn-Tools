@@ -311,137 +311,16 @@
   .install-btn { background: var(--black); color: var(--green); border: none; border-radius: 8px; padding: 10px 16px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer; white-space: nowrap; text-transform: uppercase; }
   .install-dismiss { background: none; border: none; color: var(--black); font-size: 22px; cursor: pointer; padding: 4px; line-height: 1; opacity: 0.6; }
 
-  .result-header.push-header { background: rgba(50,255,100,0.06); border-bottom: 1px solid rgba(50,255,100,0.15); color: #7dff9e; }
-  .push-header .gal-badge { background: rgba(50,255,100,0.12); color: #7dff9e; }
-  #results-wrap { display: block; }
   .footer { text-align: center; font-size: 11px; color: #444; padding: 20px 16px 8px; }
-
-  /* ── MODE SELECTOR ── */
-  #modeScreen {
-    display:flex; flex-direction:column; align-items:center;
-    justify-content:center; min-height:calc(100vh - 80px); padding:24px 16px;
-  }
-  .mode-logo { font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:28px; color:var(--green); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; text-align:center; }
-  .mode-sub { font-size:13px; color:var(--muted); margin-bottom:40px; text-align:center; }
-  .mode-btn { width:100%; max-width:420px; border-radius:14px; padding:22px 20px; margin-bottom:14px; cursor:pointer; border:none; text-align:left; display:flex; align-items:center; gap:16px; transition:opacity 0.15s; }
-  .mode-btn:active { opacity:0.85; }
-  .mode-btn-day { background:var(--green); color:var(--black); }
-  .mode-btn-fly { background:var(--card); color:var(--text); border:1px solid var(--border); }
-  .mode-btn-fly:hover { border-color:var(--power-color); }
-  .mode-icon { font-size:36px; flex-shrink:0; line-height:1; }
-  .mode-text-wrap { flex:1; }
-  .mode-title { font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:22px; text-transform:uppercase; letter-spacing:0.5px; line-height:1.1; margin-bottom:4px; }
-  .mode-btn-day .mode-title { color:var(--black); }
-  .mode-btn-fly .mode-title { color:var(--text); }
-  .mode-desc { font-size:13px; line-height:1.4; }
-  .mode-btn-day .mode-desc { color:rgba(0,0,0,0.6); }
-  .mode-btn-fly .mode-desc { color:var(--muted); }
-  .mode-arrow { font-size:22px; flex-shrink:0; opacity:0.5; }
-  .mode-btn-day .mode-arrow { color:var(--black); }
-  .back-btn { background:none; border:none; color:var(--muted); font-family:'Barlow',sans-serif; font-size:13px; cursor:pointer; padding:0; display:none; align-items:center; gap:4px; margin-top:4px; }
-  .back-btn.show { display:flex; }
-  .back-btn:hover { color:var(--text); }
-  .mode-label { font-size:11px; color:var(--muted); margin-top:2px; display:none; }
-  .mode-label.show { display:block; }
-  #flyScreen { display:none; }
-  #dayScreen { display:none; }
-  .fly-note { background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.2); border-radius:8px; padding:10px 14px; font-size:12px; color:var(--power-color); margin-bottom:14px; line-height:1.5; }
-  .install-inline-btn { display:none; align-items:center; justify-content:center; gap:8px; width:100%; max-width:420px; margin-top:6px; background:none; border:1px solid rgba(50,255,100,0.3); border-radius:10px; padding:12px 16px; cursor:pointer; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:15px; color:var(--green); text-transform:uppercase; letter-spacing:0.5px; transition:background 0.15s; }
-  .install-inline-btn:hover { background:rgba(50,255,100,0.08); }
-  .install-inline-btn.show { display:flex; }
-  .install-inline-ios { display:none; width:100%; max-width:420px; margin-top:6px; background:rgba(50,255,100,0.06); border:1px solid rgba(50,255,100,0.2); border-radius:10px; padding:12px 16px; font-size:12px; color:var(--green); line-height:1.6; text-align:center; }
-  .install-inline-ios.show { display:block; }
-
 </style>
 </head>
 <body>
 
 <header>
   <h1>⚡ FLEX MIX CALCULATOR</h1>
-  <p class="mode-label" id="modeLabel"></p>
-  <button class="back-btn" id="backBtn" onclick="goHome()">← Back</button>
+  <p>Morning tank mix — zero math required</p>
 </header>
 
-
-<!-- MODE SELECT SCREEN -->
-<div id="modeScreen">
-  <div class="mode-logo">⚡ Flex Mix Calculator</div>
-  <div class="mode-sub">What are you doing right now?</div>
-  <button class="mode-btn mode-btn-day" onclick="setMode('day')">
-    <div class="mode-icon">🌅</div>
-    <div class="mode-text-wrap">
-      <div class="mode-title">Mixing for the Day</div>
-      <div class="mode-desc">Upload your route screenshot — auto-calculates everything</div>
-    </div>
-    <div class="mode-arrow">›</div>
-  </button>
-  <button class="mode-btn mode-btn-fly" onclick="setMode('fly')">
-    <div class="mode-icon">⚡</div>
-    <div class="mode-text-wrap">
-      <div class="mode-title">Mix on the Fly</div>
-      <div class="mode-desc">Ran out mid-route — enter sqft manually for a quick refill</div>
-    </div>
-    <div class="mode-arrow">›</div>
-  </button>
-  <button class="install-inline-btn" id="installInlineBtn" onclick="triggerInstall()">⬇ Add to Home Screen</button>
-  <div class="install-inline-ios" id="installInlineIos">📲 To install: tap the <strong>Share</strong> button in Safari → <strong>"Add to Home Screen"</strong></div>
-</div>
-
-<!-- FLY MODE SCREEN -->
-<div id="flyScreen">
-<div class="container">
-  <div class="fly-note">⚡ Mid-route refill mode — enter the sqft you still need to cover and pick your equipment.</div>
-  <div class="card">
-    <div class="card-title"><div class="icon">1</div> Route Info</div>
-    <div class="field-group">
-      <label>Turf Type</label>
-      <select id="flyTurf" onchange="flyCheckAtrazine()">
-        <option value="">— Select —</option>
-        <option value="warm">Warm Season (Bermuda / Zoysia)</option>
-        <option value="cool">Cool Season (Tall Fescue)</option>
-      </select>
-    </div>
-    <div class="field-group">
-      <label>Round <span>(auto-detected — override if needed)</span></label>
-      <select id="flyRound" onchange="flyCheckAtrazine()">
-        <option value="">— Select —</option>
-        <option value="1">Round 1 — Jan 25 – Feb 28</option>
-        <option value="2">Round 2 — Mar 1 – Apr 14</option>
-        <option value="3">Round 3 — Apr 15 – May 31</option>
-        <option value="4">Round 4 — Jun 1 – Jul 15</option>
-        <option value="5">Round 5 — Aug 1 – Sep 15</option>
-        <option value="6">Round 6 — Sep 16 – Oct 15</option>
-        <option value="7">Round 7 — Oct 16 – Nov 30</option>
-      </select>
-      <div id="flyRoundBadge" class="round-auto-badge" style="display:none"></div>
-    </div>
-    <div id="flyAtrazineWarning" class="atrazineWarning">⛔ TODAY IS AFTER MARCH 10 — ATRAZINE IS NOT PERMITTED.</div>
-  </div>
-  <div class="card">
-    <div class="card-title"><div class="icon">2</div> Sqft to Cover</div>
-    <div class="field-group">
-      <label>Equipment</label>
-      <select id="flyEquip">
-        <option value="power">💧 Power Spray Rig (1.14 gal / 1,000 sqft)</option>
-        <option value="toro">🚜 Toro SprayMaster (0.34 gal / 1,000 sqft)</option>
-        <option value="bg">🪣 B&amp;G Hand Sprayer (1 gallon batch)</option>
-        <option value="rock">🪨 FlowZone Rock Beds (1 gal / 1,625 sqft)</option>
-      </select>
-    </div>
-    <div class="field-group">
-      <label>Sqft remaining to cover</label>
-      <input type="number" id="flySqft" placeholder="e.g. 8500" inputmode="numeric">
-    </div>
-    <button class="calc-btn" onclick="flyCalculate()">Calculate Refill →</button>
-    <button class="reset-btn" onclick="flyReset()">↺ Clear</button>
-  </div>
-  <div id="flyResults" style="display:none"></div>
-  <div class="footer">Flex Lawn Care · Mix on the Fly · Mid-route refill</div>
-</div>
-</div>
-
-<!-- DAY MODE SCREEN -->
-<div id="dayScreen">
 <div class="container">
 
   <!-- STEP 1: ROUTE INFO -->
@@ -498,7 +377,6 @@
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     </div>
     <div class="error-box" id="errorBox"></div>
-    <button class="reset-btn" id="uploadResetBtn" onclick="resetAll()" style="display:none;margin-top:10px">↺ Start Over</button>
   </div>
 
   <!-- STEP 3: PROPERTIES -->
@@ -519,22 +397,69 @@
   </div>
 
   <!-- RESULTS -->
-  <div id="results" style="display:none">
+  <div id="results">
+
     <div class="sqft-summary">
-      <div class="sqft-box"><div class="val" id="sum-power">—</div><div class="lbl">Power/Push</div></div>
+      <div class="sqft-box"><div class="val" id="sum-power">—</div><div class="lbl">Power Spray</div></div>
       <div class="sqft-box"><div class="val" id="sum-toro">—</div><div class="lbl">Toro</div></div>
-      <div class="sqft-box"><div class="val" id="sum-rock">—</div><div class="lbl">Rock Yards</div></div>
+      <div class="sqft-box"><div class="val" id="sum-rock">—</div><div class="lbl">Rock Beds</div></div>
       <div class="sqft-box"><div class="val">5,000</div><div class="lbl">Buffer</div></div>
     </div>
-    <div id="results-wrap"></div>
+
+    <!-- POWER SPRAY RIG (PRIMARY) -->
+    <div class="result-block" id="power-block" style="display:none">
+      <div class="result-header power-header">
+        <span>💧 Power Spray Rig <small style="font-size:12px;font-weight:400;opacity:0.7">(primary — &lt;13K sqft props)</small></span>
+        <span class="gal-badge" id="power-gal-badge">— gal</span>
+      </div>
+      <div class="prop-names-list" id="power-prop-names"></div>
+      <div class="result-body">
+        <div class="mix-meta">Calibration: 1.14 gal / 1,000 sqft @ 3.0 MPH — 6 ft spray width</div>
+        <div id="power-products"></div>
+      </div>
+    </div>
+
+    <!-- TORO (SECONDARY) -->
+    <div class="result-block" id="toro-block" style="display:none">
+      <div class="result-header toro-header">
+        <span>🚜 Toro SprayMaster <small style="font-size:12px;font-weight:400;opacity:0.7">(≥13K sqft props)</small></span>
+        <span class="gal-badge" id="toro-gal-badge">— gal</span>
+      </div>
+      <div class="prop-names-list" id="toro-prop-names"></div>
+      <div class="result-body">
+        <div class="mix-meta">Calibration: 0.34 gal / 1,000 sqft @ 5 MPH — Purple tips — 40 PSI</div>
+        <div id="toro-products"></div>
+      </div>
+    </div>
+
+    <!-- B&G SPOT WEEDS -->
+    <div class="result-block" id="bg-block" style="display:none">
+      <div class="result-header bg-header">
+        🪣 B&amp;G — Spot Weeds
+        <span style="font-size:14px;font-weight:400;opacity:0.7">1 gal batch</span>
+      </div>
+      <div class="result-body">
+        <div class="mix-meta">Mix 1 gallon at a time — on foot as needed</div>
+        <div id="bg-products"></div>
+      </div>
+    </div>
+
+    <!-- ROCK BEDS -->
+    <div class="result-block" id="rock-block" style="display:none">
+      <div class="result-header rock-header">
+        🪨 FlowZone — Rock Beds
+        <span class="gal-badge" id="rock-gal-badge">— gal</span>
+      </div>
+      <div class="result-body">
+        <div id="rock-products"></div>
+      </div>
+    </div>
+
   </div><!-- /results -->
 
   <div class="footer">Flex Lawn Care · Mix Calculator v2.0 · Power Spray primary / Toro secondary</div>
 
 </div><!-- /container -->
-
-</div><!-- /dayScreen -->
-
 
 <!-- Install Banner -->
 <div class="install-banner" id="installBanner">
@@ -604,7 +529,7 @@ function onRoundChange() {
 const TORO_COV = 0.34;
 const POWER_COV = 1.14;
 const ROCK_COV = 1 / 1.625;
-const SQFT_THRESHOLD = 10000;
+const SQFT_THRESHOLD = 13000;
 const BUFFER = 5000;
 
 const ROUNDS = {
@@ -648,9 +573,6 @@ const ROUNDS = {
       powerNote: null,
       bgNote: 'B&G 1-gal — spot spray only where weeds are visible. Mix 1 gallon at a time.',
       granular: true,
-      granularProduct: 'Lesco 32-0-0 w/ 20% PolyPlus OPTI45',
-      granularRateToro: 3.13,
-      granularRatePush: 3.13,
     },
     cool: {
       toro: null, power: null,
@@ -659,10 +581,6 @@ const ROUNDS = {
       powerNote: null,
       bgNote: 'B&G 1-gal — spot spray broadleaf weeds only. Cool-season turf.',
       granular: true,
-      granularProduct: 'Lesco 32-0-0 w/ 20% PolyPlus OPTI45',
-      granularRateToro: null,
-      granularRatePush: 2.5,
-      granularHardStop: 'MAY 1 HARD STOP — Skip granular if after May 1. Spot weeds only.',
     }
   },
   4: {
@@ -688,13 +606,9 @@ const ROUNDS = {
       toro:  [ { name:'Artavia SC', unit:'fl oz', rate:2.25, note:'Fungicide FRAC 11 — Tank A' }, { name:'Propiconazole 14.3', unit:'fl oz', rate:2.94, note:'Fungicide FRAC 3 — MAX 4 fl oz/1,000 sqft/30 days on bermuda' } ],
       power: [ { name:'Artavia SC', unit:'fl oz', rate:2.25, note:'Fungicide FRAC 11' }, { name:'Propiconazole 14.3', unit:'fl oz', rate:2.94, note:'Fungicide FRAC 3 — MAX 4 fl oz/1,000 sqft/30 days on bermuda' } ],
       bg: [ { name:'Celsius', unit:'oz', rate:0.10, note:'Broadleaf / warm-season' }, { name:'Quin-Way', unit:'oz', rate:1.45, note:'Broadleaf' }, { name:'Ambition', unit:'oz', rate:0.18, note:'Broadleaf' }, { name:'Manuscript', unit:'oz', rate:0.44, note:'Dallisgrass only' }, { name:'MSO (Adigor)', unit:'oz', rate:0.44, note:'With Manuscript only' } ],
-      toroNote: 'TANK A — dual fungicide (FRAC 11 + FRAC 3). Apply granular same visit via Toro hopper.',
-      powerNote: 'Same dual fungicide mix. Apply granular via push spreader same visit.',
+      toroNote: 'TANK A — dual fungicide (FRAC 11 + FRAC 3). Granular: Lesco 28-0-0 — Bermuda 3.57 lbs/1k, Zoysia 2.75 lbs/1k via Toro hopper.',
+      powerNote: 'Primary equipment — same dual fungicide mix. Granular via push spreader at hose-drag accounts.',
       bgNote: 'B&G 1-gal — spot spray weeds only. Peak heat rules fully active.',
-      granularProduct: 'Lesco 28-0-0 w/ 20% PolyPlus OPTI45 + 1.2% Fe',
-      granularRateToro: 3.57,
-      granularRatePush: 3.57,
-      granularNote: 'Bermuda: 3.57 lbs/1k. Zoysia: 2.75 lbs/1k — adjust if Zoysia route.',
     },
     cool: {
       toro:  [ { name:'Artavia SC', unit:'fl oz', rate:2.25, note:'Fungicide FRAC 11 — Tank A' }, { name:'Propiconazole 14.3', unit:'fl oz', rate:2.94, note:'Fungicide FRAC 3 — Tank A' } ],
@@ -707,15 +621,12 @@ const ROUNDS = {
   },
   6: {
     warm: {
-      toro: null, power: null,
-      bg: [ { name:'Celsius', unit:'oz', rate:0.10, note:'Warm-season weeds' }, { name:'Quin-Way', unit:'oz', rate:1.45, note:'' }, { name:'Ambition', unit:'oz', rate:0.18, note:'' } ],
-      toroNote: 'Granular only — no liquid spray this round.',
-      powerNote: null,
-      bgNote: 'B&G spot weeds. Dallisgrass: separate Manuscript + MSO batch (0.44 oz each per gallon).',
-      granular: true,
-      granularProduct: 'Lesco 5-0-25 w/ 10% Fe',
-      granularRateToro: 4.0,
-      granularRatePush: 4.0,
+      toro:  [ { name:'Celsius', unit:'oz', rate:0.10, note:'Tank B — warm-season weeds' }, { name:'Quin-Way', unit:'oz', rate:1.45, note:'Tank B' }, { name:'Ambition', unit:'oz', rate:0.18, note:'Tank B' } ],
+      power: [ { name:'Celsius', unit:'oz', rate:0.10, note:'Warm-season weeds' }, { name:'Quin-Way', unit:'oz', rate:1.45, note:'' }, { name:'Ambition', unit:'oz', rate:0.18, note:'' } ],
+      bg: [ { name:'Manuscript', unit:'oz', rate:0.44, note:'Dallisgrass clumps ONLY' }, { name:'MSO (Adigor)', unit:'oz', rate:0.44, note:'With Manuscript only' } ],
+      toroNote: 'TANK B spot weeds. Granular: Lesco 5-0-25 w/ 10% Fe at 4.0 lbs/1k via Toro spreader.',
+      powerNote: 'Primary spot weed spray. Same mix.',
+      bgNote: 'B&G 1-gal — Dallisgrass spot spray only.',
     },
     cool: {
       toro: null, power: null,
@@ -724,9 +635,6 @@ const ROUNDS = {
       powerNote: null,
       bgNote: 'B&G 1-gal — cool-season spot weeds only.',
       granular: true,
-      granularProduct: '6-3-0 w/ 2% Fe',
-      granularRateToro: null,
-      granularRatePush: 3.0,
     }
   },
   7: {
@@ -801,13 +709,7 @@ async function processAllFiles(files) {
   }
 
   setProgress(true, 'Done — combining results...', 95);
-  props = allProps.map(p => ({
-    name: p.name,
-    sqft: p.rockYard ? 0 : (parseInt(p.sqft) || 0),
-    round: p.round || null,
-    rockYard: !!p.rockYard,
-    rockSqft: p.rockYard ? (parseInt(p.sqft) || 0) : 0
-  }));
+  props = allProps.map(p => ({ name: p.name, sqft: parseInt(p.sqft) || 0 }));
   if (combinedTotal) detectedTotal = combinedTotal;
 
   document.getElementById('previewCount').textContent =
@@ -817,129 +719,46 @@ async function processAllFiles(files) {
   renderProps();
 }
 
-// Sends one image slice (base64) to the worker and returns parsed properties
-async function callWorkerWithSlice(b64, mediaType, isFirstSlice) {
-  const totalNote = isFirstSlice
-    ? 'total: the "XX.XK SF" number shown in the header summary at the top (e.g. "63.2K SF" = 63200). Omit if not visible.'
-    : 'total: omit this field — only extract from the first slice.';
-
-  const resp = await fetch('https://flex-proxy.mike-8e3.workers.dev', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: mediaType, data: b64 } },
-          { type: 'text', text: `You are extracting lawn care route data from a FieldRoutes schedule screenshot.
-
-RESPOND WITH ONLY A JSON OBJECT. No text before or after. No markdown. No backticks. Just raw JSON.
-
-Required format:
-{"properties":[{"name":"Smith, John","sqft":6500,"round":2,"rockYard":false}],"total":43100}
-
-For each property CARD that shows MEASUREMENTS:
-- name: Last name, First name (remove & symbols, clean up)
-- sqft: convert the K value (6.5K=6500, 13.8K=13800, 5.1K=5100, 43.1K=43100)
-- round: look for R1, R2, R3, R4, R5, R6, R7, or RS badge. R1=1, R2=2, R3=3, RS=2. Default 2 if unclear.
-- rockYard: true ONLY if red notes say ALL ROCK YARD or rock bed or rock yard. Otherwise false.
-
-${totalNote}
-
-SKIP: time slots, LUNCH, MEETING, END entries, cards without MEASUREMENTS, cancelled appointments.
-If no property cards with measurements are visible in this image section, return {"properties":[]}.` }
-        ]
-      }]
-    })
-  });
-
-  const data = await resp.json();
-  const rawText = (data.content?.[0]?.text || '').trim();
-  const raw = rawText.replace(/\`\`\`json|\`\`\`/g, '').trim();
-
-  // Try direct parse
-  try { return JSON.parse(raw); } catch(e1) {}
-
-  // Try extracting JSON object from response
-  const jsonMatch = raw.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    try { return JSON.parse(jsonMatch[0]); } catch(e2) {}
-  }
-
-  console.error('Slice parse failed:', raw.substring(0, 300));
-  throw new Error('Could not read screenshot — got: ' + raw.substring(0, 80));
-}
-
-// Slices a tall image into vertical chunks using canvas, returns array of base64 strings
-async function sliceImage(file) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = function() {
-      URL.revokeObjectURL(url);
-      const w = img.width;
-      const h = img.height;
-
-      // Target: each slice should be at most 1200px tall so text is large and readable
-      // Scale up narrow mobile screenshots so text is minimum 800px wide
-      const MIN_W = 800;
-      const scale = w < MIN_W ? MIN_W / w : 1;
-      const scaledW = Math.round(w * scale);
-      const scaledH = Math.round(h * scale);
-
-      // Slice height in SCALED pixels — aim for ~4 property cards per slice
-      const MAX_SLICE_H = 1400;
-
-      const slices = [];
-      let y = 0; // in original pixels
-      while (y < h) {
-        // How many original pixels fit in one slice
-        const origSliceH = Math.min(Math.round(MAX_SLICE_H / scale), h - y);
-        const sliceScaledH = Math.round(origSliceH * scale);
-
-        const canvas = document.createElement('canvas');
-        canvas.width = scaledW;
-        canvas.height = sliceScaledH;
-        const ctx = canvas.getContext('2d');
-        // Draw this slice of the original image, scaled up
-        ctx.drawImage(img, 0, y, w, origSliceH, 0, 0, scaledW, sliceScaledH);
-        slices.push({ b64: canvas.toDataURL('image/jpeg', 0.95).split(',')[1], mediaType: 'image/jpeg' });
-        y += origSliceH;
-      }
-      resolve(slices);
-    };
-    img.onerror = function() {
-      // Fallback: read file directly without slicing
-      const reader = new FileReader();
-      reader.onload = (e) => resolve([{ b64: e.target.result.split(',')[1], mediaType: file.type || 'image/jpeg' }]);
-      reader.readAsDataURL(file);
-    };
-    img.src = url;
-  });
-}
-
 async function readOneFile(file) {
-  // Slice the image into manageable chunks (handles unlimited size scrolling screenshots)
-  const slices = await sliceImage(file);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      const b64 = e.target.result.split(',')[1];
+      const mediaType = file.type || 'image/jpeg';
+      try {
+        const resp = await fetch('https://flex-proxy.mike-8e3.workers.dev', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 800,
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'image', source: { type: 'base64', media_type: mediaType, data: b64 } },
+                { type: 'text', text: `Extract property data from this FieldRoutes schedule screenshot.
 
-  let allProperties = [];
-  let detectedTotalFromFile = null;
+Return ONLY raw JSON — no markdown, no explanation, no backticks. Format:
+{"properties":[{"name":"Last, First","sqft":6500}],"total":43100}
 
-  for (let i = 0; i < slices.length; i++) {
-    const { b64, mediaType } = slices[i];
-    setProgress(true, 'Reading screenshot' + (slices.length > 1 ? ' (part ' + (i+1) + ' of ' + slices.length + ')' : '') + '...', 20 + Math.round((i / slices.length) * 60));
-    try {
-      const result = await callWorkerWithSlice(b64, mediaType, i === 0);
-      if (result.properties) allProperties = allProperties.concat(result.properties);
-      if (result.total && i === 0) detectedTotalFromFile = result.total;
-    } catch(err) {
-      // If one slice fails, continue with others rather than stopping entirely
-      console.warn('Slice ' + (i+1) + ' failed:', err.message);
-      if (slices.length === 1) throw err; // Only throw if it was a single-slice file
-    }
-  }
-
-  return { properties: allProperties, total: detectedTotalFromFile };
+Rules:
+- Only include cards that show "MEASUREMENTS: X.XK SF" or "MEASUREMENTS: XXXK SF"
+- Convert K values: 6.5K=6500, 12K=12000, 43.1K=43100
+- total = the number from "Meas. SF/LF XX.XK SF" at the top header. If not visible omit total field.
+- Clean names: use "Smith, John" format, remove & symbols
+- Skip time slots, LUNCH blocks, END entries, empty slots` }
+              ]
+            }]
+          })
+        });
+        const data = await resp.json();
+        const raw = (data.content?.[0]?.text || '').replace(/```json|```/g,'').trim();
+        try { resolve(JSON.parse(raw)); }
+        catch(err) { reject(new Error('Could not parse screenshot. Try a clearer image.')); }
+      } catch(err) { reject(err); }
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function setProgress(on, msg, pct) {
@@ -954,7 +773,6 @@ function showError(msg) {
   const eb = document.getElementById('errorBox');
   eb.textContent = msg;
   eb.style.display = 'block';
-  document.getElementById('uploadResetBtn').style.display = 'block';
 }
 
 let detectedTotal = null;
@@ -975,39 +793,37 @@ function rebuildPropList() {
     const isPower = p.sqft < SQFT_THRESHOLD;
     const div = document.createElement('div');
     div.className = 'prop-item';
-    const isRock = p.rockYard;
-    const badge = isRock ? '<span class="prop-badge" style="background:rgba(168,85,247,0.15);color:#c084fc;border:1px solid rgba(168,85,247,0.3)">Rock</span>' :
-                  (isPower ? '<span class="prop-badge badge-power">Power</span>' : '<span class="prop-badge badge-toro">Toro</span>');
-    const roundTag = p.round ? '<span style="font-size:10px;color:var(--muted);margin-left:4px">R' + p.round + '</span>' : '';
-    div.innerHTML =
-      '<input type="text" value="' + p.name.replace(/"/g,'&quot;') + '" oninput="props[' + i + '].name=this.value" placeholder="Customer name">' +
-      '<input type="number" value="' + (p.rockYard ? p.rockSqft : p.sqft) + '" oninput="props[' + i + '].sqft=parseInt(this.value)||0;updateChips()" placeholder="sqft">' +
-      badge + roundTag +
-      '<button class="rm-btn" onclick="removeProp(' + i + ')">×</button>';
+    div.innerHTML = `
+      <input type="text" value="${p.name}" oninput="props[${i}].name=this.value" placeholder="Customer name">
+      <input type="number" value="${p.sqft}" oninput="props[${i}].sqft=parseInt(this.value)||0;updateChips()" placeholder="sqft">
+      <span class="prop-badge ${isPower ? 'badge-power' : 'badge-toro'}">${isPower ? 'Power' : 'Toro'}</span>
+      <button class="rm-btn" onclick="removeProp(${i})">×</button>
+    `;
     list.appendChild(div);
   });
   document.getElementById('propCount').textContent = props.length + ' properties';
 }
 
 function updateChips() {
-  const rockPx = props.filter(p => p.rockYard);
-  const lawnPx = props.filter(p => !p.rockYard);
-  const toroPx = lawnPx.filter(p => p.sqft >= SQFT_THRESHOLD);
-  const powerPx = lawnPx.filter(p => p.sqft < SQFT_THRESHOLD);
+  const toroPx = props.filter(p => p.sqft >= SQFT_THRESHOLD);
+  const powerPx = props.filter(p => p.sqft < SQFT_THRESHOLD);
   const toroSqft = toroPx.reduce((a, p) => a + p.sqft, 0);
   const powerSqft = powerPx.reduce((a, p) => a + p.sqft, 0);
-  const rockSqftTotal = rockPx.reduce((a, p) => a + p.rockSqft, 0);
-  const total = toroSqft + powerSqft + rockSqftTotal;
-  let html = '<div class="chip"><strong>' + fmtNum(total) + '</strong> total sqft</div>';
-  html += '<div class="chip power-chip"><strong>' + powerPx.length + '</strong> props → Power/Push (<strong>' + fmtNum(powerSqft) + '</strong> sqft)</div>';
-  html += '<div class="chip toro-chip"><strong>' + toroPx.length + '</strong> props → Toro (<strong>' + fmtNum(toroSqft) + '</strong> sqft)</div>';
-  if (rockPx.length > 0) html += '<div class="chip" style="border-color:rgba(168,85,247,0.3)"><strong style="color:#c084fc">' + rockPx.length + '</strong> rock yards → FlowZone (<strong style="color:#c084fc">' + fmtNum(rockSqftTotal) + '</strong> sqft)</div>';
-  if (detectedTotal) html += '<div class="chip" style="font-size:11px;opacity:0.6">Route total from screenshot: ' + fmtNum(detectedTotal) + ' sqft</div>';
+  const total = toroSqft + powerSqft;
+
+  let html = `
+    <div class="chip"><strong>${fmtNum(total)}</strong> total sqft</div>
+    <div class="chip power-chip"><strong>${powerPx.length}</strong> props → Power Sprayer (<strong>${fmtNum(powerSqft)}</strong> sqft)</div>
+    <div class="chip toro-chip"><strong>${toroPx.length}</strong> props → Toro (<strong>${fmtNum(toroSqft)}</strong> sqft)</div>
+  `;
+  if (detectedTotal) {
+    html += `<div class="chip" style="font-size:11px;opacity:0.6">Route total from screenshot: ${fmtNum(detectedTotal)} sqft</div>`;
+  }
   document.getElementById('summaryChips').innerHTML = html;
 }
 
 function addProp() {
-  props.push({ name: 'New Property', sqft: 5000, round: null, rockYard: false, rockSqft: 0 });
+  props.push({ name: 'New Property', sqft: 5000 });
   rebuildPropList();
   updateChips();
 }
@@ -1019,233 +835,87 @@ function removeProp(i) {
 }
 
 // ─── CALCULATE ────────────────────────────────────────────────────────────
-
-// Returns mix rates data for a given round + turf
-function getRoundData(roundNum, turf) {
-  if (!ROUNDS[roundNum] || !ROUNDS[roundNum][turf]) return null;
-  return ROUNDS[roundNum][turf];
-}
-
-// Build a result block HTML string
-function buildResultBlock(headerClass, icon, title, badgeText, propNames, metaText, productsHtml, noteHtml, extraHtml) {
-  let html = '<div class="result-block" style="margin-bottom:14px">';
-  html += '<div class="result-header ' + headerClass + '">';
-  html += '<span>' + icon + ' ' + title + '</span>';
-  html += '<span class="gal-badge">' + badgeText + '</span>';
-  html += '</div>';
-  if (propNames) html += '<div class="prop-names-list">' + propNames + '</div>';
-  html += '<div class="result-body">';
-  if (metaText) html += '<div class="mix-meta">' + metaText + '</div>';
-  html += productsHtml;
-  if (noteHtml) html += noteHtml;
-  if (extraHtml) html += extraHtml;
-  html += '</div></div>';
-  return html;
-}
-
-// Build per-property granular breakdown
-function buildGranularRows(propList, rate, product) {
-  if (!propList.length || !rate) return '';
-  let html = '';
-  propList.forEach(p => {
-    const lbs = (p.sqft / 1000 * rate).toFixed(1);
-    html += '<div class="product-row"><div class="product-name">' + p.name + '<small>' + fmtNum(p.sqft) + ' sqft</small></div><div class="product-amount toro-amt">' + lbs + ' <small>lbs</small></div></div>';
-  });
-  return html;
-}
-
 function calculate() {
   const turf = document.getElementById('turfType').value;
-  const defaultRound = parseInt(document.getElementById('round').value);
-  if (!turf || !defaultRound) { alert('Please select Turf Type and Round first.'); return; }
+  const round = parseInt(document.getElementById('round').value);
+  if (!turf || !round) { alert('Please select Turf Type and Round first.'); return; }
+  if (props.length === 0) { alert('No properties loaded. Upload a screenshot or add properties manually.'); return; }
 
-  const lawnProps = props.filter(p => !p.rockYard);
-  const rockProps = props.filter(p => p.rockYard);
-
-  if (lawnProps.length === 0 && rockProps.length === 0) {
-    alert('No properties loaded. Upload a screenshot or add properties manually.');
-    return;
-  }
-
+  const data = ROUNDS[round][turf];
   const atrazineBlocked = isAfterMarch10();
-  const resultsEl = document.getElementById('results');
-  const resultsWrap = document.getElementById('results-wrap');
-  resultsWrap.innerHTML = '';
 
-  // Group lawn props by round (use prop.round if detected, else defaultRound)
-  const roundGroups = {};
-  lawnProps.forEach(p => {
-    const r = p.round || defaultRound;
-    if (!roundGroups[r]) roundGroups[r] = [];
-    roundGroups[r].push(p);
-  });
+  const toroPxList  = props.filter(p => p.sqft >= SQFT_THRESHOLD);
+  const powerPxList = props.filter(p => p.sqft < SQFT_THRESHOLD);
+  const toroSqftRaw  = toroPxList.reduce((a, p) => a + p.sqft, 0);
+  const powerSqftRaw = powerPxList.reduce((a, p) => a + p.sqft, 0);
 
-  // Track summary totals
-  let sumPowerSqft = 0, sumToroSqft = 0, sumRockSqft = rockProps.reduce((a,p) => a + p.rockSqft, 0);
+  // Buffer deducted from Toro (largest equipment) first
+  const toroSqft  = Math.max(0, toroSqftRaw - BUFFER);
+  const powerSqft = powerSqftRaw;
 
-  // Process each round group
-  const sortedRounds = Object.keys(roundGroups).sort((a,b) => parseInt(a)-parseInt(b));
+  const toroGals  = roundGals(sqftToGalsToro(toroSqft));
+  const powerGals = roundGals(sqftToGalsPower(powerSqft));
 
-  sortedRounds.forEach(rNum => {
-    const rInt = parseInt(rNum);
-    const data = getRoundData(rInt, turf);
-    if (!data) return;
+  // Summary
+  document.getElementById('sum-power').textContent = fmtNum(powerSqft) + ' sqft';
+  document.getElementById('sum-toro').textContent  = fmtNum(toroSqft)  + ' sqft';
+  document.getElementById('sum-rock').textContent  = '0 sqft';
 
-    const group = roundGroups[rNum];
-    const toroPx = group.filter(p => p.sqft >= SQFT_THRESHOLD);
-    const pushPx  = group.filter(p => p.sqft < SQFT_THRESHOLD);
-    const toroSqftRaw = toroPx.reduce((a,p) => a+p.sqft, 0);
-    const pushSqft    = pushPx.reduce((a,p) => a+p.sqft, 0);
-    const toroSqft    = Math.max(0, toroSqftRaw - BUFFER);
-
-    sumPowerSqft += pushSqft;
-    sumToroSqft  += toroSqft;
-
-    const roundLabel = sortedRounds.length > 1 ? ' — Round ' + rNum : '';
-
-    // ── GRANULAR ROUNDS (R3, R6 warm, R7 cool) ──
-    if (data.granular && data.granularProduct) {
-      // PUSH SPREADER block (props under 10K)
-      if (pushPx.length > 0 && data.granularRatePush) {
-        const totalPushLbs = pushPx.reduce((a,p) => a + (p.sqft/1000*data.granularRatePush), 0);
-        const bags = Math.ceil(totalPushLbs/50);
-        let prodsHtml = buildGranularRows(pushPx, data.granularRatePush, data.granularProduct);
-        prodsHtml += '<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name"><strong>' + data.granularProduct + '</strong><small>' + bags + ' bag' + (bags!==1?'s':'') + ' of 50 lbs total</small></div><div class="product-amount" style="color:var(--green);font-size:22px;">' + totalPushLbs.toFixed(1) + ' <small>lbs</small></div></div>';
-        let noteHtml = data.granularHardStop ? '<div class="atrazine-gate">⚠️ ' + data.granularHardStop + '</div>' : '';
-        resultsWrap.innerHTML += buildResultBlock(
-          'push-header', '🟢', 'Push Spreader' + roundLabel, totalPushLbs.toFixed(1) + ' lbs',
-          null, 'Granular — props under 10K sqft', prodsHtml, noteHtml, null
-        );
-      }
-      // TORO HOPPER block (props 10K+)
-      if (toroPx.length > 0 && data.granularRateToro) {
-        const totalToroLbs = toroPx.reduce((a,p) => a + (p.sqft/1000*data.granularRateToro), 0);
-        let prodsHtml = buildGranularRows(toroPx, data.granularRateToro, data.granularProduct);
-        prodsHtml += '<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name"><strong>' + data.granularProduct + '</strong><small>Toro hopper total</small></div><div class="product-amount toro-amt" style="font-size:22px;">' + totalToroLbs.toFixed(1) + ' <small>lbs</small></div></div>';
-        resultsWrap.innerHTML += buildResultBlock(
-          'toro-header', '🚜', 'Toro Hopper Spreader' + roundLabel, totalToroLbs.toFixed(1) + ' lbs',
-          toroPx.map(p=>p.name).join(' · '), 'Granular — props 10K sqft and over', prodsHtml, null, null
-        );
-      }
+  // ── POWER BLOCK (PRIMARY) ──
+  const powerBlock = document.getElementById('power-block');
+  const powerNames = document.getElementById('power-prop-names');
+  const powerProds = document.getElementById('power-products');
+  if (data.power && powerSqft > 0) {
+    powerBlock.style.display = 'block';
+    document.getElementById('power-gal-badge').textContent = powerGals + ' gal';
+    powerNames.textContent = powerPxList.map(p => p.name).join(' · ');
+    let html = makeProductRows(data.power, 'power-amt', powerGals, atrazineBlocked);
+    if (data.powerNote) html += `<div class="warning-box">${data.powerNote}</div>`;
+    if (round === 1 && turf === 'warm' && !atrazineBlocked) {
+      html += `<div class="atrazine-gate">⚠️ ATRAZINE GATE: Visually confirm bermuda is fully dormant (100% brown, zero green tips) before mixing Atrazine. If ANY green is visible → skip Atrazine.</div>`;
     }
-
-    // ── LIQUID ROUNDS (R1, R2, R4, R5, R7 warm) ──
-    if (data.power && pushSqft > 0) {
-      const powerGals = roundGals(sqftToGalsPower(pushSqft));
-      let prodsHtml = makeProductRows(data.power, 'power-amt', powerGals, atrazineBlocked);
-      let noteHtml = '';
-      if (data.powerNote) noteHtml += '<div class="warning-box">' + data.powerNote + '</div>';
-      if (rInt === 1 && turf === 'warm' && !atrazineBlocked) noteHtml += '<div class="atrazine-gate">⚠️ ATRAZINE GATE: Visually confirm bermuda 100% brown before mixing Atrazine.</div>';
-      resultsWrap.innerHTML += buildResultBlock(
-        'power-header', '💧', 'Power Sprayer' + roundLabel, powerGals + ' gal',
-        pushPx.map(p=>p.name).join(' · '),
-        'Calibration: 1.14 gal / 1,000 sqft @ 3.0 MPH — 6 ft spray width',
-        prodsHtml, noteHtml, null
-      );
-    }
-
-    if (data.toro && toroSqft > 0) {
-      const toroGals = roundGals(sqftToGalsToro(toroSqft));
-      let prodsHtml = makeProductRows(data.toro, 'toro-amt', toroGals, atrazineBlocked);
-      let noteHtml = data.toroNote ? '<div class="warning-box">' + data.toroNote + '</div>' : '';
-      resultsWrap.innerHTML += buildResultBlock(
-        'toro-header', '🚜', 'Toro SprayMaster' + roundLabel, toroGals + ' gal',
-        toroPx.map(p=>p.name).join(' · '),
-        'Calibration: 0.34 gal / 1,000 sqft @ 5 MPH — Purple tips — 40 PSI',
-        prodsHtml, noteHtml, null
-      );
-    }
-
-    // ── R5 WARM: liquid fungicide + granular same visit ──
-    // R5 warm already has both toro/power liquid above, now add granular separately
-    if (rInt === 5 && data.granularProduct) {
-      if (pushPx.length > 0 && data.granularRatePush) {
-        const totalPushLbs = pushPx.reduce((a,p) => a + (p.sqft/1000*data.granularRatePush), 0);
-        const bags = Math.ceil(totalPushLbs/50);
-        let prodsHtml = buildGranularRows(pushPx, data.granularRatePush, data.granularProduct);
-        prodsHtml += '<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name"><strong>' + data.granularProduct + '</strong><small>' + bags + ' bag' + (bags!==1?'s':'') + ' of 50 lbs — apply same visit as fungicide</small></div><div class="product-amount" style="color:var(--green);font-size:22px;">' + totalPushLbs.toFixed(1) + ' <small>lbs</small></div></div>';
-        resultsWrap.innerHTML += buildResultBlock(
-          'push-header', '🟢', 'Push Spreader — Round 5 Granular', totalPushLbs.toFixed(1) + ' lbs',
-          null, 'Apply immediately after fungicide spray pass', prodsHtml, null, null
-        );
-      }
-      if (toroPx.length > 0 && data.granularRateToro) {
-        const totalToroLbs = toroPx.reduce((a,p) => a + (p.sqft/1000*data.granularRateToro), 0);
-        let prodsHtml = buildGranularRows(toroPx, data.granularRateToro, data.granularProduct);
-        resultsWrap.innerHTML += buildResultBlock(
-          'toro-header', '🚜', 'Toro Hopper — Round 5 Granular', totalToroLbs.toFixed(1) + ' lbs',
-          null, 'Apply immediately after fungicide spray pass', prodsHtml, null, null
-        );
-      }
-    }
-
-    // ── R7 WARM: herbicide pass then separate fungicide pass ──
-    if (rInt === 7 && turf === 'warm') {
-      resultsWrap.innerHTML += '<div class="warning-box" style="margin-bottom:14px">⚠️ Round 7 requires TWO separate spray passes. Apply herbicide broadcast first, then rinse one tank and apply Artavia SC fungicide as a second pass on the same visit.</div>';
-      // Fungicide second pass
-      const artaviaPerGal = 2.25;
-      if (pushPx.length > 0) {
-        const pGals = roundGals(sqftToGalsPower(pushSqft));
-        const artOz = (pGals * artaviaPerGal).toFixed(1);
-        resultsWrap.innerHTML += buildResultBlock(
-          'power-header', '💧', 'Power Sprayer — Pass 2: Artavia SC Fungicide' , pGals + ' gal',
-          null, 'Rinse tank after herbicide pass. Then mix Artavia SC for Spring Dead Spot prevention.',
-          '<div class="product-row"><div class="product-name">Artavia SC (Azoxystrobin)<small>FRAC Group 11 — Spring Dead Spot prevention</small></div><div class="product-amount power-amt">' + artOz + ' <small>fl oz</small></div></div>',
-          '<div class="atrazine-gate">⚠️ Water in after fungicide — 1/8 inch irrigation or rain required to activate.</div>', null
-        );
-      }
-      if (toroPx.length > 0) {
-        const tGals = roundGals(sqftToGalsToro(toroSqft));
-        const artOz = (tGals * artaviaPerGal).toFixed(1);
-        resultsWrap.innerHTML += buildResultBlock(
-          'toro-header', '🚜', 'Toro — Pass 2: Artavia SC Fungicide', tGals + ' gal',
-          null, 'Rinse one tank after herbicide pass. Mix Artavia SC.',
-          '<div class="product-row"><div class="product-name">Artavia SC (Azoxystrobin)<small>FRAC Group 11 — Spring Dead Spot prevention</small></div><div class="product-amount toro-amt">' + artOz + ' <small>fl oz</small></div></div>',
-          '<div class="atrazine-gate">⚠️ Water in after fungicide — 1/8 inch irrigation or rain required.</div>', null
-        );
-      }
-    }
-
-    // ── B&G SPOT WEEDS (always shown if round has bg data) ──
-    if (data.bg) {
-      let prodsHtml = makeProductRows(data.bg, 'flowzone-amt', 1, false);
-      let noteHtml = data.bgNote ? '<div class="warning-box">' + data.bgNote + '</div>' : '';
-      resultsWrap.innerHTML += buildResultBlock(
-        'bg-header', '🪣', 'B&G — Spot Weeds' + roundLabel, '1 gal batch',
-        null, 'Mix 1 gallon at a time — on foot as needed', prodsHtml, noteHtml, null
-      );
-    }
-  });
-
-  // ── FLOWZONE — ROCK YARDS ──
-  if (rockProps.length > 0) {
-    const totalRockSqft = rockProps.reduce((a,p) => a + p.rockSqft, 0);
-    const rockGals = Math.max(1, Math.ceil(totalRockSqft / 1625));
-    const rpOz = (2 * rockGals).toFixed(1);
-    const dyeOz = (0.3 * rockGals).toFixed(1);
-    let prodsHtml = '';
-    rockProps.forEach(p => {
-      const pGals = Math.max(1, Math.ceil(p.rockSqft / 1625));
-      prodsHtml += '<div class="product-row"><div class="product-name">' + p.name + '<small>' + fmtNum(p.rockSqft) + ' sqft rock yard</small></div><div class="product-amount glypho-amt">' + pGals + ' <small>gal</small></div></div>';
-    });
-    prodsHtml += '<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name">Ranger Pro (41% glyphosate)<small>' + rpOz + ' oz total</small></div><div class="product-amount glypho-amt">' + rpOz + ' <small>oz</small></div></div>';
-    prodsHtml += '<div class="product-row"><div class="product-name">Dye<small>' + dyeOz + ' oz total</small></div><div class="product-amount glypho-amt">' + dyeOz + ' <small>oz</small></div></div>';
-    resultsWrap.innerHTML += buildResultBlock(
-      'rock-header', '🪨', 'FlowZone — Rock Yards', rockGals + ' gal',
-      rockProps.map(p=>p.name).join(' · '),
-      'Pre-mix at office. 1 gal per ~1,625 sqft. Glyphosate only — no lawn treatment.',
-      prodsHtml,
-      '<div class="warning-box">⚠️ Non-selective — keep off all turf edges and ornamentals.</div>', null
-    );
+    powerProds.innerHTML = html;
+  } else if (powerSqft === 0 || !data.power) {
+    powerBlock.style.display = 'block';
+    document.getElementById('power-gal-badge').textContent = 'N/A';
+    powerNames.textContent = '';
+    const note = data.powerNote || (data.granular ? data.toroNote : 'Power spray rig not used this round.');
+    powerProds.innerHTML = `<div class="na-box">${note || 'Not used this round.'}</div>`;
   }
 
-  // ── SUMMARY BAR ──
-  document.getElementById('sum-power').textContent = fmtNum(sumPowerSqft) + ' sqft';
-  document.getElementById('sum-toro').textContent  = fmtNum(sumToroSqft)  + ' sqft';
-  document.getElementById('sum-rock').textContent  = fmtNum(sumRockSqft)  + ' sqft';
+  // ── TORO BLOCK (SECONDARY) ──
+  const toroBlock = document.getElementById('toro-block');
+  const toroNames = document.getElementById('toro-prop-names');
+  const toroProds = document.getElementById('toro-products');
+  if (data.toro && toroSqft > 0) {
+    toroBlock.style.display = 'block';
+    document.getElementById('toro-gal-badge').textContent = toroGals + ' gal';
+    toroNames.textContent = toroPxList.map(p => p.name).join(' · ');
+    let html = makeProductRows(data.toro, 'toro-amt', toroGals, atrazineBlocked);
+    if (data.toroNote) html += `<div class="warning-box">${data.toroNote}</div>`;
+    toroProds.innerHTML = html;
+  } else {
+    toroBlock.style.display = 'block';
+    document.getElementById('toro-gal-badge').textContent = toroPxList.length === 0 ? 'No props' : 'N/A';
+    toroNames.textContent = toroPxList.length > 0 ? toroPxList.map(p => p.name).join(' · ') : '';
+    const note = toroPxList.length === 0 ? 'No properties ≥13,000 sqft on this route.' : (data.toroNote || 'Toro not used this round.');
+    toroProds.innerHTML = `<div class="na-box">${note}</div>`;
+  }
 
-  resultsEl.style.display = 'block';
-  setTimeout(() => { resultsEl.scrollIntoView({ behavior:'smooth', block:'start' }); }, 100);
+  // ── B&G BLOCK ──
+  const bgBlock = document.getElementById('bg-block');
+  if (data.bg) {
+    bgBlock.style.display = 'block';
+    let html = makeProductRows(data.bg, 'flowzone-amt', 1, false);
+    if (data.bgNote) html += `<div class="warning-box">${data.bgNote}</div>`;
+    document.getElementById('bg-products').innerHTML = html;
+  } else { bgBlock.style.display = 'none'; }
+
+  // ── ROCK BLOCK ── (manual entry fallback — hidden since we use props now)
+  document.getElementById('rock-block').style.display = 'none';
+
+  document.getElementById('results').style.display = 'block';
+  setTimeout(() => { document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' }); }, 100);
 }
 
 function makeProductRows(products, amtClass, gals, atrazineBlocked) {
@@ -1282,184 +952,46 @@ function resetAll() {
   document.getElementById('previewCount').textContent = '';
   document.getElementById('fileInput').value = '';
   document.getElementById('errorBox').style.display = 'none';
-  document.getElementById('uploadResetBtn').style.display = 'none';
+  initRound();
   clearResults();
-  goHome();
+  window.scrollTo(0, 0);
 }
 
+// ─── INIT ─────────────────────────────────────────────────────────────────
+initRound();
 
-
-// ─── KILL ALL SERVICE WORKERS & CACHES ────────────────────────────────────
-// No service worker — ensures every phone always gets the latest version
+// ─── SERVICE WORKER ───────────────────────────────────────────────────────
+// Kill any old service workers so updates always load instantly
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(regs => {
-    regs.forEach(r => {
-      r.unregister();
-      console.log('Unregistered SW:', r.scope);
-    });
-  });
+  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
   caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
-}
-
-// old PWA block removed — handled below
-
-// ─── MODE SWITCHING ───────────────────────────────────────────────────────
-function setMode(mode) {
-  document.getElementById('modeScreen').style.display = 'none';
-  document.getElementById('backBtn').classList.add('show');
-  document.getElementById('modeLabel').classList.add('show');
-  if (mode === 'day') {
-    document.getElementById('dayScreen').style.display = 'block';
-    document.getElementById('flyScreen').style.display = 'none';
-    document.getElementById('modeLabel').textContent = 'Mixing for the Day';
-    initRound();
-  } else {
-    document.getElementById('flyScreen').style.display = 'block';
-    document.getElementById('dayScreen').style.display = 'none';
-    document.getElementById('modeLabel').textContent = 'Mix on the Fly';
-    flyInitRound();
-  }
-}
-
-function goHome() {
-  document.getElementById('modeScreen').style.display = 'flex';
-  document.getElementById('dayScreen').style.display = 'none';
-  document.getElementById('flyScreen').style.display = 'none';
-  document.getElementById('backBtn').classList.remove('show');
-  document.getElementById('modeLabel').classList.remove('show');
-  document.getElementById('modeLabel').textContent = '';
-}
-
-// ─── FLY MODE ─────────────────────────────────────────────────────────────
-function flyInitRound() {
-  const ar = getAutoRound();
-  const sel = document.getElementById('flyRound');
-  const badge = document.getElementById('flyRoundBadge');
-  if (ar) {
-    sel.value = ar;
-    badge.style.display = 'inline-flex';
-    badge.textContent = "✓ Auto-detected from today's date";
-    badge.className = 'round-auto-badge';
-  }
-  flyCheckAtrazine();
-}
-
-function getAutoRound() {
-  const d = new Date(), m = d.getMonth() + 1, day = d.getDate();
-  for (const r of ROUND_DATES) {
-    const [sm, sd] = r.start, [em, ed] = r.end;
-    const after = (m > sm) || (m === sm && day >= sd);
-    const before = (m < em) || (m === em && day <= ed);
-    if (after && before) return r.n;
-  }
-  return null;
-}
-
-function flyCheckAtrazine() {
-  const r = document.getElementById('flyRound').value;
-  const t = document.getElementById('flyTurf').value;
-  document.getElementById('flyAtrazineWarning').classList.toggle('show', r === '1' && t === 'warm' && isAfterMarch10());
-}
-
-function flyReset() {
-  document.getElementById('flySqft').value = '';
-  document.getElementById('flyResults').style.display = 'none';
-  document.getElementById('flyResults').innerHTML = '';
-}
-
-function flyCalculate() {
-  const turf = document.getElementById('flyTurf').value;
-  const round = parseInt(document.getElementById('flyRound').value);
-  const equip = document.getElementById('flyEquip').value;
-  const sqft = parseInt(document.getElementById('flySqft').value) || 0;
-  if (!turf || !round) { alert('Please select Turf Type and Round first.'); return; }
-  const resultsEl = document.getElementById('flyResults');
-  resultsEl.style.display = 'block';
-  const data = ROUNDS[round][turf];
-  const atrazineBlocked = isAfterMarch10();
-
-  if (equip === 'bg') {
-    if (!data.bg) { resultsEl.innerHTML = '<div class="result-block"><div class="result-header bg-header">🪣 B&G — Spot Weeds</div><div class="result-body"><div class="na-box">No B&G mix for this round/turf combination.</div></div></div>'; return; }
-    let html = '<div class="result-block"><div class="result-header bg-header">🪣 B&G — Spot Weeds <span style="font-size:14px;font-weight:400;opacity:0.7">1 gal batch</span></div><div class="result-body"><div class="mix-meta">Mix 1 gallon at a time</div>';
-    html += makeProductRows(data.bg, 'flowzone-amt', 1, false);
-    if (data.bgNote) html += '<div class="warning-box">' + data.bgNote + '</div>';
-    html += '</div></div>';
-    resultsEl.innerHTML = html;
-    resultsEl.scrollIntoView({ behavior:'smooth', block:'start' });
-    return;
-  }
-
-  if (equip === 'rock') {
-    if (sqft <= 0) { alert('Enter the sqft of rock beds to cover.'); return; }
-    const rockGals = Math.max(1, Math.ceil(sqft / 1625));
-    resultsEl.innerHTML = '<div class="result-block"><div class="result-header rock-header">🪨 FlowZone — Rock Beds <span class="gal-badge" style="background:rgba(168,85,247,0.15);color:#c084fc;">' + rockGals + ' gal</span></div><div class="result-body"><div class="mix-meta">Coverage: ~1,625 sqft/gal · ' + fmtNum(sqft) + ' sqft = ' + rockGals + ' gal</div><div class="product-row"><div class="product-name">Ranger Pro (41% glyphosate)</div><div class="product-amount glypho-amt">' + (2*rockGals).toFixed(1) + ' <small>oz</small></div></div><div class="product-row"><div class="product-name">Dye</div><div class="product-amount glypho-amt">' + (0.3*rockGals).toFixed(1) + ' <small>oz</small></div></div><div class="warning-box">⚠️ Non-selective — keep off turf and ornamentals.</div></div></div>';
-    resultsEl.scrollIntoView({ behavior:'smooth', block:'start' });
-    return;
-  }
-
-  if (sqft <= 0) { alert('Enter the sqft you still need to cover.'); return; }
-  let products, gals, headerClass, headerLabel, amtClass, calNote;
-  if (equip === 'power') {
-    gals = roundGals(sqftToGalsPower(sqft)); products = data.power;
-    headerClass = 'power-header'; headerLabel = '💧 Power Spray Rig'; amtClass = 'power-amt';
-    calNote = 'Calibration: 1.14 gal / 1,000 sqft @ 3.0 MPH — 6 ft spray width';
-  } else {
-    gals = roundGals(sqftToGalsToro(sqft)); products = data.toro;
-    headerClass = 'toro-header'; headerLabel = '🚜 Toro SprayMaster'; amtClass = 'toro-amt';
-    calNote = 'Calibration: 0.34 gal / 1,000 sqft @ 5 MPH — Purple tips — 40 PSI';
-  }
-  let html = '<div class="result-block"><div class="result-header ' + headerClass + '">' + headerLabel + ' <span class="gal-badge">' + gals + ' gal</span></div><div class="result-body"><div class="mix-meta">' + calNote + '<br>' + fmtNum(sqft) + ' sqft → fill to <strong>' + gals + ' gal</strong></div>';
-  if (!products) {
-    html += '<div class="na-box">' + (data.granular ? data.toroNote : (equip==='power' ? data.powerNote : data.toroNote)) + '</div>';
-  } else {
-    html += makeProductRows(products, amtClass, gals, atrazineBlocked);
-    const note = equip==='power' ? data.powerNote : data.toroNote;
-    if (note) html += '<div class="warning-box">' + note + '</div>';
-    if (round===1 && turf==='warm' && !atrazineBlocked) html += '<div class="atrazine-gate">⚠️ ATRAZINE GATE: Visually confirm bermuda is fully dormant before mixing Atrazine.</div>';
-  }
-  html += '</div></div>';
-  resultsEl.innerHTML = html;
-  resultsEl.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 // ─── PWA INSTALL ──────────────────────────────────────────────────────────
 let deferredPrompt = null;
-const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-
+const banner = document.getElementById('installBanner');
+const installBtn = document.getElementById('installBtn');
+const dismissBtn = document.getElementById('dismissBtn');
 window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  deferredPrompt = e;
-  document.getElementById('installInlineBtn').classList.add('show');
+  e.preventDefault(); deferredPrompt = e;
+  if (!sessionStorage.getItem('installDismissed')) banner.classList.add('show');
 });
-
-if (isIOS && !isStandalone) {
-  document.getElementById('installInlineIos').classList.add('show');
-}
-
-window.addEventListener('appinstalled', () => {
-  deferredPrompt = null;
-  document.getElementById('installInlineBtn').classList.remove('show');
-  document.getElementById('installInlineIos').classList.remove('show');
+installBtn.addEventListener('click', () => {
+  banner.classList.remove('show');
+  if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then(() => { deferredPrompt = null; }); }
 });
-
-function triggerInstall() {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(choice => {
-      if (choice.outcome === 'accepted') document.getElementById('installInlineBtn').classList.remove('show');
-      deferredPrompt = null;
-    });
-  } else {
-    alert("To install: tap the 3-dot menu in Chrome → 'Add to Home Screen'");
-  }
+dismissBtn.addEventListener('click', () => {
+  banner.classList.remove('show');
+  sessionStorage.setItem('installDismissed', '1');
+});
+window.addEventListener('appinstalled', () => { banner.classList.remove('show'); deferredPrompt = null; });
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone = window.navigator.standalone === true;
+if (isIOS && !isStandalone && !sessionStorage.getItem('installDismissed')) {
+  document.querySelector('.install-banner-text').innerHTML = 'Add to Home Screen<small>Tap the Share button → "Add to Home Screen"</small>';
+  installBtn.style.display = 'none';
+  banner.classList.add('show');
 }
-
-// ─── INIT ─────────────────────────────────────────────────────────────────
-document.getElementById('modeScreen').style.display = 'flex';
-document.getElementById('dayScreen').style.display = 'none';
-document.getElementById('flyScreen').style.display = 'none';
-
 </script>
 
 </body>
