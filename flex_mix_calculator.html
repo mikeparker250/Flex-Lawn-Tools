@@ -478,8 +478,13 @@ header h1 {
 }
 .empty-state .es-icon { font-size: 40px; margin-bottom: 10px; }
 
-/* Responsive */
-@media (min-width: 520px) {
+.round-mini-select {
+  background: var(--bg3); border: 1px solid rgba(0,255,71,0.25);
+  border-radius: 5px; color: var(--green); padding: 3px 6px;
+  font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+  outline: none; cursor: pointer; flex-shrink: 0; max-width: 62px;
+}
+.round-mini-select:focus { border-color: var(--green); }
   #main-content { padding: 24px 20px; }
 }
 </style>
@@ -888,61 +893,76 @@ function psRates(products) {
   return products.map(p => ({...p, rate: p.rate * ratio}));
 }
 
-function calcResults(routeType, round, properties) {
-  const rd = ROUNDS[routeType][round];
-  const totalSqft = properties.reduce((s, p) => s + p.sqft, 0);
-
-  let toroMix = null, psMix = null, fungSepMix = null, granData = null;
+function calcRoundSection(routeType, roundNum, props) {
+  const rd = ROUNDS[routeType][roundNum];
+  if (!rd) return null;
+  const totalSqft = props.reduce((s, p) => s + p.sqft, 0);
+  let toroMix=null, psMix=null, fungSepMix=null, granData=null;
 
   if (routeType === 'warm') {
-    const toroProps = properties.filter(p => p.sqft >= GATE);
-    const psProps   = properties.filter(p => p.sqft < GATE);
-    const toroSqft  = toroProps.reduce((s,p) => s + p.sqft, 0);
-    const psSqft    = psProps.reduce((s,p) => s + p.sqft, 0);
-
+    const toroProps = props.filter(p => p.sqft >= GATE);
+    const psProps   = props.filter(p => p.sqft < GATE);
+    const toroSqft  = toroProps.reduce((s,p) => s+p.sqft, 0);
+    const psSqft    = psProps.reduce((s,p) => s+p.sqft, 0);
     if (rd.liquid) {
-      if (toroSqft > 0) toroMix = calcLiqMix(toroSqft, 'toro', rd.liquid.products, true);
-      if (psSqft > 0)   psMix   = calcLiqMix(psSqft,   'ps',   psRates(rd.liquid.products), false);
-      // R7 separate fungicide pass
+      if (toroSqft > 0) toroMix = calcLiqMix(toroSqft,'toro',rd.liquid.products,true);
+      if (psSqft > 0)   psMix   = calcLiqMix(psSqft,  'ps',  psRates(rd.liquid.products),false);
       if (rd.liquid.fungSep) {
         const fs = rd.liquid.fungSep;
-        if (toroSqft > 0) {
-          const tm = calcLiqMix(toroSqft, 'toro', fs.products, true);
-          fungSepMix = {toro: tm, ps: null, config: fs};
-        }
-        if (psSqft > 0) {
-          const pm = calcLiqMix(psSqft, 'ps', psRates(fs.products), false);
-          if (!fungSepMix) fungSepMix = {toro: null, ps: pm, config: fs};
-          else fungSepMix.ps = pm;
-        }
+        const tm = toroSqft > 0 ? calcLiqMix(toroSqft,'toro',fs.products,true) : null;
+        const pm = psSqft > 0   ? calcLiqMix(psSqft,  'ps',  psRates(fs.products),false) : null;
+        if (tm||pm) fungSepMix = {toro:tm, ps:pm, config:fs};
       }
     }
-
     if (rd.granular) {
       granData = {
         config: rd.granular,
-        toro: {sqft: toroSqft, equipment: 'Toro Hopper'},
-        ps:   {sqft: psSqft,   equipment: 'Push Spreader'},
+        toro: toroSqft>0 ? {sqft:toroSqft, equipment:'Toro Hopper'} : null,
+        ps:   psSqft>0   ? {sqft:psSqft,   equipment:'Push Spreader'} : null,
       };
     }
   } else {
-    // Cool season
     if (rd.liquid) {
-      const equip = rd.liquid.equipment; // 'ps' or 'toro'
-      psMix = null; toroMix = null;
+      const equip = rd.liquid.equipment;
       const mix = calcLiqMix(totalSqft, equip, rd.liquid.products, true);
-      if (equip === 'toro') toroMix = mix;
-      else psMix = mix;
+      if (equip==='toro') toroMix=mix; else psMix=mix;
     }
     if (rd.granular) {
-      granData = {
-        config: rd.granular,
-        ps: {sqft: totalSqft, equipment: 'Push Spreader'},
-      };
+      granData = {config:rd.granular, ps:{sqft:totalSqft, equipment:'Push Spreader'}};
     }
   }
-
   return {rd, totalSqft, toroMix, psMix, fungSepMix, granData};
+}
+
+function calcAllResults(routeType, properties) {
+  const sprayProps = properties.filter(p => !p.isRockYard);
+  const rockYards  = properties.filter(p => p.isRockYard);
+  const roundGroups = {};
+  for (const p of sprayProps) {
+    const key = (p.round || 'UNKNOWN').toUpperCase();
+    if (!roundGroups[key]) roundGroups[key] = [];
+    roundGroups[key].push(p);
+  }
+  const sections = [];
+  const sortedKeys = Object.keys(roundGroups).sort((a,b) => {
+    if (a==='RS'||a==='UNKNOWN') return 1;
+    if (b==='RS'||b==='UNKNOWN') return -1;
+    return (parseInt(a.replace('R',''))||99) - (parseInt(b.replace('R',''))||99);
+  });
+  for (const key of sortedKeys) {
+    const props = roundGroups[key];
+    const sqft  = props.reduce((s,p) => s+p.sqft, 0);
+    if (key==='RS') { sections.push({type:'reservice', key, props, sqft}); continue; }
+    if (key==='UNKNOWN') { sections.push({type:'unknown', key, props, sqft}); continue; }
+    const roundNum = parseInt(key.replace('R',''));
+    if (isNaN(roundNum)||!ROUNDS[routeType]?.[roundNum]) {
+      sections.push({type:'unknown', key, props, sqft}); continue;
+    }
+    const calc = calcRoundSection(routeType, roundNum, props);
+    sections.push({type:'round', key, roundNum, props, sqft, ...calc});
+  }
+  if (rockYards.length > 0) sections.push({type:'rockyard', props:rockYards});
+  return sections;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -955,12 +975,18 @@ async function parseImages(images, apiKey) {
   }
   content.push({
     type:'text',
-    text:`These are FieldRoutes route screenshots. Extract every customer property with its square footage.
-Look for text like "MEASUREMENTS: 13.8K SF" or "8.9K SF" — convert K SF to actual sqft (e.g. 13.8K = 13800, 8.9K = 8900).
-Also look for numeric sqft values like "8,500 sqft" or "8500".
-Ignore lunch breaks, drive time, dividers, and non-property items.
-Return ONLY a valid JSON array, no other text, no markdown, no explanation:
-[{"name":"Smith, John","sqft":8900},{"name":"Parker, Mike","sqft":13800}]`
+    text:`These are FieldRoutes "My Routes" or "Schedule" screenshots. For each customer property card, extract:
+1. name - the customer name (e.g. "Brook, K", "Lewis, Ruby", "& Tessa Carter, Corey")
+2. sqft - from "MEASUREMENTS: X.XK SF" — convert K SF to sqft (4.8K=4800, 13.8K=13800, 9.2K=9200). If no measurements shown, use 0.
+3. round - the round code shown (look for R1, R2, R3, R4, R5, R6, R7 in a circle or label, or RS for re-service). Use null if not visible.
+4. isRockYard - true ONLY if RED NOTES contains words like "rock yard", "rock bed", "all rock", "full rock". Otherwise false.
+5. isHoseDrag - true ONLY if RED NOTES contains "hose drag". Otherwise false.
+
+Ignore: LUNCH, MEETING, END, time-slot-only rows (no customer name), and header rows.
+Ignore any property where sqft is not shown AND round is not shown.
+
+Return ONLY a valid JSON array, no markdown, no explanation:
+[{"name":"Brook, K","sqft":13800,"round":"R2","isRockYard":true,"isHoseDrag":false},{"name":"Lewis, Ruby","sqft":6400,"round":"R2","isRockYard":false,"isHoseDrag":false}]`
   });
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -989,9 +1015,12 @@ Return ONLY a valid JSON array, no other text, no markdown, no explanation:
   if (!match) throw new Error('No property list found in AI response. Try uploading a clearer screenshot.');
   const arr = JSON.parse(match[0]);
   if (!Array.isArray(arr)) throw new Error('Invalid response format');
-  return arr.filter(p => p.name && p.sqft > 0).map(p => ({
+  return arr.filter(p => p.name && (p.sqft > 0 || p.round)).map(p => ({
     name: p.name,
-    sqft: Math.round(Number(p.sqft)),
+    sqft: Math.round(Number(p.sqft) || 0),
+    round: p.round ? String(p.round).toUpperCase() : null,
+    isRockYard: !!p.isRockYard,
+    isHoseDrag: !!p.isHoseDrag,
   }));
 }
 
@@ -1204,15 +1233,26 @@ function renderStep3() {
 
   const propsHTML = hasProps
     ? state.properties.map((p,i) => {
-        const equip = state.routeType==='warm' ? assignEquip(p.sqft) : 'ps';
-        const badge = equip==='toro'
-          ? `<span class="equip-badge badge-toro">TORO</span>`
-          : `<span class="equip-badge badge-ps">POWER SPRAY</span>`;
+        const equip = p.isRockYard ? 'rock'
+          : state.routeType==='warm' ? assignEquip(p.sqft) : 'ps';
+        const equipBadge = p.isRockYard
+          ? `<span class="equip-badge" style="background:rgba(255,140,0,0.12);color:var(--warn);border-color:rgba(255,140,0,0.3)">🪨 ROCK YARD</span>`
+          : equip==='toro'
+            ? `<span class="equip-badge badge-toro">TORO</span>`
+            : `<span class="equip-badge badge-ps">POWER SPRAY</span>`;
+        const roundOpts = ['R1','R2','R3','R4','R5','R6','R7','RS'].map(r =>
+          `<option value="${r}" ${p.round===r?'selected':''}>${r}</option>`
+        ).join('');
+        const roundBadge = `<select class="round-mini-select" data-round-idx="${i}">
+          <option value="" ${!p.round?'selected':''}>--</option>
+          ${roundOpts}
+        </select>`;
         return `
         <div class="property-row">
           <div class="prop-name">${p.name}</div>
-          <div class="prop-sqft">${p.sqft.toLocaleString()} sqft</div>
-          ${badge}
+          <div class="prop-sqft">${p.sqft > 0 ? p.sqft.toLocaleString()+' sqft' : '—'}</div>
+          ${roundBadge}
+          ${equipBadge}
           <button class="prop-delete" data-del="${i}">×</button>
         </div>`;
       }).join('')
@@ -1227,16 +1267,20 @@ function renderStep3() {
   }).join('');
 
   // Totals
-  const toroSqft = state.properties.filter(p=>p.sqft>=GATE).reduce((s,p)=>s+p.sqft,0);
-  const psSqft   = state.properties.filter(p=>p.sqft<GATE).reduce((s,p)=>s+p.sqft,0);
-  const totalSqft = state.properties.reduce((s,p)=>s+p.sqft,0);
+  const sprayProps = state.properties.filter(p => !p.isRockYard);
+  const toroSqft  = sprayProps.filter(p=>p.sqft>=GATE).reduce((s,p)=>s+p.sqft,0);
+  const psSqft    = sprayProps.filter(p=>p.sqft<GATE).reduce((s,p)=>s+p.sqft,0);
+  const totalSqft  = state.properties.reduce((s,p)=>s+p.sqft,0);
+  const rockSqft   = state.properties.filter(p=>p.isRockYard).reduce((s,p)=>s+p.sqft,0);
+  const rsCount    = state.properties.filter(p=>p.round==='RS').length;
 
-  const totalsBar = state.routeType==='warm' ? `
+  const totalsBar = `
     <div class="totals-bar">
       <div class="total-item">
         <div class="t-label">TOTAL SQFT</div>
         <div class="t-value" style="color:var(--text)">${totalSqft.toLocaleString()}</div>
       </div>
+      ${state.routeType==='warm' ? `
       <div class="total-item">
         <div class="t-label">TORO (≥10K)</div>
         <div class="t-value green">${toroSqft.toLocaleString()}</div>
@@ -1244,120 +1288,140 @@ function renderStep3() {
       <div class="total-item">
         <div class="t-label">POWER SPRAY (&lt;10K)</div>
         <div class="t-value blue">${psSqft.toLocaleString()}</div>
-      </div>
-    </div>` : `
-    <div class="totals-bar">
-      <div class="total-item">
-        <div class="t-label">TOTAL SQFT</div>
-        <div class="t-value" style="color:var(--text)">${totalSqft.toLocaleString()}</div>
-      </div>
+      </div>` : `
       <div class="total-item">
         <div class="t-label">POWER SPRAY</div>
-        <div class="t-value blue">${totalSqft.toLocaleString()}</div>
-      </div>
+        <div class="t-value blue">${(totalSqft-rockSqft).toLocaleString()}</div>
+      </div>`}
+      ${rockSqft > 0 ? `<div class="total-item"><div class="t-label">ROCK YARDS</div><div class="t-value" style="color:var(--warn)">${rockSqft.toLocaleString()}</div></div>` : ''}
+      ${rsCount > 0  ? `<div class="total-item"><div class="t-label">RE-SERVICE</div><div class="t-value" style="color:var(--text2)">${rsCount}</div></div>` : ''}
     </div>`;
+
+  // Check if all properties have rounds assigned
+  const missingRound = state.properties.filter(p => !p.round && !p.isRockYard).length;
 
   return `
   <button class="back-nav" id="back-to-2">← Back</button>
   <div class="route-chip">${state.routeType==='warm'?'🔥 Warm Season':'❄️ Cool Season'}</div>
   <div class="step-label">STEP 3 OF 3</div>
-  <div class="step-title">Review Properties & Select Round</div>
+  <div class="step-title">Review Properties</div>
+
+  ${missingRound > 0 ? `<div class="alert-box alert-warn">⚠️ ${missingRound} propert${missingRound>1?'ies':'y'} missing a round. Set the round using the dropdown on each row, or re-parse with clearer screenshots.</div>` : ''}
 
   <div class="section-header">Properties (${state.properties.length})</div>
   <div class="property-list">${propsHTML}</div>
 
   <div class="prop-row-inputs">
     <input type="text" class="prop-input" id="new-prop-name" placeholder="Customer name" value="${state.newPropName}" />
-    <input type="number" class="prop-input" id="new-prop-sqft" placeholder="sqft" style="max-width:110px" value="${state.newPropSqft}" />
+    <input type="number" class="prop-input" id="new-prop-sqft" placeholder="sqft" style="max-width:100px" value="${state.newPropSqft}" />
+    <select class="prop-input round-select" id="new-prop-round" style="max-width:80px">
+      <option value="">Rnd</option>
+      ${['R1','R2','R3','R4','R5','R6','R7','RS'].map(r=>`<option value="${r}">${r}</option>`).join('')}
+    </select>
     <button class="add-prop-btn" id="add-prop-btn">+</button>
   </div>
 
   ${state.properties.length > 0 ? totalsBar : ''}
 
-  <div class="section-header" style="margin-top:16px">Round Selection</div>
-  <div class="round-selector">
-    ${detectedRound ? `<span class="round-auto-label">✓ Auto-detected from today's date: R${detectedRound}</span>` : `<span class="round-auto-label" style="color:var(--warn)">⚠️ Outside of season dates — select manually</span>`}
-    <select class="round-select" id="round-select">
-      ${roundOptions}
-    </select>
-  </div>
-
   <div class="btn-row" style="margin-top:20px">
-    <button class="btn btn-primary" id="calc-btn" ${!hasProps||!currentRound?'disabled':''}>
+    <button class="btn btn-primary" id="calc-btn" ${!hasProps?'disabled':''}>
       Calculate Mix →
     </button>
   </div>`;
 }
 
 function renderResults() {
-  if (!state.round || !state.properties.length) {
+  if (!state.properties.length) {
     return `<div class="empty-state">No data to display. <button class="btn btn-secondary" id="restart-btn" style="margin-top:16px;width:auto;padding:10px 20px">Start Over</button></div>`;
   }
 
-  const {rd, totalSqft, toroMix, psMix, fungSepMix, granData} = calcResults(state.routeType, state.round, state.properties);
-  const routeLabel = state.routeType==='warm' ? '🔥 Warm Season (Bermuda / Zoysia)' : '❄️ Cool Season (Tall Fescue)';
-
+  const sections = calcAllResults(state.routeType, state.properties);
+  const routeLabel = state.routeType==='warm' ? '🔥 Warm Season' : '❄️ Cool Season';
+  const totalSqft = state.properties.reduce((s,p)=>s+p.sqft,0);
   let content = '';
 
-  // Alerts
-  content += renderAlerts(rd.alerts);
+  for (const sec of sections) {
+    if (sec.type === 'round') {
+      const rd = sec.rd;
+      content += `
+      <div style="margin-bottom:6px;margin-top:20px">
+        <div style="font-family:var(--font-display);font-weight:900;font-size:20px;letter-spacing:0.5px">
+          ${rd.icon} ${sec.key} — ${rd.name}
+        </div>
+        <div style="font-size:12px;font-family:var(--font-mono);color:var(--text2);margin-top:2px">
+          ${sec.props.length} properties &nbsp;·&nbsp; ${sec.sqft.toLocaleString()} sqft &nbsp;·&nbsp; ${rd.dates}
+        </div>
+      </div>`;
+      content += renderAlerts(rd.alerts);
+      if (rd.liquid?.tankNote) content += `<div class="alert-box alert-warn">${rd.liquid.tankNote}</div>`;
+      content += renderMixCard(sec.toroMix, 'Toro SprayMaster Mix', '🚜', rd.liquid?.mixOrder);
+      content += renderMixCard(sec.psMix,   'Power Spray Rig Mix',  '💧', rd.liquid?.mixOrder);
+      if (rd.liquid?.note) content += `<div class="alert-box alert-info">${rd.liquid.note}</div>`;
+      if (sec.fungSepMix) {
+        const fs = sec.fungSepMix.config;
+        content += `<div class="mix-card" style="border-color:rgba(0,255,71,0.35)">
+          <div class="mix-card-header" style="background:rgba(0,255,71,0.08)">
+            <span class="mix-card-icon">🍄</span>
+            <span class="mix-card-title">${fs.label}</span>
+          </div>
+          <div class="mix-card-body">
+            <div class="alert-box alert-info" style="margin-bottom:12px">${fs.note}</div>
+            ${sec.fungSepMix.toro ? renderMixCard(sec.fungSepMix.toro,'Toro Fungicide Pass','🚜',null) : ''}
+            ${sec.fungSepMix.ps   ? renderMixCard(sec.fungSepMix.ps,  'PS Fungicide Pass',  '💧',null) : ''}
+          </div></div>`;
+      }
+      content += renderGranCard(sec.granData);
+      content += renderBGCard(rd.bg);
+      if (!rd.liquid && !rd.granular && !rd.bg) {
+        content += `<div class="alert-box alert-info">No mix for this round — check round notes.</div>`;
+      }
 
-  // Tank note for R7
-  if (rd.liquid?.tankNote) {
-    content += `<div class="alert-box alert-warn">${rd.liquid.tankNote}</div>`;
-  }
-
-  // Liquid mixes
-  content += renderMixCard(toroMix, 'Toro SprayMaster Mix', '🚜', rd.liquid?.mixOrder);
-  content += renderMixCard(psMix, 'Power Spray Rig Mix', '💧', rd.liquid?.mixOrder);
-
-  // Cool season liquid note
-  if (rd.liquid?.note) {
-    content += `<div class="alert-box alert-info">${rd.liquid.note}</div>`;
-  }
-
-  // R7 separate fungicide
-  if (fungSepMix) {
-    const fsCfg = fungSepMix.config;
-    content += `
-    <div class="mix-card" style="border-color:rgba(0,255,71,0.35)">
-      <div class="mix-card-header" style="background:rgba(0,255,71,0.08)">
-        <span class="mix-card-icon">🍄</span>
-        <span class="mix-card-title">${fsCfg.label}</span>
+    } else if (sec.type === 'reservice') {
+      const bgItems = state.routeType==='warm'
+        ? [{name:'Celsius',amount:'0.10 oz',note:''},{name:'Quin-Way',amount:'1.45 oz',note:''},{name:'Ambition',amount:'0.18 oz',note:''}]
+        : [{name:'Quin-Way',amount:'1.45 oz',note:''},{name:'Ambition',amount:'0.18 oz',note:''}];
+      content += `
+      <div style="margin-bottom:6px;margin-top:20px">
+        <div style="font-family:var(--font-display);font-weight:900;font-size:20px;letter-spacing:0.5px">🔄 RS — Re-Service</div>
+        <div style="font-size:12px;font-family:var(--font-mono);color:var(--text2);margin-top:2px">${sec.props.length} propert${sec.props.length>1?'ies':'y'}</div>
       </div>
-      <div class="mix-card-body">
-        <div class="alert-box alert-info" style="margin-bottom:12px">${fsCfg.note}</div>
-        ${fungSepMix.toro ? renderMixCard(fungSepMix.toro, 'Toro — Fungicide Pass', '🚜', null).replace('<div class="mix-card">','<div>').replace('</div>','') : ''}
-        ${fungSepMix.ps ? renderMixCard(fungSepMix.ps, 'Power Spray — Fungicide Pass', '💧', null).replace('<div class="mix-card">','<div>').replace('</div>','') : ''}
+      <div class="alert-box alert-info">Spot weed spray only — B&G 1 gallon at a time on visible weeds. No blanket spray.</div>
+      ${renderBGCard(bgItems)}`;
+
+    } else if (sec.type === 'rockyard') {
+      const rockList = sec.props.map(p=>`
+        <div class="property-row">
+          <div class="prop-name">${p.name}</div>
+          <div class="prop-sqft">${p.sqft>0?p.sqft.toLocaleString()+' sqft':'—'}</div>
+          <span class="equip-badge" style="background:rgba(255,140,0,0.12);color:var(--warn);border-color:rgba(255,140,0,0.3)">🪨 FLOWZONE</span>
+        </div>`).join('');
+      content += `
+      <div style="margin-bottom:6px;margin-top:20px">
+        <div style="font-family:var(--font-display);font-weight:900;font-size:20px;letter-spacing:0.5px">🪨 Rock Yard Properties</div>
+        <div style="font-size:12px;font-family:var(--font-mono);color:var(--text2);margin-top:2px">Excluded from all spray + granular calculations above</div>
       </div>
-    </div>`;
-    // Simpler: just show inline fungicide card
-    content = content.replace(/fungSepMix PLACEHOLDER/, ''); // safety
-    // Actually redo: show separate fungicide cards cleanly
-  }
+      <div class="alert-box alert-warn">FlowZone glyphosate ONLY on these properties. These sqft are NOT included in any mix totals above.</div>
+      <div class="property-list">${rockList}</div>`;
 
-  // Granular
-  content += renderGranCard(granData);
-
-  // B&G
-  content += renderBGCard(rd.bg);
-
-  // No spray rounds note
-  if (!rd.liquid && !rd.granular && !rd.bg) {
-    content += `<div class="alert-box alert-info">No mix required for this round. Check round-specific notes.</div>`;
+    } else if (sec.type === 'unknown') {
+      content += `
+      <div style="margin-bottom:6px;margin-top:20px">
+        <div style="font-family:var(--font-display);font-weight:900;font-size:20px;letter-spacing:0.5px">⚠️ Unknown Round (${sec.key})</div>
+      </div>
+      <div class="alert-box alert-warn">Could not determine round for these ${sec.props.length} properties. Go back and assign rounds manually.</div>`;
+    }
   }
 
   return `
   <button class="back-nav" id="back-to-3">← Edit Properties</button>
   <div class="results-header">
-    <div class="results-title">${rd.icon} R${state.round} — ${rd.name}</div>
+    <div class="results-title">Route Results</div>
     <div class="results-meta">
       <span>${routeLabel}</span> &nbsp;·&nbsp;
-      <span class="results-date">${today()}</span> &nbsp;·&nbsp;
-      <span>${rd.dates}</span>
+      <span class="results-date">${today()}</span>
     </div>
   </div>
-  <div class="mix-meta" style="margin-bottom:16px">
+  <div class="mix-meta" style="margin-bottom:8px">
     <div class="mix-meta-item">
       <div class="mix-meta-label">Properties</div>
       <div class="mix-meta-value">${state.properties.length}</div>
@@ -1366,9 +1430,13 @@ function renderResults() {
       <div class="mix-meta-label">Total sqft</div>
       <div class="mix-meta-value">${totalSqft.toLocaleString()}</div>
     </div>
+    <div class="mix-meta-item">
+      <div class="mix-meta-label">Rounds</div>
+      <div class="mix-meta-value">${sections.filter(s=>s.type==='round'||s.type==='reservice').length}</div>
+    </div>
   </div>
   ${content}
-  <div class="btn-row" style="margin-top:8px">
+  <div class="btn-row" style="margin-top:16px">
     <button class="btn btn-secondary" id="restart-btn">↩ Start New Route</button>
   </div>`;
 }
@@ -1466,12 +1534,16 @@ function attachEvents() {
   });
   document.getElementById('add-prop-btn')?.addEventListener('click', addProp);
   document.getElementById('new-prop-sqft')?.addEventListener('keypress', (e) => { if(e.key==='Enter') addProp(); });
-  document.getElementById('round-select')?.addEventListener('change', (e) => {
-    state.round = Number(e.target.value);
+  // Per-property round overrides
+  document.querySelectorAll('[data-round-idx]').forEach(sel => {
+    sel.addEventListener('change', (e) => {
+      const idx = Number(e.target.dataset.roundIdx);
+      state.properties[idx].round = e.target.value || null;
+      render();
+    });
   });
   document.getElementById('calc-btn')?.addEventListener('click', () => {
-    if (!state.round) state.round = detectRound();
-    if (state.properties.length && state.round) { state.screen='results'; render(); }
+    if (state.properties.length) { state.screen='results'; render(); }
   });
 
   // Results
@@ -1484,15 +1556,17 @@ function attachEvents() {
 }
 
 function addProp() {
-  const nameEl = document.getElementById('new-prop-name');
-  const sqftEl = document.getElementById('new-prop-sqft');
-  const name = nameEl?.value.trim();
-  const sqft = parseInt(sqftEl?.value);
-  if (name && sqft > 0) {
-    state.properties.push({name, sqft});
-    state.newPropName = ''; state.newPropSqft = '';
-    if (nameEl) nameEl.value = '';
-    if (sqftEl) sqftEl.value = '';
+  const nameEl  = document.getElementById('new-prop-name');
+  const sqftEl  = document.getElementById('new-prop-sqft');
+  const roundEl = document.getElementById('new-prop-round');
+  const name  = nameEl?.value.trim();
+  const sqft  = parseInt(sqftEl?.value) || 0;
+  const round = roundEl?.value || null;
+  if (name) {
+    state.properties.push({name, sqft, round, isRockYard:false, isHoseDrag:false});
+    state.newPropName=''; state.newPropSqft='';
+    if (nameEl) nameEl.value='';
+    if (sqftEl) sqftEl.value='';
     render();
   }
 }
