@@ -308,6 +308,9 @@
   .install-btn { background: var(--black); color: var(--green); border: none; border-radius: 8px; padding: 10px 16px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer; white-space: nowrap; text-transform: uppercase; }
   .install-dismiss { background: none; border: none; color: var(--black); font-size: 22px; cursor: pointer; padding: 4px; line-height: 1; opacity: 0.6; }
 
+  .result-header.push-header { background: rgba(50,255,100,0.06); border-bottom: 1px solid rgba(50,255,100,0.15); color: #7dff9e; }
+  .push-header .gal-badge { background: rgba(50,255,100,0.12); color: #7dff9e; }
+  #results-wrap { display: block; }
   .footer { text-align: center; font-size: 11px; color: #444; padding: 20px 16px 8px; }
 
   /* ── MODE SELECTOR ── */
@@ -512,64 +515,14 @@
   </div>
 
   <!-- RESULTS -->
-  <div id="results">
-
+  <div id="results" style="display:none">
     <div class="sqft-summary">
-      <div class="sqft-box"><div class="val" id="sum-power">—</div><div class="lbl">Power Spray</div></div>
+      <div class="sqft-box"><div class="val" id="sum-power">—</div><div class="lbl">Power/Push</div></div>
       <div class="sqft-box"><div class="val" id="sum-toro">—</div><div class="lbl">Toro</div></div>
-      <div class="sqft-box"><div class="val" id="sum-rock">—</div><div class="lbl">Rock Beds</div></div>
+      <div class="sqft-box"><div class="val" id="sum-rock">—</div><div class="lbl">Rock Yards</div></div>
       <div class="sqft-box"><div class="val">5,000</div><div class="lbl">Buffer</div></div>
     </div>
-
-    <!-- POWER SPRAY RIG (PRIMARY) -->
-    <div class="result-block" id="power-block" style="display:none">
-      <div class="result-header power-header">
-        <span>💧 Power Spray Rig <small style="font-size:12px;font-weight:400;opacity:0.7">(primary — &lt;13K sqft props)</small></span>
-        <span class="gal-badge" id="power-gal-badge">— gal</span>
-      </div>
-      <div class="prop-names-list" id="power-prop-names"></div>
-      <div class="result-body">
-        <div class="mix-meta">Calibration: 1.14 gal / 1,000 sqft @ 3.0 MPH — 6 ft spray width</div>
-        <div id="power-products"></div>
-      </div>
-    </div>
-
-    <!-- TORO (SECONDARY) -->
-    <div class="result-block" id="toro-block" style="display:none">
-      <div class="result-header toro-header">
-        <span>🚜 Toro SprayMaster <small style="font-size:12px;font-weight:400;opacity:0.7">(≥13K sqft props)</small></span>
-        <span class="gal-badge" id="toro-gal-badge">— gal</span>
-      </div>
-      <div class="prop-names-list" id="toro-prop-names"></div>
-      <div class="result-body">
-        <div class="mix-meta">Calibration: 0.34 gal / 1,000 sqft @ 5 MPH — Purple tips — 40 PSI</div>
-        <div id="toro-products"></div>
-      </div>
-    </div>
-
-    <!-- B&G SPOT WEEDS -->
-    <div class="result-block" id="bg-block" style="display:none">
-      <div class="result-header bg-header">
-        🪣 B&amp;G — Spot Weeds
-        <span style="font-size:14px;font-weight:400;opacity:0.7">1 gal batch</span>
-      </div>
-      <div class="result-body">
-        <div class="mix-meta">Mix 1 gallon at a time — on foot as needed</div>
-        <div id="bg-products"></div>
-      </div>
-    </div>
-
-    <!-- ROCK BEDS -->
-    <div class="result-block" id="rock-block" style="display:none">
-      <div class="result-header rock-header">
-        🪨 FlowZone — Rock Beds
-        <span class="gal-badge" id="rock-gal-badge">— gal</span>
-      </div>
-      <div class="result-body">
-        <div id="rock-products"></div>
-      </div>
-    </div>
-
+    <div id="results-wrap"></div>
   </div><!-- /results -->
 
   <div class="footer">Flex Lawn Care · Mix Calculator v2.0 · Power Spray primary / Toro secondary</div>
@@ -647,7 +600,7 @@ function onRoundChange() {
 const TORO_COV = 0.34;
 const POWER_COV = 1.14;
 const ROCK_COV = 1 / 1.625;
-const SQFT_THRESHOLD = 13000;
+const SQFT_THRESHOLD = 10000;
 const BUFFER = 5000;
 
 const ROUNDS = {
@@ -731,9 +684,13 @@ const ROUNDS = {
       toro:  [ { name:'Artavia SC', unit:'fl oz', rate:2.25, note:'Fungicide FRAC 11 — Tank A' }, { name:'Propiconazole 14.3', unit:'fl oz', rate:2.94, note:'Fungicide FRAC 3 — MAX 4 fl oz/1,000 sqft/30 days on bermuda' } ],
       power: [ { name:'Artavia SC', unit:'fl oz', rate:2.25, note:'Fungicide FRAC 11' }, { name:'Propiconazole 14.3', unit:'fl oz', rate:2.94, note:'Fungicide FRAC 3 — MAX 4 fl oz/1,000 sqft/30 days on bermuda' } ],
       bg: [ { name:'Celsius', unit:'oz', rate:0.10, note:'Broadleaf / warm-season' }, { name:'Quin-Way', unit:'oz', rate:1.45, note:'Broadleaf' }, { name:'Ambition', unit:'oz', rate:0.18, note:'Broadleaf' }, { name:'Manuscript', unit:'oz', rate:0.44, note:'Dallisgrass only' }, { name:'MSO (Adigor)', unit:'oz', rate:0.44, note:'With Manuscript only' } ],
-      toroNote: 'TANK A — dual fungicide (FRAC 11 + FRAC 3). Granular: Lesco 28-0-0 — Bermuda 3.57 lbs/1k, Zoysia 2.75 lbs/1k via Toro hopper.',
-      powerNote: 'Primary equipment — same dual fungicide mix. Granular via push spreader at hose-drag accounts.',
+      toroNote: 'TANK A — dual fungicide (FRAC 11 + FRAC 3). Apply granular same visit via Toro hopper.',
+      powerNote: 'Same dual fungicide mix. Apply granular via push spreader same visit.',
       bgNote: 'B&G 1-gal — spot spray weeds only. Peak heat rules fully active.',
+      granularProduct: 'Lesco 28-0-0 w/ 20% PolyPlus OPTI45 + 1.2% Fe',
+      granularRateToro: 3.57,
+      granularRatePush: 3.57,
+      granularNote: 'Bermuda: 3.57 lbs/1k. Zoysia: 2.75 lbs/1k — adjust if Zoysia route.',
     },
     cool: {
       toro:  [ { name:'Artavia SC', unit:'fl oz', rate:2.25, note:'Fungicide FRAC 11 — Tank A' }, { name:'Propiconazole 14.3', unit:'fl oz', rate:2.94, note:'Fungicide FRAC 3 — Tank A' } ],
@@ -746,12 +703,15 @@ const ROUNDS = {
   },
   6: {
     warm: {
-      toro:  [ { name:'Celsius', unit:'oz', rate:0.10, note:'Tank B — warm-season weeds' }, { name:'Quin-Way', unit:'oz', rate:1.45, note:'Tank B' }, { name:'Ambition', unit:'oz', rate:0.18, note:'Tank B' } ],
-      power: [ { name:'Celsius', unit:'oz', rate:0.10, note:'Warm-season weeds' }, { name:'Quin-Way', unit:'oz', rate:1.45, note:'' }, { name:'Ambition', unit:'oz', rate:0.18, note:'' } ],
-      bg: [ { name:'Manuscript', unit:'oz', rate:0.44, note:'Dallisgrass clumps ONLY' }, { name:'MSO (Adigor)', unit:'oz', rate:0.44, note:'With Manuscript only' } ],
-      toroNote: 'TANK B spot weeds. Granular: Lesco 5-0-25 w/ 10% Fe at 4.0 lbs/1k via Toro spreader.',
-      powerNote: 'Primary spot weed spray. Same mix.',
-      bgNote: 'B&G 1-gal — Dallisgrass spot spray only.',
+      toro: null, power: null,
+      bg: [ { name:'Celsius', unit:'oz', rate:0.10, note:'Warm-season weeds' }, { name:'Quin-Way', unit:'oz', rate:1.45, note:'' }, { name:'Ambition', unit:'oz', rate:0.18, note:'' } ],
+      toroNote: 'Granular only — no liquid spray this round.',
+      powerNote: null,
+      bgNote: 'B&G spot weeds. Dallisgrass: separate Manuscript + MSO batch (0.44 oz each per gallon).',
+      granular: true,
+      granularProduct: 'Lesco 5-0-25 w/ 10% Fe',
+      granularRateToro: 4.0,
+      granularRatePush: 4.0,
     },
     cool: {
       toro: null, power: null,
@@ -760,6 +720,9 @@ const ROUNDS = {
       powerNote: null,
       bgNote: 'B&G 1-gal — cool-season spot weeds only.',
       granular: true,
+      granularProduct: '6-3-0 w/ 2% Fe',
+      granularRateToro: null,
+      granularRatePush: 3.0,
     }
   },
   7: {
@@ -834,7 +797,13 @@ async function processAllFiles(files) {
   }
 
   setProgress(true, 'Done — combining results...', 95);
-  props = allProps.map(p => ({ name: p.name, sqft: parseInt(p.sqft) || 0 }));
+  props = allProps.map(p => ({
+    name: p.name,
+    sqft: p.rockYard ? 0 : (parseInt(p.sqft) || 0),
+    round: p.round || null,
+    rockYard: !!p.rockYard,
+    rockSqft: p.rockYard ? (parseInt(p.sqft) || 0) : 0
+  }));
   if (combinedTotal) detectedTotal = combinedTotal;
 
   document.getElementById('previewCount').textContent =
@@ -859,17 +828,19 @@ async function readOneFile(file) {
               role: 'user',
               content: [
                 { type: 'image', source: { type: 'base64', media_type: mediaType, data: b64 } },
-                { type: 'text', text: `Extract property data from this FieldRoutes schedule screenshot.
+                { type: 'text', text: `Extract property data from this FieldRoutes schedule screenshot. The image may be a long scrolling screenshot — read every property card carefully top to bottom even if text is small.
 
 Return ONLY raw JSON — no markdown, no explanation, no backticks. Format:
-{"properties":[{"name":"Last, First","sqft":6500}],"total":43100}
+{"properties":[{"name":"Last, First","sqft":6500,"round":2,"rockYard":false}],"total":43100}
 
 Rules:
-- Only include cards that show "MEASUREMENTS: X.XK SF" or "MEASUREMENTS: XXXK SF"
-- Convert K values: 6.5K=6500, 12K=12000, 43.1K=43100
-- total = the number from "Meas. SF/LF XX.XK SF" at the top header. If not visible omit total field.
-- Clean names: use "Smith, John" format, remove & symbols
-- Skip time slots, LUNCH blocks, END entries, empty slots` }
+- Only include property cards that show a MEASUREMENTS value
+- Convert K values: 6.5K=6500, 12K=12000, 43.1K=43100, 5.1K=5100
+- total = the number from "Meas. SF/LF XX.XK SF" at the top header. If not visible omit it.
+- Clean names: "Smith, John" format, remove & symbols
+- round = the round number shown on the card (R1=1, R2=2, R3=3, RS=2, etc). If RS (reservice) treat as same round number as the original service shown. If unclear default to the round selected by user.
+- rockYard = true if red notes say "ALL ROCK YARD" or "rock bed" or "rock yard" — these get FlowZone glyphosate only, zero lawn sqft
+- Skip time slots, LUNCH, END, MEETING entries` }
               ]
             }]
           })
@@ -916,37 +887,39 @@ function rebuildPropList() {
     const isPower = p.sqft < SQFT_THRESHOLD;
     const div = document.createElement('div');
     div.className = 'prop-item';
-    div.innerHTML = `
-      <input type="text" value="${p.name}" oninput="props[${i}].name=this.value" placeholder="Customer name">
-      <input type="number" value="${p.sqft}" oninput="props[${i}].sqft=parseInt(this.value)||0;updateChips()" placeholder="sqft">
-      <span class="prop-badge ${isPower ? 'badge-power' : 'badge-toro'}">${isPower ? 'Power' : 'Toro'}</span>
-      <button class="rm-btn" onclick="removeProp(${i})">×</button>
-    `;
+    const isRock = p.rockYard;
+    const badge = isRock ? '<span class="prop-badge" style="background:rgba(168,85,247,0.15);color:#c084fc;border:1px solid rgba(168,85,247,0.3)">Rock</span>' :
+                  (isPower ? '<span class="prop-badge badge-power">Power</span>' : '<span class="prop-badge badge-toro">Toro</span>');
+    const roundTag = p.round ? '<span style="font-size:10px;color:var(--muted);margin-left:4px">R' + p.round + '</span>' : '';
+    div.innerHTML =
+      '<input type="text" value="' + p.name.replace(/"/g,'&quot;') + '" oninput="props[' + i + '].name=this.value" placeholder="Customer name">' +
+      '<input type="number" value="' + (p.rockYard ? p.rockSqft : p.sqft) + '" oninput="props[' + i + '].sqft=parseInt(this.value)||0;updateChips()" placeholder="sqft">' +
+      badge + roundTag +
+      '<button class="rm-btn" onclick="removeProp(' + i + ')">×</button>';
     list.appendChild(div);
   });
   document.getElementById('propCount').textContent = props.length + ' properties';
 }
 
 function updateChips() {
-  const toroPx = props.filter(p => p.sqft >= SQFT_THRESHOLD);
-  const powerPx = props.filter(p => p.sqft < SQFT_THRESHOLD);
+  const rockPx = props.filter(p => p.rockYard);
+  const lawnPx = props.filter(p => !p.rockYard);
+  const toroPx = lawnPx.filter(p => p.sqft >= SQFT_THRESHOLD);
+  const powerPx = lawnPx.filter(p => p.sqft < SQFT_THRESHOLD);
   const toroSqft = toroPx.reduce((a, p) => a + p.sqft, 0);
   const powerSqft = powerPx.reduce((a, p) => a + p.sqft, 0);
-  const total = toroSqft + powerSqft;
-
-  let html = `
-    <div class="chip"><strong>${fmtNum(total)}</strong> total sqft</div>
-    <div class="chip power-chip"><strong>${powerPx.length}</strong> props → Power Sprayer (<strong>${fmtNum(powerSqft)}</strong> sqft)</div>
-    <div class="chip toro-chip"><strong>${toroPx.length}</strong> props → Toro (<strong>${fmtNum(toroSqft)}</strong> sqft)</div>
-  `;
-  if (detectedTotal) {
-    html += `<div class="chip" style="font-size:11px;opacity:0.6">Route total from screenshot: ${fmtNum(detectedTotal)} sqft</div>`;
-  }
+  const rockSqftTotal = rockPx.reduce((a, p) => a + p.rockSqft, 0);
+  const total = toroSqft + powerSqft + rockSqftTotal;
+  let html = '<div class="chip"><strong>' + fmtNum(total) + '</strong> total sqft</div>';
+  html += '<div class="chip power-chip"><strong>' + powerPx.length + '</strong> props → Power/Push (<strong>' + fmtNum(powerSqft) + '</strong> sqft)</div>';
+  html += '<div class="chip toro-chip"><strong>' + toroPx.length + '</strong> props → Toro (<strong>' + fmtNum(toroSqft) + '</strong> sqft)</div>';
+  if (rockPx.length > 0) html += '<div class="chip" style="border-color:rgba(168,85,247,0.3)"><strong style="color:#c084fc">' + rockPx.length + '</strong> rock yards → FlowZone (<strong style="color:#c084fc">' + fmtNum(rockSqftTotal) + '</strong> sqft)</div>';
+  if (detectedTotal) html += '<div class="chip" style="font-size:11px;opacity:0.6">Route total from screenshot: ' + fmtNum(detectedTotal) + ' sqft</div>';
   document.getElementById('summaryChips').innerHTML = html;
 }
 
 function addProp() {
-  props.push({ name: 'New Property', sqft: 5000 });
+  props.push({ name: 'New Property', sqft: 5000, round: null, rockYard: false, rockSqft: 0 });
   rebuildPropList();
   updateChips();
 }
@@ -958,120 +931,233 @@ function removeProp(i) {
 }
 
 // ─── CALCULATE ────────────────────────────────────────────────────────────
+
+// Returns mix rates data for a given round + turf
+function getRoundData(roundNum, turf) {
+  if (!ROUNDS[roundNum] || !ROUNDS[roundNum][turf]) return null;
+  return ROUNDS[roundNum][turf];
+}
+
+// Build a result block HTML string
+function buildResultBlock(headerClass, icon, title, badgeText, propNames, metaText, productsHtml, noteHtml, extraHtml) {
+  let html = '<div class="result-block" style="margin-bottom:14px">';
+  html += '<div class="result-header ' + headerClass + '">';
+  html += '<span>' + icon + ' ' + title + '</span>';
+  html += '<span class="gal-badge">' + badgeText + '</span>';
+  html += '</div>';
+  if (propNames) html += '<div class="prop-names-list">' + propNames + '</div>';
+  html += '<div class="result-body">';
+  if (metaText) html += '<div class="mix-meta">' + metaText + '</div>';
+  html += productsHtml;
+  if (noteHtml) html += noteHtml;
+  if (extraHtml) html += extraHtml;
+  html += '</div></div>';
+  return html;
+}
+
+// Build per-property granular breakdown
+function buildGranularRows(propList, rate, product) {
+  if (!propList.length || !rate) return '';
+  let html = '';
+  propList.forEach(p => {
+    const lbs = (p.sqft / 1000 * rate).toFixed(1);
+    html += '<div class="product-row"><div class="product-name">' + p.name + '<small>' + fmtNum(p.sqft) + ' sqft</small></div><div class="product-amount toro-amt">' + lbs + ' <small>lbs</small></div></div>';
+  });
+  return html;
+}
+
 function calculate() {
   const turf = document.getElementById('turfType').value;
-  const round = parseInt(document.getElementById('round').value);
-  if (!turf || !round) { alert('Please select Turf Type and Round first.'); return; }
-  if (props.length === 0) { alert('No properties loaded. Upload a screenshot or add properties manually.'); return; }
+  const defaultRound = parseInt(document.getElementById('round').value);
+  if (!turf || !defaultRound) { alert('Please select Turf Type and Round first.'); return; }
 
-  const data = ROUNDS[round][turf];
+  const lawnProps = props.filter(p => !p.rockYard);
+  const rockProps = props.filter(p => p.rockYard);
+
+  if (lawnProps.length === 0 && rockProps.length === 0) {
+    alert('No properties loaded. Upload a screenshot or add properties manually.');
+    return;
+  }
+
   const atrazineBlocked = isAfterMarch10();
+  const resultsEl = document.getElementById('results');
+  const resultsWrap = document.getElementById('results-wrap');
+  resultsWrap.innerHTML = '';
 
-  const toroPxList  = props.filter(p => p.sqft >= SQFT_THRESHOLD);
-  const powerPxList = props.filter(p => p.sqft < SQFT_THRESHOLD);
-  const toroSqftRaw  = toroPxList.reduce((a, p) => a + p.sqft, 0);
-  const powerSqftRaw = powerPxList.reduce((a, p) => a + p.sqft, 0);
+  // Group lawn props by round (use prop.round if detected, else defaultRound)
+  const roundGroups = {};
+  lawnProps.forEach(p => {
+    const r = p.round || defaultRound;
+    if (!roundGroups[r]) roundGroups[r] = [];
+    roundGroups[r].push(p);
+  });
 
-  // Buffer deducted from Toro (largest equipment) first
-  const toroSqft  = Math.max(0, toroSqftRaw - BUFFER);
-  const powerSqft = powerSqftRaw;
+  // Track summary totals
+  let sumPowerSqft = 0, sumToroSqft = 0, sumRockSqft = rockProps.reduce((a,p) => a + p.rockSqft, 0);
 
-  const toroGals  = roundGals(sqftToGalsToro(toroSqft));
-  const powerGals = roundGals(sqftToGalsPower(powerSqft));
+  // Process each round group
+  const sortedRounds = Object.keys(roundGroups).sort((a,b) => parseInt(a)-parseInt(b));
 
-  // Summary
-  document.getElementById('sum-power').textContent = fmtNum(powerSqft) + ' sqft';
-  document.getElementById('sum-toro').textContent  = fmtNum(toroSqft)  + ' sqft';
-  document.getElementById('sum-rock').textContent  = '0 sqft';
+  sortedRounds.forEach(rNum => {
+    const rInt = parseInt(rNum);
+    const data = getRoundData(rInt, turf);
+    if (!data) return;
 
-  // ── POWER BLOCK (PRIMARY) ──
-  const powerBlock = document.getElementById('power-block');
-  const powerNames = document.getElementById('power-prop-names');
-  const powerProds = document.getElementById('power-products');
-  if (data.power && powerSqft > 0) {
-    powerBlock.style.display = 'block';
-    document.getElementById('power-gal-badge').textContent = powerGals + ' gal';
-    powerNames.textContent = powerPxList.map(p => p.name).join(' · ');
-    let html = makeProductRows(data.power, 'power-amt', powerGals, atrazineBlocked);
-    if (data.powerNote) html += `<div class="warning-box">${data.powerNote}</div>`;
-    if (round === 1 && turf === 'warm' && !atrazineBlocked) {
-      html += `<div class="atrazine-gate">⚠️ ATRAZINE GATE: Visually confirm bermuda is fully dormant (100% brown, zero green tips) before mixing Atrazine. If ANY green is visible → skip Atrazine.</div>`;
-    }
-    powerProds.innerHTML = html;
-  } else if (powerSqft === 0 || !data.power) {
-    powerBlock.style.display = 'block';
-    powerNames.textContent = powerPxList.length > 0 ? powerPxList.map(p => p.name).join(' · ') : '';
+    const group = roundGroups[rNum];
+    const toroPx = group.filter(p => p.sqft >= SQFT_THRESHOLD);
+    const pushPx  = group.filter(p => p.sqft < SQFT_THRESHOLD);
+    const toroSqftRaw = toroPx.reduce((a,p) => a+p.sqft, 0);
+    const pushSqft    = pushPx.reduce((a,p) => a+p.sqft, 0);
+    const toroSqft    = Math.max(0, toroSqftRaw - BUFFER);
+
+    sumPowerSqft += pushSqft;
+    sumToroSqft  += toroSqft;
+
+    const roundLabel = sortedRounds.length > 1 ? ' — Round ' + rNum : '';
+
+    // ── GRANULAR ROUNDS (R3, R6 warm, R7 cool) ──
     if (data.granular && data.granularProduct) {
-      // Show granular totals for push spreader props (under 13K)
-      const pushSqft = powerSqft;
-      const toroGranSqft = toroSqftRaw;
-      const pushLbs = data.granularRatePush ? (pushSqft / 1000 * data.granularRatePush) : 0;
-      const toroLbs = data.granularRateToro ? (toroGranSqft / 1000 * data.granularRateToro) : 0;
-      const totalLbs = pushLbs + toroLbs;
-      const bags50 = Math.ceil(totalLbs / 50);
-      document.getElementById('power-gal-badge').textContent = pushLbs > 0 ? pushLbs.toFixed(1) + ' lbs' : 'N/A';
-      let html = '';
-      if (pushLbs > 0) {
-        html += '<div class="product-row"><div class="product-name">' + data.granularProduct + '<small>Push spreader — props under 13K sqft</small></div><div class="product-amount power-amt">' + pushLbs.toFixed(1) + ' <small>lbs</small></div></div>';
+      // PUSH SPREADER block (props under 10K)
+      if (pushPx.length > 0 && data.granularRatePush) {
+        const totalPushLbs = pushPx.reduce((a,p) => a + (p.sqft/1000*data.granularRatePush), 0);
+        const bags = Math.ceil(totalPushLbs/50);
+        let prodsHtml = buildGranularRows(pushPx, data.granularRatePush, data.granularProduct);
+        prodsHtml += '<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name"><strong>' + data.granularProduct + '</strong><small>' + bags + ' bag' + (bags!==1?'s':'') + ' of 50 lbs total</small></div><div class="product-amount" style="color:var(--green);font-size:22px;">' + totalPushLbs.toFixed(1) + ' <small>lbs</small></div></div>';
+        let noteHtml = data.granularHardStop ? '<div class="atrazine-gate">⚠️ ' + data.granularHardStop + '</div>' : '';
+        resultsWrap.innerHTML += buildResultBlock(
+          'push-header', '🟢', 'Push Spreader' + roundLabel, totalPushLbs.toFixed(1) + ' lbs',
+          null, 'Granular — props under 10K sqft', prodsHtml, noteHtml, null
+        );
       }
-      if (toroLbs > 0) {
-        html += '<div class="product-row"><div class="product-name">' + data.granularProduct + '<small>Toro hopper — props 13K sqft and over</small></div><div class="product-amount toro-amt">' + toroLbs.toFixed(1) + ' <small>lbs</small></div></div>';
+      // TORO HOPPER block (props 10K+)
+      if (toroPx.length > 0 && data.granularRateToro) {
+        const totalToroLbs = toroPx.reduce((a,p) => a + (p.sqft/1000*data.granularRateToro), 0);
+        let prodsHtml = buildGranularRows(toroPx, data.granularRateToro, data.granularProduct);
+        prodsHtml += '<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name"><strong>' + data.granularProduct + '</strong><small>Toro hopper total</small></div><div class="product-amount toro-amt" style="font-size:22px;">' + totalToroLbs.toFixed(1) + ' <small>lbs</small></div></div>';
+        resultsWrap.innerHTML += buildResultBlock(
+          'toro-header', '🚜', 'Toro Hopper Spreader' + roundLabel, totalToroLbs.toFixed(1) + ' lbs',
+          toroPx.map(p=>p.name).join(' · '), 'Granular — props 10K sqft and over', prodsHtml, null, null
+        );
       }
-      const bagLabel = bags50 !== 1 ? 's' : '';
-      html += '<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name"><strong>Total granular for the day</strong><small>' + bags50 + ' bag' + bagLabel + ' of 50 lbs needed</small></div><div class="product-amount" style="color:var(--green);font-size:24px;">' + totalLbs.toFixed(1) + ' <small>lbs</small></div></div>';
-      if (data.granularHardStop) html += '<div class="atrazine-gate">⚠️ ' + data.granularHardStop + '</div>';
-      const note = data.powerNote || data.toroNote || '';
-      if (note) html += '<div class="warning-box">' + note + '</div>';
-      powerProds.innerHTML = html;
-    } else {
-      document.getElementById('power-gal-badge').textContent = 'N/A';
-      const note = data.powerNote || data.toroNote || 'Power spray rig not used this round.';
-      powerProds.innerHTML = '<div class="na-box">' + note + '</div>';
     }
+
+    // ── LIQUID ROUNDS (R1, R2, R4, R5, R7 warm) ──
+    if (data.power && pushSqft > 0) {
+      const powerGals = roundGals(sqftToGalsPower(pushSqft));
+      let prodsHtml = makeProductRows(data.power, 'power-amt', powerGals, atrazineBlocked);
+      let noteHtml = '';
+      if (data.powerNote) noteHtml += '<div class="warning-box">' + data.powerNote + '</div>';
+      if (rInt === 1 && turf === 'warm' && !atrazineBlocked) noteHtml += '<div class="atrazine-gate">⚠️ ATRAZINE GATE: Visually confirm bermuda 100% brown before mixing Atrazine.</div>';
+      resultsWrap.innerHTML += buildResultBlock(
+        'power-header', '💧', 'Power Sprayer' + roundLabel, powerGals + ' gal',
+        pushPx.map(p=>p.name).join(' · '),
+        'Calibration: 1.14 gal / 1,000 sqft @ 3.0 MPH — 6 ft spray width',
+        prodsHtml, noteHtml, null
+      );
+    }
+
+    if (data.toro && toroSqft > 0) {
+      const toroGals = roundGals(sqftToGalsToro(toroSqft));
+      let prodsHtml = makeProductRows(data.toro, 'toro-amt', toroGals, atrazineBlocked);
+      let noteHtml = data.toroNote ? '<div class="warning-box">' + data.toroNote + '</div>' : '';
+      resultsWrap.innerHTML += buildResultBlock(
+        'toro-header', '🚜', 'Toro SprayMaster' + roundLabel, toroGals + ' gal',
+        toroPx.map(p=>p.name).join(' · '),
+        'Calibration: 0.34 gal / 1,000 sqft @ 5 MPH — Purple tips — 40 PSI',
+        prodsHtml, noteHtml, null
+      );
+    }
+
+    // ── R5 WARM: liquid fungicide + granular same visit ──
+    // R5 warm already has both toro/power liquid above, now add granular separately
+    if (rInt === 5 && data.granularProduct) {
+      if (pushPx.length > 0 && data.granularRatePush) {
+        const totalPushLbs = pushPx.reduce((a,p) => a + (p.sqft/1000*data.granularRatePush), 0);
+        const bags = Math.ceil(totalPushLbs/50);
+        let prodsHtml = buildGranularRows(pushPx, data.granularRatePush, data.granularProduct);
+        prodsHtml += '<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name"><strong>' + data.granularProduct + '</strong><small>' + bags + ' bag' + (bags!==1?'s':'') + ' of 50 lbs — apply same visit as fungicide</small></div><div class="product-amount" style="color:var(--green);font-size:22px;">' + totalPushLbs.toFixed(1) + ' <small>lbs</small></div></div>';
+        resultsWrap.innerHTML += buildResultBlock(
+          'push-header', '🟢', 'Push Spreader — Round 5 Granular', totalPushLbs.toFixed(1) + ' lbs',
+          null, 'Apply immediately after fungicide spray pass', prodsHtml, null, null
+        );
+      }
+      if (toroPx.length > 0 && data.granularRateToro) {
+        const totalToroLbs = toroPx.reduce((a,p) => a + (p.sqft/1000*data.granularRateToro), 0);
+        let prodsHtml = buildGranularRows(toroPx, data.granularRateToro, data.granularProduct);
+        resultsWrap.innerHTML += buildResultBlock(
+          'toro-header', '🚜', 'Toro Hopper — Round 5 Granular', totalToroLbs.toFixed(1) + ' lbs',
+          null, 'Apply immediately after fungicide spray pass', prodsHtml, null, null
+        );
+      }
+    }
+
+    // ── R7 WARM: herbicide pass then separate fungicide pass ──
+    if (rInt === 7 && turf === 'warm') {
+      resultsWrap.innerHTML += '<div class="warning-box" style="margin-bottom:14px">⚠️ Round 7 requires TWO separate spray passes. Apply herbicide broadcast first, then rinse one tank and apply Artavia SC fungicide as a second pass on the same visit.</div>';
+      // Fungicide second pass
+      const artaviaPerGal = 2.25;
+      if (pushPx.length > 0) {
+        const pGals = roundGals(sqftToGalsPower(pushSqft));
+        const artOz = (pGals * artaviaPerGal).toFixed(1);
+        resultsWrap.innerHTML += buildResultBlock(
+          'power-header', '💧', 'Power Sprayer — Pass 2: Artavia SC Fungicide' , pGals + ' gal',
+          null, 'Rinse tank after herbicide pass. Then mix Artavia SC for Spring Dead Spot prevention.',
+          '<div class="product-row"><div class="product-name">Artavia SC (Azoxystrobin)<small>FRAC Group 11 — Spring Dead Spot prevention</small></div><div class="product-amount power-amt">' + artOz + ' <small>fl oz</small></div></div>',
+          '<div class="atrazine-gate">⚠️ Water in after fungicide — 1/8 inch irrigation or rain required to activate.</div>', null
+        );
+      }
+      if (toroPx.length > 0) {
+        const tGals = roundGals(sqftToGalsToro(toroSqft));
+        const artOz = (tGals * artaviaPerGal).toFixed(1);
+        resultsWrap.innerHTML += buildResultBlock(
+          'toro-header', '🚜', 'Toro — Pass 2: Artavia SC Fungicide', tGals + ' gal',
+          null, 'Rinse one tank after herbicide pass. Mix Artavia SC.',
+          '<div class="product-row"><div class="product-name">Artavia SC (Azoxystrobin)<small>FRAC Group 11 — Spring Dead Spot prevention</small></div><div class="product-amount toro-amt">' + artOz + ' <small>fl oz</small></div></div>',
+          '<div class="atrazine-gate">⚠️ Water in after fungicide — 1/8 inch irrigation or rain required.</div>', null
+        );
+      }
+    }
+
+    // ── B&G SPOT WEEDS (always shown if round has bg data) ──
+    if (data.bg) {
+      let prodsHtml = makeProductRows(data.bg, 'flowzone-amt', 1, false);
+      let noteHtml = data.bgNote ? '<div class="warning-box">' + data.bgNote + '</div>' : '';
+      resultsWrap.innerHTML += buildResultBlock(
+        'bg-header', '🪣', 'B&G — Spot Weeds' + roundLabel, '1 gal batch',
+        null, 'Mix 1 gallon at a time — on foot as needed', prodsHtml, noteHtml, null
+      );
+    }
+  });
+
+  // ── FLOWZONE — ROCK YARDS ──
+  if (rockProps.length > 0) {
+    const totalRockSqft = rockProps.reduce((a,p) => a + p.rockSqft, 0);
+    const rockGals = Math.max(1, Math.ceil(totalRockSqft / 1625));
+    const rpOz = (2 * rockGals).toFixed(1);
+    const dyeOz = (0.3 * rockGals).toFixed(1);
+    let prodsHtml = '';
+    rockProps.forEach(p => {
+      const pGals = Math.max(1, Math.ceil(p.rockSqft / 1625));
+      prodsHtml += '<div class="product-row"><div class="product-name">' + p.name + '<small>' + fmtNum(p.rockSqft) + ' sqft rock yard</small></div><div class="product-amount glypho-amt">' + pGals + ' <small>gal</small></div></div>';
+    });
+    prodsHtml += '<div class="product-row" style="border-top:1px solid var(--border);margin-top:4px"><div class="product-name">Ranger Pro (41% glyphosate)<small>' + rpOz + ' oz total</small></div><div class="product-amount glypho-amt">' + rpOz + ' <small>oz</small></div></div>';
+    prodsHtml += '<div class="product-row"><div class="product-name">Dye<small>' + dyeOz + ' oz total</small></div><div class="product-amount glypho-amt">' + dyeOz + ' <small>oz</small></div></div>';
+    resultsWrap.innerHTML += buildResultBlock(
+      'rock-header', '🪨', 'FlowZone — Rock Yards', rockGals + ' gal',
+      rockProps.map(p=>p.name).join(' · '),
+      'Pre-mix at office. 1 gal per ~1,625 sqft. Glyphosate only — no lawn treatment.',
+      prodsHtml,
+      '<div class="warning-box">⚠️ Non-selective — keep off all turf edges and ornamentals.</div>', null
+    );
   }
 
-  // ── TORO BLOCK (SECONDARY) ──
-  const toroBlock = document.getElementById('toro-block');
-  const toroNames = document.getElementById('toro-prop-names');
-  const toroProds = document.getElementById('toro-products');
-  if (data.toro && toroSqft > 0) {
-    toroBlock.style.display = 'block';
-    document.getElementById('toro-gal-badge').textContent = toroGals + ' gal';
-    toroNames.textContent = toroPxList.map(p => p.name).join(' · ');
-    let html = makeProductRows(data.toro, 'toro-amt', toroGals, atrazineBlocked);
-    if (data.toroNote) html += `<div class="warning-box">${data.toroNote}</div>`;
-    toroProds.innerHTML = html;
-  } else {
-    toroBlock.style.display = 'block';
-    toroNames.textContent = toroPxList.length > 0 ? toroPxList.map(p => p.name).join(' · ') : '';
-    if (toroPxList.length === 0) {
-      document.getElementById('toro-gal-badge').textContent = 'No props';
-      toroProds.innerHTML = '<div class="na-box">No properties ≥13,000 sqft on this route — all going to push spreader.</div>';
-    } else if (data.granular && data.granularRateToro) {
-      const toroGranLbs = (toroSqftRaw / 1000 * data.granularRateToro).toFixed(1);
-      document.getElementById('toro-gal-badge').textContent = toroGranLbs + ' lbs';
-      toroProds.innerHTML = '<div class="product-row"><div class="product-name">' + data.granularProduct + '<small>Toro hopper spreader</small></div><div class="product-amount toro-amt">' + toroGranLbs + ' <small>lbs</small></div></div>';
-    } else {
-      document.getElementById('toro-gal-badge').textContent = data.granular ? 'See above' : 'N/A';
-      const note = data.toroNote || 'Toro not used this round.';
-      toroProds.innerHTML = `<div class="na-box">${note}</div>`;
-    }
-  }
+  // ── SUMMARY BAR ──
+  document.getElementById('sum-power').textContent = fmtNum(sumPowerSqft) + ' sqft';
+  document.getElementById('sum-toro').textContent  = fmtNum(sumToroSqft)  + ' sqft';
+  document.getElementById('sum-rock').textContent  = fmtNum(sumRockSqft)  + ' sqft';
 
-  // ── B&G BLOCK ──
-  const bgBlock = document.getElementById('bg-block');
-  if (data.bg) {
-    bgBlock.style.display = 'block';
-    let html = makeProductRows(data.bg, 'flowzone-amt', 1, false);
-    if (data.bgNote) html += `<div class="warning-box">${data.bgNote}</div>`;
-    document.getElementById('bg-products').innerHTML = html;
-  } else { bgBlock.style.display = 'none'; }
-
-  // ── ROCK BLOCK ── (manual entry fallback — hidden since we use props now)
-  document.getElementById('rock-block').style.display = 'none';
-
-  document.getElementById('results').style.display = 'block';
-  setTimeout(() => { document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' }); }, 100);
+  resultsEl.style.display = 'block';
+  setTimeout(() => { resultsEl.scrollIntoView({ behavior:'smooth', block:'start' }); }, 100);
 }
 
 function makeProductRows(products, amtClass, gals, atrazineBlocked) {
