@@ -588,9 +588,13 @@ const ROUNDS = {
         products:[
           {name:'Prodiamine (Stonewall 4FL / Barricade 4FL)', rate:1.03, unit:'oz'},
           {name:'Triad Select — Warm Rate',                   rate:2.65, unit:'oz'},
+          {name:'Quin-Way 1.5L',                             rate:4.26, unit:'fl oz'},
+          {name:'MSO Adjuvant',                              rate:1.62, unit:'fl oz'},
         ],
       },
-      granular:null, bg:null, alerts:[],
+      granular:null, bg:null, alerts:[
+        {type:'info', msg:'Quin-Way label: DO NOT mow 2 days before or after application. Leave clippings from first 3 mowings on lawn. Annual maximum: 2.9 fl oz per 1,000 sqft per year.'},
+      ],
     },
     3: {
       name:'Spring Granular Fertilizer + Spot Weeds', icon:'🌱', dates:'Apr 15 – May 31',
@@ -726,10 +730,14 @@ const ROUNDS = {
         products:[
           {name:'Prodiamine (Stonewall 4FL / Barricade 4FL)', rate:1.03, unit:'oz'},
           {name:'Triad Select — COOL SEASON RATE',            rate:3.24, unit:'oz'},
+          {name:'Quin-Way 1.5L',                             rate:1.27, unit:'fl oz'},
+          {name:'MSO Adjuvant',                              rate:0.48, unit:'fl oz'},
         ],
-        note:'Cool-season Triad Select rate (3.24 oz/gal) is HIGHER than warm-season rate. Do not substitute.',
+        note:'Cool-season Triad Select rate (3.24 oz/gal) is HIGHER than warm-season rate. Do not substitute. Quin-Way is safe on tall fescue (Highly Tolerant per label).',
       },
-      granular:null, bg:null, alerts:[],
+      granular:null, bg:null, alerts:[
+        {type:'info', msg:'Quin-Way label: DO NOT mow 2 days before or after application. Leave clippings from first 3 mowings on lawn. Annual maximum: 2.9 fl oz per 1,000 sqft per year.'},
+      ],
     },
     3: {
       name:'Spring Granular Fertilizer + Spot Weeds', icon:'🌱', dates:'Apr 15 – May 31',
