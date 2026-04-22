@@ -851,6 +851,7 @@ const state = {
   images:[],          // {name, dataUrl, base64, mime}
   isLoading:false,
   parseError:null,
+  parseProgress:0,
   apiKey: localStorage.getItem('flex_api_key') || '',
   newPropName:'',
   newPropSqft:'',
@@ -1004,8 +1005,12 @@ IMPORTANT:
 Return ONLY a valid JSON array, no markdown, no explanation:
 [{"name":"Brook, K","sqft":13800,"round":"R2","isRockYard":true,"hasRockBeds":false,"isHoseDrag":false}]`;
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
+    signal: controller.signal,
     headers:{
       'Content-Type':'application/json',
       'x-api-key': apiKey,
@@ -1021,6 +1026,7 @@ Return ONLY a valid JSON array, no markdown, no explanation:
       ]}]
     })
   });
+  clearTimeout(timeout);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -1037,30 +1043,42 @@ Return ONLY a valid JSON array, no markdown, no explanation:
 }
 
 async function parseImages(images, apiKey) {
-  // Process one image at a time — gives model full focus on each screenshot
-  // This catches red notes (rock yard, hose drag) that get missed in bulk processing
   const allResults = [];
   const seenNames = new Set();
+  const errors = [];
 
-  for (const img of images) {
-    const props = await parseSingleImage(img, apiKey);
-    for (const p of props) {
-      if (!p.name) continue;
-      const key = p.name.trim().toLowerCase();
-      if (seenNames.has(key)) continue; // deduplicate across screenshots
-      seenNames.add(key);
-      allResults.push({
-        name: p.name.trim(),
-        sqft: Math.round(Number(p.sqft) || 0),
-        round: p.round ? String(p.round).toUpperCase() : null,
-        isRockYard: !!p.isRockYard,
-        hasRockBeds: !!p.hasRockBeds,
-        isHoseDrag: !!p.isHoseDrag,
-      });
+  for (let i = 0; i < images.length; i++) {
+    try {
+      state.parseProgress = i + 1;
+      render(); // Update "Reading screenshot X of Y"
+      const props = await parseSingleImage(images[i], apiKey);
+      for (const p of props) {
+        if (!p.name) continue;
+        const key = p.name.trim().toLowerCase();
+        if (seenNames.has(key)) continue;
+        seenNames.add(key);
+        allResults.push({
+          name: p.name.trim(),
+          sqft: Math.round(Number(p.sqft) || 0),
+          round: p.round ? String(p.round).toUpperCase() : null,
+          isRockYard: !!p.isRockYard,
+          hasRockBeds: !!p.hasRockBeds,
+          isHoseDrag: !!p.isHoseDrag,
+        });
+      }
+    } catch(err) {
+      errors.push(`Screenshot ${i+1}: ${err.message}`);
+      // Continue to next image rather than failing everything
     }
   }
 
-  if (!allResults.length) throw new Error('No properties found. Make sure sqft data is visible in your screenshots.');
+  // If we got nothing and had errors, throw the first error
+  if (!allResults.length) {
+    if (errors.length) throw new Error(errors[0]);
+    throw new Error('No properties found. Make sure sqft data is visible in your screenshots.');
+  }
+
+  // Got some results — return them even if some images failed
   return allResults;
 }
 
@@ -1551,7 +1569,7 @@ function renderLoading() {
   <div class="loading-wrap">
     <div class="spinner"></div>
     <div class="loading-text">Parsing your route...</div>
-    <div class="loading-sub">Analyzing each screenshot individually for accuracy</div>
+    <div class="loading-sub">Reading screenshot ${state.parseProgress || 1} of ${state.images.length}...</div>
   </div>`;
 }
 
