@@ -478,7 +478,16 @@ header h1 {
 }
 .empty-state .es-icon { font-size: 40px; margin-bottom: 10px; }
 
-.round-mini-select {
+.rock-toggle-btn {
+  background: none; border: 1px solid rgba(255,255,255,0.1); border-radius: 5px;
+  font-size: 14px; cursor: pointer; padding: 2px 5px; opacity: 0.35;
+  transition: all 0.15s ease; flex-shrink: 0;
+}
+.rock-toggle-btn:hover { opacity: 0.8; border-color: var(--warn); }
+.rock-toggle-btn.rock-active {
+  opacity: 1; background: rgba(255,140,0,0.15);
+  border-color: var(--warn); box-shadow: 0 0 6px rgba(255,140,0,0.3);
+}
   background: var(--bg3); border: 1px solid rgba(0,255,71,0.25);
   border-radius: 5px; color: var(--green); padding: 3px 6px;
   font-family: var(--font-mono); font-size: 12px; font-weight: 700;
@@ -976,28 +985,24 @@ function calcAllResults(routeType, properties) {
 // ═══════════════════════════════════════════════════════════
 //  AI PARSING
 // ═══════════════════════════════════════════════════════════
-async function parseImages(images, apiKey) {
-  const content = [];
-  for (const img of images) {
-    content.push({type:'image', source:{type:'base64', media_type:img.mime, data:img.base64}});
-  }
-  content.push({
-    type:'text',
-    text:`These are FieldRoutes "My Routes" screenshots. For each customer property card, extract:
-1. name - the customer name
-2. sqft - from "MEASUREMENTS: X.XK SF" (convert: 4.8K=4800, 13.8K=13800). Use 0 if not shown.
-3. round - round code in the blue circle below the profile photo (R1, R2, R3, R4, R5, R6, R7, RS). null if not visible.
-4. isRockYard - TRUE only if the ENTIRE property is rock with NO GRASS — look for "ALL ROCK YARD", "FULL ROCK YARD", "ALL ROCK" in RED NOTES. This means FlowZone only, no lawn spray at all.
-   FALSE if it says "rock beds are included in lawn care" — that means a real lawn exists plus rock beds.
-5. hasRockBeds - TRUE if RED NOTES says "rock beds are included" or similar — means normal lawn PLUS rock beds needing FlowZone.
-6. isHoseDrag - TRUE only if RED NOTES says "hose drag required".
+async function parseSingleImage(img, apiKey) {
+  const prompt = `This is a FieldRoutes "My Routes" screenshot from an iPhone. Examine it carefully — zoom into every card.
 
-CRITICAL: Read ALL red text labeled "RED NOTES" carefully. "ALL ROCK YARD" = isRockYard:true. "rock beds included" = hasRockBeds:true.
-Ignore: LUNCH, MEETING, END, time-only rows with no customer name.
+For EACH customer property card visible, extract:
+1. name - the customer name (exactly as shown)
+2. sqft - from "MEASUREMENTS: X.XK SF" — convert to full number (4.8K=4800, 13.8K=13800, 9.2K=9200). Use 0 if not shown.
+3. round - the round code shown in the BLUE CIRCLE to the left of the property address (R1, R2, R3, R4, R5, R6, R7, or RS for re-service). Use null if not visible.
+4. isRockYard - THIS IS CRITICAL. Look for any RED TEXT at the bottom of the card under "RED NOTES". If it says anything like "ALL ROCK YARD", "FULL ROCK YARD", "ALL ROCK", "ROCK YARD ONLY" — set TRUE. This property has NO GRASS and gets FlowZone only.
+5. hasRockBeds - TRUE if red notes says "rock beds are included in lawn care" or similar. Property has grass PLUS rock beds.
+6. isHoseDrag - TRUE if red notes says "hose drag required".
 
-Return ONLY a JSON array, no markdown:
-[{"name":"Brook, K","sqft":13800,"round":"R2","isRockYard":true,"hasRockBeds":false,"isHoseDrag":false},{"name":"Griffin, Matthew","sqft":4800,"round":"R2","isRockYard":false,"hasRockBeds":true,"isHoseDrag":false}]`
-  });
+IMPORTANT: 
+- Read ALL red text on every card carefully before answering.
+- Ignore time slots (e.g. "10:00 AM - 10:29 AM"), LUNCH, MEETING, END rows — those are not properties.
+- Only include actual customer property cards that have a name.
+
+Return ONLY a valid JSON array, no markdown, no explanation:
+[{"name":"Brook, K","sqft":13800,"round":"R2","isRockYard":true,"hasRockBeds":false,"isHoseDrag":false}]`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
@@ -1009,8 +1014,11 @@ Return ONLY a JSON array, no markdown:
     },
     body: JSON.stringify({
       model:'claude-sonnet-4-6',
-      max_tokens:1500,
-      messages:[{role:'user', content}]
+      max_tokens:1000,
+      messages:[{role:'user', content:[
+        {type:'image', source:{type:'base64', media_type:img.mime, data:img.base64}},
+        {type:'text', text:prompt}
+      ]}]
     })
   });
 
@@ -1022,17 +1030,38 @@ Return ONLY a JSON array, no markdown:
   const data = await res.json();
   const text = data.content.find(b => b.type==='text')?.text || '';
   const match = text.match(/\[[\s\S]*\]/);
-  if (!match) throw new Error('No property list found in AI response. Try uploading a clearer screenshot.');
+  if (!match) return [];
   const arr = JSON.parse(match[0]);
-  if (!Array.isArray(arr)) throw new Error('Invalid response format');
-  return arr.filter(p => p.name && (p.sqft > 0 || p.round)).map(p => ({
-    name: p.name,
-    sqft: Math.round(Number(p.sqft) || 0),
-    round: p.round ? String(p.round).toUpperCase() : null,
-    isRockYard: !!p.isRockYard,
-    hasRockBeds: !!p.hasRockBeds,
-    isHoseDrag: !!p.isHoseDrag,
-  }));
+  if (!Array.isArray(arr)) return [];
+  return arr;
+}
+
+async function parseImages(images, apiKey) {
+  // Process one image at a time — gives model full focus on each screenshot
+  // This catches red notes (rock yard, hose drag) that get missed in bulk processing
+  const allResults = [];
+  const seenNames = new Set();
+
+  for (const img of images) {
+    const props = await parseSingleImage(img, apiKey);
+    for (const p of props) {
+      if (!p.name) continue;
+      const key = p.name.trim().toLowerCase();
+      if (seenNames.has(key)) continue; // deduplicate across screenshots
+      seenNames.add(key);
+      allResults.push({
+        name: p.name.trim(),
+        sqft: Math.round(Number(p.sqft) || 0),
+        round: p.round ? String(p.round).toUpperCase() : null,
+        isRockYard: !!p.isRockYard,
+        hasRockBeds: !!p.hasRockBeds,
+        isHoseDrag: !!p.isHoseDrag,
+      });
+    }
+  }
+
+  if (!allResults.length) throw new Error('No properties found. Make sure sqft data is visible in your screenshots.');
+  return allResults;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1261,6 +1290,7 @@ function renderStep3() {
         const rockBedsBadge = p.hasRockBeds
           ? `<span class="equip-badge" style="background:rgba(100,180,255,0.10);color:#64b4ff;border-color:rgba(100,180,255,0.25);font-size:10px">🪨 +BEDS</span>`
           : '';
+        const rockToggle = `<button class="rock-toggle-btn ${p.isRockYard?'rock-active':''}" data-rock-idx="${i}" title="${p.isRockYard?'Remove rock yard flag':'Mark as rock yard'}">🪨</button>`;
         return `
         <div class="property-row">
           <div class="prop-name">${p.name}</div>
@@ -1268,6 +1298,7 @@ function renderStep3() {
           ${roundBadge}
           ${equipBadge}
           ${rockBedsBadge}
+          ${rockToggle}
           <button class="prop-delete" data-del="${i}">×</button>
         </div>`;
       }).join('')
@@ -1520,7 +1551,7 @@ function renderLoading() {
   <div class="loading-wrap">
     <div class="spinner"></div>
     <div class="loading-text">Parsing your route...</div>
-    <div class="loading-sub">AI is reading property sqft from your screenshots</div>
+    <div class="loading-sub">Analyzing each screenshot individually for accuracy</div>
   </div>`;
 }
 
@@ -1608,8 +1639,14 @@ function attachEvents() {
   });
   document.getElementById('add-prop-btn')?.addEventListener('click', addProp);
   document.getElementById('new-prop-sqft')?.addEventListener('keypress', (e) => { if(e.key==='Enter') addProp(); });
-  // Per-property round overrides
-  document.querySelectorAll('[data-round-idx]').forEach(sel => {
+  // Rock yard toggle
+  document.querySelectorAll('[data-rock-idx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.rockIdx);
+      state.properties[idx].isRockYard = !state.properties[idx].isRockYard;
+      render();
+    });
+  });
     sel.addEventListener('change', (e) => {
       const idx = Number(e.target.dataset.roundIdx);
       state.properties[idx].round = e.target.value || null;
