@@ -1769,39 +1769,54 @@ if (isIOS && !isStandalone && !localStorage.getItem('ios-install-shown')) {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/Flex-Lawn-Tools/sw.js').then(reg => {
     reg.update();
-  });
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload();
-  });
+  }).catch(() => {});
 }
 
 // Version check — runs on every app open, bypasses all caches
-// When we deploy a new version, version.json changes → app auto-reloads
 (async function checkVersion() {
   try {
     const res = await fetch('/Flex-Lawn-Tools/version.json?t=' + Date.now(), {cache:'no-store'});
+    if (!res.ok) return;
     const {v} = await res.json();
     const stored = localStorage.getItem('flex_app_version');
     if (stored && stored !== String(v)) {
-      // New version deployed — clear caches and reload
+      localStorage.setItem('flex_app_version', String(v));
       if ('caches' in window) {
         const keys = await caches.keys();
         await Promise.all(keys.map(k => caches.delete(k)));
       }
-      localStorage.setItem('flex_app_version', String(v));
-      window.location.reload(true);
+      window.location.reload();
     } else {
       localStorage.setItem('flex_app_version', String(v));
     }
-  } catch(e) {
-    // Network unavailable — offline mode, skip check
-  }
+  } catch(e) {}
 })();
+
+// Global error trap — shows visible error instead of blank screen
+window.addEventListener('error', (e) => {
+  const main = document.getElementById('main-content');
+  if (main && !main.innerHTML) {
+    main.innerHTML = `<div style="padding:20px;color:#ff3b30;font-family:monospace;font-size:13px;line-height:1.6">
+      <div style="font-size:16px;font-weight:bold;margin-bottom:12px">❌ App Error</div>
+      <div>${e.message}</div>
+      <div style="color:#666;margin-top:8px">${e.filename}:${e.lineno}:${e.colno}</div>
+    </div>`;
+  }
+});
 
 // ═══════════════════════════════════════════════════════════
 //  BOOT
 // ═══════════════════════════════════════════════════════════
-render();
+try {
+  render();
+} catch(e) {
+  const main = document.getElementById('main-content');
+  if (main) main.innerHTML = `<div style="padding:20px;color:#ff3b30;font-family:monospace;font-size:13px;line-height:1.6">
+    <div style="font-size:16px;font-weight:bold;margin-bottom:12px">❌ Render Error</div>
+    <div>${e.message}</div>
+    <pre style="color:#aaa;margin-top:8px;white-space:pre-wrap;font-size:11px">${e.stack}</pre>
+  </div>`;
+}
 </script>
 </body>
 </html>
