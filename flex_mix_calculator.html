@@ -552,6 +552,7 @@ header h1 {
   <header>
     <img src="icon-512.png" alt="Flex" />
     <h1>Flex Mix Calc</h1>
+    <button class="icon-btn" id="restart-header-btn" title="Start Over" style="font-size:13px;width:auto;padding:0 10px;gap:4px">↩ New</button>
     <button class="icon-btn" id="settings-btn" title="Settings">⚙</button>
   </header>
   <main id="main-content"></main>
@@ -1232,9 +1233,6 @@ function renderStep1() {
       <span class="route-sub">Tall Fescue accounts</span>
       <div class="route-check">✓</div>
     </div>
-  </div>
-  <div class="btn-row" style="margin-top:24px">
-    <button class="btn btn-primary" id="step1-next" ${!state.routeType?'disabled':''}>Continue →</button>
   </div>`;
 }
 
@@ -1597,11 +1595,9 @@ function attachEvents() {
   document.querySelectorAll('.route-card').forEach(card => {
     card.addEventListener('click', () => {
       state.routeType = card.dataset.type;
+      state.screen = 'step2';
       render();
     });
-  });
-  document.getElementById('step1-next')?.addEventListener('click', () => {
-    if (state.routeType) { state.screen='step2'; render(); }
   });
 
   // Step 2
@@ -1714,6 +1710,12 @@ function readFileAsDataURL(file) {
 // ═══════════════════════════════════════════════════════════
 //  SETTINGS MODAL
 // ═══════════════════════════════════════════════════════════
+document.getElementById('restart-header-btn')?.addEventListener('click', () => {
+  state.screen='step1'; state.routeType=null; state.properties=[];
+  state.images=[]; state.round=null; state.parseError=null; state.parseProgress=0;
+  render();
+});
+
 document.getElementById('settings-btn')?.addEventListener('click', () => {
   const modal = document.getElementById('settings-modal');
   modal.classList.remove('hidden');
@@ -1790,8 +1792,8 @@ if ('serviceWorker' in navigator) {
   }).catch(() => {});
 }
 
-// Version check — runs on every app open, bypasses all caches
-(async function checkVersion() {
+// Version check — runs on load AND every 5 minutes
+async function checkVersion() {
   try {
     const res = await fetch('/Flex-Lawn-Tools/version.json?t=' + Date.now(), {cache:'no-store'});
     if (!res.ok) return;
@@ -1808,7 +1810,9 @@ if ('serviceWorker' in navigator) {
       localStorage.setItem('flex_app_version', String(v));
     }
   } catch(e) {}
-})();
+}
+checkVersion();
+setInterval(checkVersion, 5 * 60 * 1000); // re-check every 5 minutes
 
 // Global error trap — shows visible error instead of blank screen
 window.addEventListener('error', (e) => {
