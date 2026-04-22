@@ -1647,6 +1647,8 @@ function attachEvents() {
       render();
     });
   });
+  // Per-property round overrides
+  document.querySelectorAll('[data-round-idx]').forEach(sel => {
     sel.addEventListener('change', (e) => {
       const idx = Number(e.target.dataset.roundIdx);
       state.properties[idx].round = e.target.value || null;
@@ -1766,13 +1768,35 @@ if (isIOS && !isStandalone && !localStorage.getItem('ios-install-shown')) {
 // ═══════════════════════════════════════════════════════════
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/Flex-Lawn-Tools/sw.js').then(reg => {
-    reg.update(); // Check for new SW on every page load
+    reg.update();
   });
-  // When new SW takes control, reload to get fresh HTML
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     window.location.reload();
   });
 }
+
+// Version check — runs on every app open, bypasses all caches
+// When we deploy a new version, version.json changes → app auto-reloads
+(async function checkVersion() {
+  try {
+    const res = await fetch('/Flex-Lawn-Tools/version.json?t=' + Date.now(), {cache:'no-store'});
+    const {v} = await res.json();
+    const stored = localStorage.getItem('flex_app_version');
+    if (stored && stored !== String(v)) {
+      // New version deployed — clear caches and reload
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      localStorage.setItem('flex_app_version', String(v));
+      window.location.reload(true);
+    } else {
+      localStorage.setItem('flex_app_version', String(v));
+    }
+  } catch(e) {
+    // Network unavailable — offline mode, skip check
+  }
+})();
 
 // ═══════════════════════════════════════════════════════════
 //  BOOT
