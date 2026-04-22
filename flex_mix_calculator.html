@@ -580,138 +580,140 @@ const ROUNDS = {
       name:'Pre-Emergent + Weed Control', icon:'❄️', dates:'Jan 25 – Feb 28',
       liquid:{
         products:[
-          {name:'Stonewall 4L (Prodiamine)',    rate:2.18, unit:'oz'},
-          {name:'Three-Way',                    rate:4.32, unit:'oz'},
-          {name:'90/10 Surfactant',             rate:0.82, unit:'oz'},
-          {name:'Atrazine ⚠️ GATE REQUIRED',   rate:3.24, unit:'oz', cond:true, condNote:'Jan 25–Mar 10 ONLY. Confirm 100% dormant (zero green) before adding.'},
+          {name:'Stonewall 4L (Prodiamine)', rate:2.18, unit:'oz'},
+          {name:'Three-Way',                 rate:4.32, unit:'oz'},
+          {name:'90/10 NIS',                 rate:0.82, unit:'oz'},
+          {name:'Simazine',                  rate:0.73, unit:'oz', cond:true, condNote:'Dormant turf ONLY. Warm-season ONLY — NEVER on fescue.'},
+          {name:'Atrazine ⚠️ GATE REQUIRED', rate:3.24, unit:'oz', cond:true, condNote:'Jan 25–Mar 10 ONLY. Confirm 100% dormant (zero green) before adding.'},
         ],
       },
-      granular:null,
-      bg:null,
+      granular:null, bg:null,
       alerts:[
-        {type:'danger', msg:'ATRAZINE GATE: After Mar 10 — NEVER add Atrazine. Before Mar 10 — visually confirm 100% brown turf. ANY green visible = skip Atrazine. No exceptions.'},
+        {type:'danger', msg:'ATRAZINE GATE: After Mar 10 — NEVER add Atrazine. Before Mar 10 — confirm 100% brown turf. ANY green = skip Atrazine.'},
+        {type:'warn',   msg:'SIMAZINE: Dormant warm-season turf ONLY. Wind under 10 MPH — drift damages ornamentals.'},
       ],
     },
     2: {
       name:'Spring Pre-Emergent + Broadleaf Cleanup', icon:'🌿', dates:'Mar 1 – Apr 14',
       liquid:{
         products:[
-          {name:'Prodiamine (Stonewall 4FL / Barricade 4FL)', rate:1.03, unit:'oz'},
-          {name:'Triad Select — Warm Rate',                   rate:2.65, unit:'oz'},
-          {name:'Quin-Way 1.5L',                             rate:4.26, unit:'fl oz'},
-          {name:'MSO Adjuvant',                              rate:1.62, unit:'fl oz'},
+          {name:'Prodiamine 65 WDG',  rate:0.54, unit:'oz dry'},
+          {name:'Triad Select',       rate:3.24, unit:'oz'},
+          {name:'Quin-Way 1.5L',      rate:4.26, unit:'fl oz'},
+          {name:'MSO',                rate:1.28, unit:'oz', psRate:1.28},
         ],
       },
-      granular:null, bg:null, alerts:[
-        {type:'info', msg:'Quin-Way label: DO NOT mow 2 days before or after application. Leave clippings from first 3 mowings on lawn. Annual maximum: 2.9 fl oz per 1,000 sqft per year.'},
+      granular:null, bg:null,
+      alerts:[
+        {type:'danger', msg:'MSO REQUIRED with Quin-Way. DO NOT substitute 90/10 NIS. If MSO is out — do not spray, reschedule.'},
+        {type:'info',   msg:'Quin-Way: DO NOT mow 2 days before/after. Leave clippings 3 mowings. Annual cap: 2.9 oz/1K/year. Under 85°F ideal — avoid stressed turf.'},
       ],
     },
     3: {
       name:'Spring Granular Fertilizer + Spot Weeds', icon:'🌱', dates:'Apr 15 – May 31',
       liquid:null,
       granular:{
-        product:'Lesco 32-0-0 w/ 20% PolyPlus OPTI45',
-        rates:[{label:'Bermuda & Zoysia', lbs:3.13}],
+        product:'LESCO 24-0-11 w/ 2% Fe + PolyPlus',
+        rates:[{label:'Bermuda & Zoysia', lbs:4.17}],
+        note:'Water-in within 24 hours. Calibrate spreader before first property.',
       },
       bg:[
-        {name:'Three-Way',                 amount:'1.4 oz',       note:'Broadleaf weeds'},
-        {name:'90/10 Surfactant',          amount:'0.25 oz',      note:''},
-        {name:'Revolver',                  amount:'0.6 oz',       note:'Grassy weeds ONLY'},
-        {name:'SedgeHammer',              amount:'0.9 g (1 scoop)',note:'Nutsedge / Kyllinga ONLY'},
+        {name:'Quin-Way 1.5L', amount:'1.5 oz',  note:'Grassy weed spot spray'},
+        {name:'MSO',           amount:'1.28 oz', note:'Required with Quin-Way'},
       ],
       alerts:[
-        {type:'danger', msg:'DEEP CLEAN REQUIRED before first R3 mix. Drain Toro tanks → water rinse → Dawn soap rinse → final water rinse until crystal clear (zero bubbles, zero color, zero odor). Document in FieldRoutes.'},
+        {type:'danger', msg:'DEEP CLEAN REQUIRED before first R3 mix. Drain all equipment → water rinse → Dawn soap rinse → final water rinse until crystal clear. Document in FieldRoutes.'},
+        {type:'info',   msg:'Spot spray weeds only — do not blanket spray a fertilizer round.'},
       ],
     },
     4: {
       name:'Early Summer Health', icon:'☀️', dates:'Jun 1 – Jul 15',
       liquid:{
         products:[
-          {name:'Terra Ally TA 22-0-0',          rate:44.1, unit:'fl oz'},
-          {name:'Artavia SC (Azoxystrobin)',      rate:2.25, unit:'fl oz'},
-          {name:'90/10 Surfactant',              rate:0.82, unit:'oz'},
+          {name:'Terra Ally TA 22-0-0',  rate:44.12, unit:'fl oz'},
+          {name:'Artavia SC (Azoxy)',     rate:2.21,  unit:'fl oz'},
+          {name:'90/10 NIS',             rate:0.82,  unit:'oz'},
         ],
       },
       granular:null,
       bg:[
-        {name:'Celsius',                      amount:'0.10 oz',      note:''},
-        {name:'Momentum / Halosulfuron',      amount:'0.9 g (1 scoop)',note:'Nutsedge ONLY'},
-        {sep:true, label:'DALLISGRASS — SEPARATE 1-GAL BATCH'},
-        {name:'Manuscript',                   amount:'0.44 oz',      note:'Do NOT mix with above'},
-        {name:'MSO Adigor',                   amount:'0.44 oz',      note:'Required with Manuscript only'},
+        {name:'Celsius WG',    amount:'0.10 oz', note:'Default — broadleaf + grassy'},
+        {name:'90/10 NIS',     amount:'0.25 oz', note:''},
+        {sep:true, label:'QUIN-WAY ALTERNATE — only if under 85°F AND turf not stressed'},
+        {name:'Quin-Way 1.5L', amount:'1.5 oz',  note:'Check annual cap before use'},
+        {name:'MSO',           amount:'1.28 oz', note:'Required with Quin-Way'},
       ],
       alerts:[
-        {type:'warn', msg:'HEAT RULE: 90°F+ forecasted → complete ALL blanket spray before 9:30 AM. After 9:30 AM — spot spray weeds with B&G only.'},
+        {type:'warn', msg:'HEAT RULE: 90°F+ → complete ALL blanket spray before 9:30 AM. Celsius WG NOT over 90°F. Terra Ally foliar — water lawn 24 hrs after.'},
+        {type:'info', msg:'Quin-Way annual cap: running total must stay under 2.9 oz/1K/year.'},
       ],
     },
     5: {
       name:'Mid-Summer Protection', icon:'🔥', dates:'Aug 1 – Sep 15',
       liquid:{
         products:[
-          {name:'Artavia SC (Azoxystrobin) — FRAC 11', rate:2.25, unit:'fl oz'},
-          {name:'Propiconazole 14.3 — FRAC 3',         rate:2.94, unit:'fl oz'},
+          {name:'Artavia SC (Azoxy) — FRAC 11', rate:2.26, unit:'fl oz'},
+          {name:'Propiconazole 14.3 — FRAC 3',  rate:2.94, unit:'fl oz'},
         ],
-        mixOrder:'water first → Artavia SC → Propiconazole 14.3 → fill to mark → agitate 60 sec',
+        mixOrder:'NO 90/10 in this tank. Add Artavia SC first, then Propiconazole 14.3. Agitate 60 sec.',
       },
       granular:{
-        product:'Lesco 28-0-0 w/ 20% PolyPlus OPTI45 + 1.2% Fe',
+        product:'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe',
         rates:[
           {label:'Bermuda', lbs:3.57},
           {label:'Zoysia',  lbs:2.75},
         ],
-        note:'Apply same visit as fungicide, immediately after spray pass.',
+        note:'Apply same visit as fungicide. Water-in within 24 hrs.',
       },
       bg:[
-        {name:'Celsius',     amount:'0.10 oz',       note:''},
-        {name:'Quin-Way',    amount:'1.45 oz',        note:''},
-        {name:'Ambition',    amount:'0.18 oz',        note:''},
-        {sep:true, label:'DALLISGRASS — SEPARATE 1-GAL BATCH'},
-        {name:'Manuscript',  amount:'0.44 oz',        note:''},
-        {name:'MSO Adigor',  amount:'0.44 oz',        note:''},
+        {name:'Celsius WG', amount:'0.10 oz', note:'Broadleaf + grassy'},
+        {name:'Ambition',   amount:'0.18 oz', note:'Sedge + nutsedge — every warm route'},
+        {name:'90/10 NIS',  amount:'0.25 oz', note:''},
       ],
       alerts:[
-        {type:'warn',   msg:'PEAK HEAT: All fungicide blanket spray must be done before 9:30 AM on 90°F+ days.'},
-        {type:'danger', msg:'BERMUDA LIMIT: Never exceed 4 fl oz Propiconazole per 1,000 sqft per 30 days. The 1.0 fl oz rate is within the safe limit — do NOT over-apply.'},
+        {type:'danger', msg:'NO 90/10 NIS in the dual fungicide tank — risk of phytotoxicity.'},
+        {type:'danger', msg:'BERMUDA PROPICONAZOLE CAP: Never exceed 4 oz/1K sqft within any 30-day window. Track on route sheet.'},
+        {type:'warn',   msg:'PEAK HEAT: All fungicide blanket spray before 9:30 AM on 90°F+ days. Celsius WG NOT over 90°F.'},
       ],
     },
     6: {
       name:'Late Summer Root Strengthening', icon:'🍂', dates:'Sep 16 – Oct 15',
       liquid:null,
       granular:{
-        product:'Lesco 5-0-25 w/ 10% Fe',
+        product:'LESCO 5-0-25 w/ 10% Fe',
         rates:[{label:'Bermuda & Zoysia', lbs:4.0}],
-        note:'High-potassium for cold hardiness and root strength.',
+        note:'Zero N / high K — hardens cell walls, prep for dormancy. Water-in within 24 hrs.',
       },
       bg:[
-        {name:'Celsius',    amount:'0.10 oz', note:''},
-        {name:'Quin-Way',   amount:'1.45 oz', note:''},
-        {name:'Ambition',   amount:'0.18 oz', note:''},
-        {sep:true, label:'DALLISGRASS — SEPARATE 1-GAL BATCH'},
-        {name:'Manuscript', amount:'0.44 oz', note:''},
-        {name:'MSO Adigor', amount:'0.44 oz', note:''},
+        {name:'Celsius WG',    amount:'0.10 oz', note:'Broadleaf + grassy'},
+        {name:'Quin-Way 1.5L', amount:'1.45 oz', note:'Grassy weed — check annual cap'},
+        {name:'Ambition',      amount:'0.18 oz', note:'Sedge + nutsedge'},
+        {name:'MSO',           amount:'1.28 oz', note:'Required with Quin-Way'},
       ],
-      alerts:[],
+      alerts:[
+        {type:'info', msg:'Quin-Way annual cap: confirm running total stays under 2.9 oz/1K. Zero N on Bermuda/Zoysia this round is intentional — heading into dormancy.'},
+      ],
     },
     7: {
       name:'Fall Pre-Emergent + Spring Dead Spot Prevention', icon:'❄️', dates:'Oct 16 – Nov 30',
       liquid:{
         products:[
-          {name:'Specticle',       rate:0.10, unit:'oz'},
-          {name:'Simazine',        rate:0.73, unit:'oz'},
-          {name:'Three-Way',       rate:1.47, unit:'oz'},
-          {name:'90/10 Surfactant',rate:0.28, unit:'oz'},
+          {name:'Specticle FLO', rate:0.10, unit:'oz'},
+          {name:'Simazine',      rate:0.73, unit:'oz'},
+          {name:'Triad Select',  rate:1.47, unit:'oz'},
+          {name:'90/10 NIS',     rate:0.28, unit:'oz'},
         ],
-        tankNote:'ROUND 7 EXCEPTION: Herbicides back in BOTH Toro tanks. Both tanks identical mix.',
+        tankNote:'ROUND 7: Herbicide broadcast pass — both tanks identical mix.',
         fungSep:{
-          label:'SPRING DEAD SPOT FUNGICIDE — SEPARATE PASS',
-          products:[{name:'Artavia SC (Azoxystrobin)', rate:2.25, unit:'fl oz'}],
-          note:'Apply herbicide pass first. Rinse Tank A. Then apply Artavia SC as second pass same visit. Water in within 24 hrs (≥1/8 inch). NOT optional — every Bermuda & Zoysia account.',
+          label:'SPRING DEAD SPOT FUNGICIDE — SEPARATE PASS (Oct 16 – Nov 10 ONLY)',
+          products:[{name:'Artavia SC (Azoxystrobin)', rate:2.26, unit:'fl oz'}],
+          note:'Herbicide broadcast pass first. Rinse tank. Apply Artavia SC as separate pass. Trigger window: Oct 16–Nov 10, soil temp 60–80°F. Water-in within 24 hrs. Every Bermuda & Zoysia account — NOT optional.',
         },
       },
       granular:null, bg:null,
       alerts:[
-        {type:'danger', msg:'SIMAZINE WARNING: Warm-season turf ONLY. NEVER near fescue or cool-season turf.'},
-        {type:'danger', msg:'CRITICAL: Spring dead spot fungicide is the most important application of the year. Apply Artavia SC to EVERY bermuda and zoysia account. After R7 — drain and rinse BOTH Toro tanks completely.'},
+        {type:'danger', msg:'SIMAZINE: Warm-season turf ONLY. NEVER on fescue. Confirm route before mixing.'},
+        {type:'danger', msg:'SDS FUNGICIDE WINDOW: Oct 16–Nov 10 ONLY. After Nov 10 — skip fungicide pass. Drain and rinse ALL tanks after R7.'},
       ],
     },
   },
@@ -720,121 +722,113 @@ const ROUNDS = {
     1: {
       name:'Pre-Emergent + Weed Control', icon:'❄️', dates:'Jan 25 – Feb 28',
       liquid:{
-        equipment:'ps',
         products:[
-          {name:'Stonewall 4L (Prodiamine)', rate:0.65, unit:'oz'},
-          {name:'Three-Way',                 rate:1.29, unit:'oz'},
-          {name:'90/10 Surfactant',          rate:0.25, unit:'oz'},
+          {name:'Stonewall 4L (Prodiamine)', rate:2.18, unit:'oz'},
+          {name:'Three-Way',                 rate:4.32, unit:'oz'},
+          {name:'90/10 NIS',                 rate:0.82, unit:'oz'},
         ],
       },
       granular:null, bg:null,
       alerts:[
-        {type:'danger', msg:'NO ATRAZINE — EVER on fescue. Atrazine kills fescue. No exceptions.'},
-        {type:'danger', msg:'NO SIMAZINE — EVER on fescue.'},
+        {type:'danger', msg:'NO ATRAZINE — EVER on fescue. NO SIMAZINE — EVER on fescue.'},
       ],
     },
     2: {
       name:'Spring Pre-Emergent + Broadleaf Cleanup', icon:'🌿', dates:'Mar 1 – Apr 14',
       liquid:{
-        equipment:'ps',
         products:[
-          {name:'Prodiamine (Stonewall 4FL / Barricade 4FL)', rate:1.03, unit:'oz'},
-          {name:'Triad Select — COOL SEASON RATE',            rate:3.24, unit:'oz'},
-          {name:'Quin-Way 1.5L',                             rate:1.27, unit:'fl oz'},
-          {name:'MSO Adjuvant',                              rate:0.48, unit:'fl oz'},
+          {name:'Prodiamine 65 WDG', rate:0.54, unit:'oz dry'},
+          {name:'Triad Select',      rate:3.24, unit:'oz'},
+          {name:'90/10 NIS',         rate:0.82, unit:'oz'},
         ],
-        note:'Cool-season Triad Select rate (3.24 oz/gal) is HIGHER than warm-season rate. Do not substitute. Quin-Way is safe on tall fescue (Highly Tolerant per label).',
       },
-      granular:null, bg:null, alerts:[
-        {type:'info', msg:'Quin-Way label: DO NOT mow 2 days before or after application. Leave clippings from first 3 mowings on lawn. Annual maximum: 2.9 fl oz per 1,000 sqft per year.'},
+      granular:null, bg:null,
+      alerts:[
+        {type:'info', msg:'Cool R2 does NOT include Quin-Way. No MSO needed this round.'},
       ],
     },
     3: {
       name:'Spring Granular Fertilizer + Spot Weeds', icon:'🌱', dates:'Apr 15 – May 31',
       liquid:null,
       granular:{
-        product:'Lesco 32-0-0 w/ 20% PolyPlus OPTI45',
-        rates:[{label:'Tall Fescue', lbs:2.5}],
-        note:'Push Spreader ONLY — NEVER Toro hopper on fescue.',
+        product:'LESCO 24-0-11 w/ 2% Fe + PolyPlus',
+        rates:[{label:'Tall Fescue', lbs:2.08}],
+        note:'Push Spreader ONLY — NEVER Toro hopper on fescue. Water-in within 24 hrs.',
         hardStop:true,
       },
       bg:[
-        {name:'Three-Way', amount:'1.4 oz', note:'Broadleaf weeds only. No surfactant.'},
+        {name:'Triad Select', amount:'1.4 oz',  note:'Post-em broadleaf'},
+        {name:'90/10 NIS',    amount:'0.25 oz', note:'Surfactant'},
       ],
       alerts:[],
     },
     4: {
-      name:'Early Summer Health', icon:'☀️', dates:'Jun 1 – Jul 15',
+      name:'Early Summer Health — Fungicide Only', icon:'☀️', dates:'Jun 1 – Jul 15',
       liquid:{
-        equipment:'ps',
         products:[
-          {name:'Terra Ally TA 22-0-0',     rate:13.17, unit:'fl oz'},
-          {name:'Artavia SC (Azoxystrobin)', rate:0.66,  unit:'fl oz'},
-          {name:'90/10 Surfactant',          rate:0.25,  unit:'oz'},
+          {name:'Artavia SC (Azoxy) — FRAC 11', rate:2.21, unit:'fl oz'},
+          {name:'90/10 NIS',                    rate:0.82, unit:'oz'},
         ],
-        note:'NO nitrogen fertilizer on fescue in summer. Fescue fertilization stopped May 1 — resumes in R6.',
+        note:'Fungicide protection pass ONLY. No nitrogen on fescue in summer.',
       },
       granular:null,
       bg:[
-        {name:'Three-Way',      amount:'1.4 oz',  note:''},
-        {name:'90/10 Surfactant',amount:'0.25 oz', note:''},
+        {name:'Triad Select', amount:'1.4 oz',  note:'Post-em broadleaf'},
+        {name:'90/10 NIS',    amount:'0.25 oz', note:''},
       ],
       alerts:[
-        {type:'warn', msg:'HEAT RULE: 90°F+ days → complete blanket spray before 9:30 AM. Stressed fescue → fungicide only, skip everything else.'},
+        {type:'danger', msg:'DO NOT apply nitrogen to fescue in summer — fungicide only this round.'},
+        {type:'warn',   msg:'HEAT RULE: 90°F+ → blanket spray before 9:30 AM. Stressed fescue → fungicide only, skip B&G.'},
       ],
     },
     5: {
       name:'Mid-Summer Protection', icon:'🔥', dates:'Aug 1 – Sep 15',
       liquid:{
-        equipment:'toro',
         products:[
-          {name:'Artavia SC (Azoxystrobin) — FRAC 11', rate:2.25, unit:'fl oz'},
-          {name:'Propiconazole 14.3 — FRAC 3',         rate:2.94, unit:'fl oz'},
+          {name:'Artavia SC (Azoxy) — FRAC 11', rate:2.26, unit:'fl oz'},
+          {name:'Propiconazole 14.3 — FRAC 3',  rate:2.94, unit:'fl oz'},
         ],
-        mixOrder:'water first → Artavia SC → Propiconazole 14.3 → fill to mark → agitate 60 sec',
-        note:'POWER SPRAY RIG NOT USED for chemistry this round — clean water only.',
+        mixOrder:'NO 90/10 in this tank. Artavia SC first, then Propiconazole 14.3. Agitate 60 sec.',
+        note:'Dual fungicide — FRAC rotation prevents resistance. NO granular for fescue this round.',
       },
-      granular:{
-        product:'6-3-0 w/ 2% Fe',
-        rates:[{label:'Tall Fescue', lbs:3.0}],
-        note:'Push Spreader ONLY — never Toro hopper on fescue.',
-      },
-      bg:[
-        {name:'Quin-Way',  amount:'1.45 oz', note:''},
-        {name:'Ambition',  amount:'0.18 oz', note:''},
-      ],
+      granular:null, bg:null,
       alerts:[
-        {type:'info', msg:'Power Spray Rig carries clean water only this round. Toro SprayMaster handles all fescue fungicide.'},
+        {type:'danger', msg:'NO 90/10 NIS in dual fungicide tank. NO granular fertilizer on fescue in R5 — nitrogen resumes in Round 6.'},
+        {type:'info',   msg:'FRAC rotation non-negotiable. Do NOT re-use FRAC 11 back-to-back.'},
       ],
     },
     6: {
       name:'Fall Fertilization + Weed Control', icon:'🍂', dates:'Sep 16 – Oct 15',
       liquid:null,
       granular:{
-        product:'6-3-0 w/ 2% Fe',
-        rates:[{label:'Tall Fescue', lbs:3.0}],
-        note:'Push Spreader ONLY. Fall is prime fescue season — feed heavily.',
+        product:'LESCO 18-0-9 w/ 2% Fe',
+        rates:[{label:'Tall Fescue', lbs:2.8}],
+        note:'Push Spreader ONLY. Fall start after summer dormancy — 0.5 lb N/1K. Water-in within 24 hrs.',
       },
       bg:[
-        {name:'Quin-Way', amount:'1.45 oz', note:''},
-        {name:'Ambition', amount:'0.18 oz', note:''},
+        {name:'Triad Select', amount:'1.4 oz',  note:'Post-em broadleaf'},
+        {name:'Ambition',     amount:'0.18 oz', note:'Sedge + nutsedge'},
+        {name:'90/10 NIS',    amount:'0.25 oz', note:''},
       ],
-      alerts:[],
+      alerts:[
+        {type:'info', msg:'Fescue green-up window — this feed sets up Round 7\'s big fall push.'},
+      ],
     },
     7: {
       name:'Fall Pre-Winter Protection', icon:'❄️', dates:'Oct 16 – Nov 30',
       liquid:null,
       granular:{
-        product:'Lesco 32-0-0 w/ 20% PolyPlus OPTI45',
-        rates:[{label:'Tall Fescue', lbs:3.13}],
-        note:'Push Spreader ONLY. Final feed before winter.',
+        product:'LESCO 24-0-11 w/ 2% Fe + PolyPlus',
+        rates:[{label:'Tall Fescue', lbs:4.17}],
+        note:'Push Spreader ONLY. Big fall feed — drives color and density into winter.',
       },
       bg:[
-        {name:'Three-Way',       amount:'1.4 oz',  note:''},
-        {name:'90/10 Surfactant',amount:'0.25 oz', note:''},
+        {name:'Triad Select', amount:'1.4 oz',  note:'Post-em broadleaf'},
+        {name:'Ambition',     amount:'0.18 oz', note:'Sedge'},
+        {name:'90/10 NIS',    amount:'0.25 oz', note:''},
       ],
       alerts:[
-        {type:'info', msg:'PREMIUM ACCOUNTS ONLY: Artavia SC (Azoxystrobin) — blanket spray at standard preventive rate. Blanket spray via Toro or Power Spray Rig. Confirm account is flagged premium in FieldRoutes before applying.'},
+        {type:'info',   msg:'PREMIUM ACCOUNTS ONLY (Oct 16–Nov 10): Artavia SC blanket app for brown patch / pythium carryover protection.'},
         {type:'danger', msg:'NO SIMAZINE and NO WARM-SEASON PRODUCTS on fescue — EVER.'},
       ],
     },
@@ -907,9 +901,10 @@ function calcLiqMix(sqft, equipment, products, applyBuffer) {
 }
 
 function psRates(products) {
-  // Derive Power Spray rates from Toro rates (same on-lawn rate)
+  // PS rates derived from Toro rates by output ratio
+  // Products with psRate property override the ratio (e.g. MSO at 1% v/v = fixed per-gal)
   const ratio = TORO_OUT / PS_OUT;
-  return products.map(p => ({...p, rate: p.rate * ratio}));
+  return products.map(p => ({...p, rate: p.psRate !== undefined ? p.psRate : p.rate * ratio}));
 }
 
 function calcRoundSection(routeType, roundNum, props) {
@@ -918,38 +913,52 @@ function calcRoundSection(routeType, roundNum, props) {
   const totalSqft = props.reduce((s, p) => s + p.sqft, 0);
   let toroMix=null, psMix=null, fungSepMix=null, granData=null;
 
-  if (routeType === 'warm') {
-    const toroProps = props.filter(p => p.sqft >= GATE);
-    const psProps   = props.filter(p => p.sqft < GATE);
-    const toroSqft  = toroProps.reduce((s,p) => s+p.sqft, 0);
-    const psSqft    = psProps.reduce((s,p) => s+p.sqft, 0);
-    if (rd.liquid) {
-      if (toroSqft > 0) toroMix = calcLiqMix(toroSqft,'toro',rd.liquid.products,true);
-      if (psSqft > 0)   psMix   = calcLiqMix(psSqft,  'ps',  psRates(rd.liquid.products),false);
-      if (rd.liquid.fungSep) {
-        const fs = rd.liquid.fungSep;
-        const tm = toroSqft > 0 ? calcLiqMix(toroSqft,'toro',fs.products,true) : null;
-        const pm = psSqft > 0   ? calcLiqMix(psSqft,  'ps',  psRates(fs.products),false) : null;
-        if (tm||pm) fungSepMix = {toro:tm, ps:pm, config:fs};
-      }
+  // Both warm and cool now use 10K gate for liquid unless a specific equipment is forced
+  if (rd.liquid) {
+    const forcedEquip = rd.liquid.equipment; // only set when a round forces single equipment
+    if (forcedEquip) {
+      // Force single equipment (legacy support)
+      const mix = calcLiqMix(totalSqft, forcedEquip, rd.liquid.products, true);
+      if (forcedEquip === 'toro') toroMix = mix;
+      else psMix = mix;
+    } else {
+      // 10K gate — applies to both warm and cool season
+      const toroProps = props.filter(p => p.sqft >= GATE);
+      const psProps   = props.filter(p => p.sqft < GATE);
+      const toroSqft  = toroProps.reduce((s,p) => s+p.sqft, 0);
+      const psSqft    = psProps.reduce((s,p) => s+p.sqft, 0);
+      if (toroSqft > 0) toroMix = calcLiqMix(toroSqft, 'toro', rd.liquid.products, true);
+      if (psSqft > 0)   psMix   = calcLiqMix(psSqft,   'ps',   psRates(rd.liquid.products), false);
     }
-    if (rd.granular) {
+    if (rd.liquid.fungSep) {
+      const fs = rd.liquid.fungSep;
+      const toroProps = props.filter(p => p.sqft >= GATE);
+      const psProps   = props.filter(p => p.sqft < GATE);
+      const toroSqft  = toroProps.reduce((s,p) => s+p.sqft, 0);
+      const psSqft    = psProps.reduce((s,p) => s+p.sqft, 0);
+      const tm = toroSqft > 0 ? calcLiqMix(toroSqft,'toro',fs.products,true) : null;
+      const pm = psSqft > 0   ? calcLiqMix(psSqft,  'ps',  psRates(fs.products),false) : null;
+      if (tm||pm) fungSepMix = {toro:tm, ps:pm, config:fs};
+    }
+  }
+
+  // Granular — warm uses 10K gate, cool always Push Spreader
+  if (rd.granular) {
+    if (routeType === 'warm') {
+      const toroProps = props.filter(p => p.sqft >= GATE);
+      const psProps   = props.filter(p => p.sqft < GATE);
+      const toroSqft  = toroProps.reduce((s,p) => s+p.sqft, 0);
+      const psSqft    = psProps.reduce((s,p) => s+p.sqft, 0);
       granData = {
         config: rd.granular,
         toro: toroSqft>0 ? {sqft:toroSqft, equipment:'Toro Hopper'} : null,
         ps:   psSqft>0   ? {sqft:psSqft,   equipment:'Push Spreader'} : null,
       };
-    }
-  } else {
-    if (rd.liquid) {
-      const equip = rd.liquid.equipment;
-      const mix = calcLiqMix(totalSqft, equip, rd.liquid.products, true);
-      if (equip==='toro') toroMix=mix; else psMix=mix;
-    }
-    if (rd.granular) {
+    } else {
       granData = {config:rd.granular, ps:{sqft:totalSqft, equipment:'Push Spreader'}};
     }
   }
+
   return {rd, totalSqft, toroMix, psMix, fungSepMix, granData};
 }
 
