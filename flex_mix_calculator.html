@@ -1232,24 +1232,33 @@ function renderStep1() {
   return `
   <div class="step-title">What are you doing today?</div>
   <div class="route-cards">
-    <div class="route-card ${state.routeType==='warm'?'selected':''}" data-type="warm">
+    <div class="route-card" onclick="selectRoute('warm')">
       <span class="route-icon">🔥</span>
       <span class="route-name">Warm Season</span>
       <span class="route-sub">Full route — Bermuda & Zoysia accounts</span>
-      <div class="route-check">✓</div>
     </div>
-    <div class="route-card ${state.routeType==='cool'?'selected':''}" data-type="cool">
+    <div class="route-card" onclick="selectRoute('cool')">
       <span class="route-icon">❄️</span>
       <span class="route-name">Cool Season</span>
       <span class="route-sub">Full route — Tall Fescue accounts</span>
-      <div class="route-check">✓</div>
     </div>
-    <div class="fly-card" id="fly-card" style="border:2px solid rgba(255,200,0,0.25);background:rgba(255,200,0,0.04);border-radius:var(--radius);padding:20px 18px;cursor:pointer;transition:all 0.15s ease;">
+    <div class="fly-card" onclick="selectFly()" style="border:2px solid rgba(255,200,0,0.25);background:rgba(255,200,0,0.04);border-radius:var(--radius);padding:20px 18px;cursor:pointer;transition:all 0.15s ease;">
       <span class="route-icon">⚡</span>
       <span class="route-name" style="color:#ffc800">Mix on the Fly</span>
       <span class="route-sub">Quick calc — 1 or 2 properties, ran out of chemical</span>
     </div>
   </div>`;
+}
+
+function selectRoute(type) {
+  state.routeType = type;
+  state.screen = 'step2';
+  render();
+}
+
+function selectFly() {
+  state.screen = 'fly';
+  render();
 }
 
 function renderFly() {
@@ -1300,7 +1309,7 @@ function renderFly() {
   }
 
   return `
-  <button class="back-nav" id="back-to-home">← Back</button>
+  <button class="back-nav" onclick="state.screen='step1';render()">← Back</button>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
     <span style="font-size:24px">⚡</span>
     <div>
@@ -1686,24 +1695,7 @@ function render() {
 }
 
 function attachEvents() {
-  // Step 1
-  document.querySelectorAll('.route-card').forEach(card => {
-    card.addEventListener('click', () => {
-      state.routeType = card.dataset.type;
-      state.screen = 'step2';
-      render();
-    });
-  });
-
-  // Mix on the Fly
-  document.getElementById('fly-card')?.addEventListener('click', () => {
-    state.screen = 'fly';
-    render();
-  });
-  document.getElementById('back-to-home')?.addEventListener('click', () => {
-    state.screen = 'step1';
-    render();
-  });
+  // Step 2
   document.getElementById('fly-round-select')?.addEventListener('change', (e) => {
     const val = e.target.value;
     if (!val) { state.flyType=null; state.flyRound=null; }
