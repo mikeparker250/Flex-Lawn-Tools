@@ -1232,17 +1232,17 @@ function renderStep1() {
   return `
   <div class="step-title">What are you doing today?</div>
   <div class="route-cards">
-    <div class="route-card" data-action="route" data-type="warm">
+    <div class="route-card" onclick="selectRoute('warm')">
       <span class="route-icon">🔥</span>
       <span class="route-name">Warm Season</span>
       <span class="route-sub">Full route — Bermuda & Zoysia accounts</span>
     </div>
-    <div class="route-card" data-action="route" data-type="cool">
+    <div class="route-card" onclick="selectRoute('cool')">
       <span class="route-icon">❄️</span>
       <span class="route-name">Cool Season</span>
       <span class="route-sub">Full route — Tall Fescue accounts</span>
     </div>
-    <div class="route-card" data-action="fly" style="border-color:rgba(255,200,0,0.35);background:rgba(255,200,0,0.06)">
+    <div class="route-card" onclick="selectFly()" style="border-color:rgba(255,200,0,0.35);background:rgba(255,200,0,0.06)">
       <span class="route-icon">⚡</span>
       <span class="route-name" style="color:#ffc800">Mix on the Fly</span>
       <span class="route-sub">Quick calc — 1 or 2 properties, ran out of chemical</span>
