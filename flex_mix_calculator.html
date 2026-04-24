@@ -1680,7 +1680,7 @@ function render() {
     case 'step1': main.innerHTML = renderStep1(); break;
     case 'step2': main.innerHTML = renderStep2(); break;
     case 'step3': main.innerHTML = renderStep3(); break;
-    case 'results': main.innerHTML = renderResults(); break;
+    case 'results': main.innerHTML = renderResults(); window.scrollTo(0,0); break;
     case 'fly': main.innerHTML = renderFly(); break;
   }
 
