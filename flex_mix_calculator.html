@@ -847,6 +847,9 @@ const state = {
   isLoading:false,
   parseError:null,
   parseProgress:0,
+  flyType:null,
+  flyRound:null,
+  flySqft:0,
   apiKey: localStorage.getItem('flex_api_key') || '',
   newPropName:'',
   newPropSqft:'',
@@ -1227,26 +1230,108 @@ function renderGranCard(granData) {
 // ═══════════════════════════════════════════════════════════
 function renderStep1() {
   return `
-  <div class="step-label">STEP 1 OF 3</div>
-  <div class="step-title">What route are you running today?</div>
+  <div class="step-title">What are you doing today?</div>
   <div class="route-cards">
     <div class="route-card ${state.routeType==='warm'?'selected':''}" data-type="warm">
       <span class="route-icon">🔥</span>
       <span class="route-name">Warm Season</span>
-      <span class="route-sub">Bermuda & Zoysia accounts</span>
+      <span class="route-sub">Full route — Bermuda & Zoysia accounts</span>
       <div class="route-check">✓</div>
     </div>
     <div class="route-card ${state.routeType==='cool'?'selected':''}" data-type="cool">
       <span class="route-icon">❄️</span>
       <span class="route-name">Cool Season</span>
-      <span class="route-sub">Tall Fescue accounts</span>
+      <span class="route-sub">Full route — Tall Fescue accounts</span>
       <div class="route-check">✓</div>
+    </div>
+    <div class="route-card" id="fly-card" style="border-color:rgba(255,200,0,0.25);background:rgba(255,200,0,0.04)">
+      <span class="route-icon">⚡</span>
+      <span class="route-name" style="color:#ffc800">Mix on the Fly</span>
+      <span class="route-sub">Quick calc — 1 or 2 properties, ran out of chemical</span>
     </div>
   </div>`;
 }
 
+function renderFly() {
+  const detectedRound = detectRound();
+  const currentRound = state.flyRound || detectedRound;
+
+  const warmRoundOpts = [1,2,3,4,5,6,7].map(n =>
+    `<option value="warm_${n}" ${state.flyRound===n&&state.flyType==='warm'?'selected':''}>🔥 R${n} — ${ROUNDS.warm[n].dates}</option>`
+  ).join('');
+  const coolRoundOpts = [1,2,3,4,5,6,7].map(n =>
+    `<option value="cool_${n}" ${state.flyRound===n&&state.flyType==='cool'?'selected':''}>❄️ R${n} — ${ROUNDS.cool[n].dates}</option>`
+  ).join('');
+
+  const hasInput = state.flyType && state.flyRound && state.flySqft > 0;
+
+  let resultHTML = '';
+  if (hasInput) {
+    const props = [{name:'Fly Mix', sqft: state.flySqft, round: `R${state.flyRound}`, isRockYard:false, hasRockBeds:false, isHoseDrag:false}];
+    const section = calcRoundSection(state.flyType, state.flyRound, props);
+    if (section) {
+      const {rd, toroMix, psMix, fungSepMix, granData} = section;
+      resultHTML = `
+        <div style="margin-top:20px">
+          <div style="font-family:var(--font-display);font-weight:900;font-size:18px;margin-bottom:12px">
+            ${rd.icon} R${state.flyRound} — ${rd.name}
+            <span style="font-size:12px;font-family:var(--font-mono);color:var(--text2);font-weight:400;margin-left:8px">${state.flySqft.toLocaleString()} sqft</span>
+          </div>
+          ${renderAlerts(rd.alerts)}
+          ${rd.liquid?.tankNote ? `<div class="alert-box alert-warn">${rd.liquid.tankNote}</div>` : ''}
+          ${renderMixCard(toroMix, 'Toro SprayMaster Mix', '🚜', rd.liquid?.mixOrder)}
+          ${renderMixCard(psMix, 'Power Spray Rig Mix', '💧', rd.liquid?.mixOrder)}
+          ${rd.liquid?.note ? `<div class="alert-box alert-info">${rd.liquid.note}</div>` : ''}
+          ${fungSepMix ? `<div class="mix-card" style="border-color:rgba(0,255,71,0.35)">
+            <div class="mix-card-header" style="background:rgba(0,255,71,0.08)">
+              <span class="mix-card-icon">🍄</span>
+              <span class="mix-card-title">${fungSepMix.config.label}</span>
+            </div>
+            <div class="mix-card-body">
+              <div class="alert-box alert-info" style="margin-bottom:12px">${fungSepMix.config.note}</div>
+              ${fungSepMix.toro ? renderMixCard(fungSepMix.toro,'Toro Fungicide Pass','🚜',null) : ''}
+              ${fungSepMix.ps ? renderMixCard(fungSepMix.ps,'PS Fungicide Pass','💧',null) : ''}
+            </div></div>` : ''}
+          ${renderGranCard(granData)}
+          ${renderBGCard(rd.bg)}
+          ${!rd.liquid && !rd.granular && !rd.bg ? `<div class="alert-box alert-info">No mix required for this round.</div>` : ''}
+        </div>`;
+    }
+  }
+
+  return `
+  <button class="back-nav" id="back-to-home">← Back</button>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
+    <span style="font-size:24px">⚡</span>
+    <div>
+      <div style="font-family:var(--font-display);font-weight:900;font-size:22px;color:#ffc800">Mix on the Fly</div>
+      <div style="font-size:12px;color:var(--text2)">Quick calc — no route upload needed</div>
+    </div>
+  </div>
+
+  <div class="section-header">Select Round & Turf Type</div>
+  <select class="round-select" id="fly-round-select" style="margin-bottom:14px">
+    <option value="">-- Pick a round --</option>
+    <optgroup label="🔥 Warm Season (Bermuda / Zoysia)">${warmRoundOpts}</optgroup>
+    <optgroup label="❄️ Cool Season (Tall Fescue)">${coolRoundOpts}</optgroup>
+  </select>
+
+  <div class="section-header">Square Footage</div>
+  <div style="display:flex;gap:10px;margin-bottom:6px">
+    <input type="number" class="prop-input" id="fly-sqft" placeholder="e.g. 8500"
+      value="${state.flySqft||''}" style="flex:1;font-size:18px;padding:12px" />
+    <button class="btn btn-primary" id="fly-calc-btn" style="width:auto;padding:12px 18px" ${!hasInput?'disabled':''}>
+      Calc
+    </button>
+  </div>
+  <div style="font-size:12px;color:var(--text3);font-family:var(--font-mono);margin-bottom:20px">
+    ≥ 10,000 sqft → Toro &nbsp;|&nbsp; &lt; 10,000 sqft → Power Spray
+  </div>
+
+  ${resultHTML}`;
+}
+
 function renderStep2() {
-  const hasImages = state.images.length > 0;
   const hasKey = !!state.apiKey;
   const previewsHTML = hasImages ? `
     <div class="upload-previews">
@@ -1594,6 +1679,7 @@ function render() {
     case 'step2': main.innerHTML = renderStep2(); break;
     case 'step3': main.innerHTML = renderStep3(); break;
     case 'results': main.innerHTML = renderResults(); break;
+    case 'fly': main.innerHTML = renderFly(); break;
   }
 
   attachEvents();
@@ -1609,14 +1695,49 @@ function attachEvents() {
     });
   });
 
+  // Mix on the Fly
+  document.getElementById('fly-card')?.addEventListener('click', () => {
+    state.screen = 'fly';
+    render();
+  });
+  document.getElementById('back-to-home')?.addEventListener('click', () => {
+    state.screen = 'step1';
+    render();
+  });
+  document.getElementById('fly-round-select')?.addEventListener('change', (e) => {
+    const val = e.target.value;
+    if (!val) { state.flyType=null; state.flyRound=null; }
+    else {
+      const [type, num] = val.split('_');
+      state.flyType = type;
+      state.flyRound = parseInt(num);
+    }
+    render();
+  });
+  document.getElementById('fly-sqft')?.addEventListener('input', (e) => {
+    state.flySqft = parseInt(e.target.value) || 0;
+  });
+  document.getElementById('fly-calc-btn')?.addEventListener('click', () => {
+    state.flySqft = parseInt(document.getElementById('fly-sqft')?.value) || 0;
+    render();
+  });
+  document.getElementById('fly-sqft')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      state.flySqft = parseInt(e.target.value) || 0;
+      render();
+    }
+  });
+
   // Step 2
   document.getElementById('back-to-1')?.addEventListener('click', () => { state.screen='step1'; render(); });
   document.getElementById('file-input')?.addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
     for (const file of files) {
-      const dataUrl = await readFileAsDataURL(file);
+      let dataUrl = await readFileAsDataURL(file);
+      dataUrl = await resizeImageIfNeeded(dataUrl); // shrink if over 7500px in either dimension
       const base64 = dataUrl.split(',')[1];
-      state.images.push({name: file.name, dataUrl, base64, mime: file.type});
+      const mime = dataUrl.startsWith('data:image/jpeg') ? 'image/jpeg' : file.type;
+      state.images.push({name: file.name, dataUrl, base64, mime});
     }
     state.parseError = null;
     render();
@@ -1707,6 +1828,32 @@ function addProp() {
   }
 }
 
+// Resize image so neither dimension exceeds 7500px (Anthropic max is 8000)
+// Also compresses to JPEG to reduce payload size on tall scrolling screenshots
+function resizeImageIfNeeded(dataUrl, maxDim=7500) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const {width: w, height: h} = img;
+      if (w <= maxDim && h <= maxDim) {
+        resolve(dataUrl); // no resize needed
+        return;
+      }
+      const scale = Math.min(maxDim / w, maxDim / h);
+      const nw = Math.floor(w * scale);
+      const nh = Math.floor(h * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = nw;
+      canvas.height = nh;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, nw, nh);
+      resolve(canvas.toDataURL('image/jpeg', 0.88));
+    };
+    img.onerror = () => resolve(dataUrl); // fallback: send as-is
+    img.src = dataUrl;
+  });
+}
+
 function readFileAsDataURL(file) {
   return new Promise((res, rej) => {
     const r = new FileReader();
@@ -1722,6 +1869,7 @@ function readFileAsDataURL(file) {
 document.getElementById('restart-header-btn')?.addEventListener('click', () => {
   state.screen='step1'; state.routeType=null; state.properties=[];
   state.images=[]; state.round=null; state.parseError=null; state.parseProgress=0;
+  state.flyType=null; state.flyRound=null; state.flySqft=0;
   render();
 });
 
