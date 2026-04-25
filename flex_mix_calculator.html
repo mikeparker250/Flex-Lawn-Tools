@@ -1311,20 +1311,27 @@ function renderFly() {
   </div>
 
   <div class="section-header">Select Round & Turf Type</div>
-  <select class="round-select" id="fly-round-select" style="margin-bottom:14px">
+  <select class="round-select" id="fly-round-select" style="margin-bottom:14px"
+    onchange="
+      var val=this.value;
+      if(!val){state.flyType=null;state.flyRound=null;}
+      else{var parts=val.split('_');state.flyType=parts[0];state.flyRound=parseInt(parts[1]);}
+      render();
+    ">
     <option value="">-- Pick a round --</option>
     <optgroup label="🔥 Warm Season (Bermuda / Zoysia)">${warmRoundOpts}</optgroup>
     <optgroup label="❄️ Cool Season (Tall Fescue)">${coolRoundOpts}</optgroup>
   </select>
 
   <div class="section-header">Square Footage</div>
-  <div style="display:flex;gap:10px;margin-bottom:6px">
-    <input type="number" class="prop-input" id="fly-sqft" placeholder="e.g. 8500"
-      value="${state.flySqft||''}" style="flex:1;font-size:18px;padding:12px" />
-    <button class="btn btn-primary" id="fly-calc-btn" style="width:auto;padding:12px 18px" ${!hasInput?'disabled':''}>
-      Calc
-    </button>
-  </div>
+  <input type="number" class="prop-input" id="fly-sqft" placeholder="e.g. 8500"
+    value="${state.flySqft||''}"
+    style="width:100%;font-size:18px;padding:12px;margin-bottom:10px"
+    onkeypress="if(event.key==='Enter'){state.flySqft=parseInt(this.value)||0;render();}" />
+  <button class="btn btn-primary" style="margin-bottom:6px"
+    onclick="state.flySqft=parseInt(document.getElementById('fly-sqft').value)||0;render();">
+    ⚡ Calculate Mix
+  </button>
   <div style="font-size:12px;color:var(--text3);font-family:var(--font-mono);margin-bottom:20px">
     ≥ 10,000 sqft → Toro &nbsp;|&nbsp; &lt; 10,000 sqft → Power Spray
   </div>
@@ -1689,30 +1696,6 @@ function render() {
 
 function attachEvents() {
   // Step 2
-  document.getElementById('fly-round-select')?.addEventListener('change', (e) => {
-    const val = e.target.value;
-    if (!val) { state.flyType=null; state.flyRound=null; }
-    else {
-      const [type, num] = val.split('_');
-      state.flyType = type;
-      state.flyRound = parseInt(num);
-    }
-    render();
-  });
-  document.getElementById('fly-sqft')?.addEventListener('input', (e) => {
-    state.flySqft = parseInt(e.target.value) || 0;
-  });
-  document.getElementById('fly-calc-btn')?.addEventListener('click', () => {
-    state.flySqft = parseInt(document.getElementById('fly-sqft')?.value) || 0;
-    render();
-  });
-  document.getElementById('fly-sqft')?.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      state.flySqft = parseInt(e.target.value) || 0;
-      render();
-    }
-  });
-
   // Step 2
   document.getElementById('back-to-1')?.addEventListener('click', () => { state.screen='step1'; render(); });
   document.getElementById('file-input')?.addEventListener('change', async (e) => {
