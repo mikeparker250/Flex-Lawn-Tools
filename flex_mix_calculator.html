@@ -649,9 +649,42 @@ function invBadge(productName) {
   return `<span style="font-size:10px;font-family:var(--font-mono);color:${color};margin-left:8px;white-space:nowrap">${label}</span>`;
 }
 
-// ═══════════════════════════════════════════════════════════
-//  ROUND DATA
-// ═══════════════════════════════════════════════════════════
+function getProductsForRound(routeType, roundNum) {
+  const rd = ROUNDS[routeType] && ROUNDS[routeType][roundNum];
+  if (!rd) return new Set();
+  const names = new Set();
+  // Liquid products
+  if (rd.liquid && rd.liquid.products) {
+    rd.liquid.products.forEach(p => names.add(p.name.replace(/\s*⚠️.*$/, '').trim()));
+  }
+  // Fungicide separate pass
+  if (rd.liquid && rd.liquid.fungSep && rd.liquid.fungSep.products) {
+    rd.liquid.fungSep.products.forEach(p => names.add(p.name.replace(/\s*⚠️.*$/, '').trim()));
+  }
+  // BG / spot spray
+  if (rd.bg) {
+    rd.bg.forEach(p => { if (p.name) names.add(p.name.replace(/\s*⚠️.*$/, '').trim()); });
+  }
+  // Granular
+  if (rd.granular && rd.granular.product) names.add(rd.granular.product);
+  return names;
+}
+
+function getNextRoundNum(currentRound) {
+  return currentRound < 7 ? currentRound + 1 : null;
+}
+
+function daysUntilNextRound(currentRound) {
+  // Round start dates as [month, day]
+  const starts = { 1:[1,25], 2:[3,1], 3:[4,15], 4:[6,1], 5:[8,1], 6:[9,16], 7:[10,16] };
+  const nextRound = getNextRoundNum(currentRound);
+  if (!nextRound) return null;
+  const [m, d] = starts[nextRound];
+  const now = new Date();
+  const nextStart = new Date(now.getFullYear(), m - 1, d);
+  if (nextStart < now) nextStart.setFullYear(now.getFullYear() + 1);
+  return Math.ceil((nextStart - now) / (1000 * 60 * 60 * 24));
+}
 const ROUNDS = {
   warm: {
     1: {
@@ -1711,41 +1744,83 @@ function renderResults() {
     }
   }
 
-  // Inventory status banner
+  // Round-aware inventory banner
   let invBanner = '';
   if (_invReady) {
-    const outItems = [], lowItems = [];
-    const knownProducts = new Set(Object.keys(REORDER_THRESHOLDS));
+    const currentRound = detectRound();
+    const nextRound = currentRound ? getNextRoundNum(currentRound) : null;
+    const daysToNext = currentRound ? daysUntilNextRound(currentRound) : null;
+    const showNextRound = daysToNext !== null && daysToNext <= 15;
+
+    // Get products relevant to current round (both route types if mixed, else just state.routeType)
+    const currentProducts = currentRound
+      ? getProductsForRound(state.routeType, currentRound)
+      : new Set();
+    const nextProducts = (showNextRound && nextRound)
+      ? getProductsForRound(state.routeType, nextRound)
+      : new Set();
+
+    const currentOut = [], currentLow = [];
+    const nextOut = [], nextLow = [];
+
     for (const [name, item] of Object.entries(_invData)) {
-      if (!knownProducts.has(name)) continue; // skip products not used in mix calc
-      const t = REORDER_THRESHOLDS[name];
+      const cleanName = name.replace(/\s*⚠️.*$/, '').trim();
       const qty = Number(item.quantity);
-      if (qty === 0) outItems.push(name);
-      else if (t !== undefined && qty <= t) lowItems.push({name, qty, unit: item.unit});
+      const t = REORDER_THRESHOLDS[cleanName];
+
+      if (currentProducts.has(cleanName)) {
+        if (qty === 0) currentOut.push(cleanName);
+        else if (t !== undefined && qty <= t) currentLow.push({name: cleanName, qty, unit: item.unit});
+      } else if (showNextRound && nextProducts.has(cleanName)) {
+        if (qty === 0) nextOut.push(cleanName);
+        else if (t !== undefined && qty <= t) nextLow.push({name: cleanName, qty, unit: item.unit});
+      }
     }
-    if (outItems.length || lowItems.length) {
-      const outRows = outItems.map(name =>
-        `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,59,48,0.15)">
-          <span style="font-size:13px;color:var(--text)">${name}</span>
-          <span style="font-size:11px;font-family:var(--font-mono);color:#ff3b30;font-weight:700;white-space:nowrap;margin-left:8px">🚨 OUT</span>
-        </div>`).join('');
-      const lowRows = lowItems.map(({name, qty, unit}) =>
-        `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,140,0,0.15)">
-          <span style="font-size:13px;color:var(--text)">${name}</span>
-          <span style="font-size:11px;font-family:var(--font-mono);color:#ff8c00;font-weight:700;white-space:nowrap;margin-left:8px">⚠️ ${qty} ${unit} left</span>
-        </div>`).join('');
-      const outSection = outItems.length ? `
-        <div style="font-size:10px;font-family:var(--font-mono);color:#ff3b30;letter-spacing:1px;font-weight:700;margin-bottom:4px">OUT OF STOCK — ORDER NOW</div>
-        ${outRows}` : '';
-      const lowSection = lowItems.length ? `
-        <div style="font-size:10px;font-family:var(--font-mono);color:#ff8c00;letter-spacing:1px;font-weight:700;margin-top:${outItems.length?12:0}px;margin-bottom:4px">LOW STOCK — MONITOR</div>
-        ${lowRows}` : '';
-      invBanner = `<div style="background:rgba(255,59,48,0.07);border:1px solid rgba(255,59,48,0.25);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px">${outSection}${lowSection}</div>`;
-    } else if (Object.keys(_invData).length > 0) {
-      invBanner = `<div style="background:rgba(0,255,71,0.06);border:1px solid rgba(0,255,71,0.2);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;font-family:var(--font-mono);color:var(--green)">✓ ALL PRODUCTS IN STOCK</div>`;
+
+    const hasCurrentIssues = currentOut.length || currentLow.length;
+    const hasNextIssues = nextOut.length || nextLow.length;
+
+    if (!hasCurrentIssues && !hasNextIssues) {
+      invBanner = `<div style="background:rgba(0,255,71,0.06);border:1px solid rgba(0,255,71,0.2);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;font-family:var(--font-mono);color:var(--green)">✓ ALL PRODUCTS IN STOCK FOR THIS ROUND</div>`;
+    } else {
+      const makeRows = (outList, lowList, borderColor) => {
+        const outRows = outList.map(name =>
+          `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid ${borderColor}15">
+            <span style="font-size:13px;color:var(--text)">${name}</span>
+            <span style="font-size:11px;font-family:var(--font-mono);color:#ff3b30;font-weight:700;white-space:nowrap;margin-left:8px">🚨 OUT</span>
+          </div>`).join('');
+        const lowRows = lowList.map(({name, qty, unit}) =>
+          `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid ${borderColor}15">
+            <span style="font-size:13px;color:var(--text)">${name}</span>
+            <span style="font-size:11px;font-family:var(--font-mono);color:#ff8c00;font-weight:700;white-space:nowrap;margin-left:8px">⚠️ ${qty} ${unit}</span>
+          </div>`).join('');
+        return outRows + lowRows;
+      };
+
+      let bannerHTML = '';
+
+      if (hasCurrentIssues) {
+        const label = currentRound ? `R${currentRound} — CURRENT ROUND` : 'CURRENT ROUND';
+        bannerHTML += `
+          <div style="background:rgba(255,59,48,0.07);border:1px solid rgba(255,59,48,0.25);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px">
+            <div style="font-size:10px;font-family:var(--font-mono);color:#ff3b30;letter-spacing:1px;font-weight:700;margin-bottom:8px">${label}</div>
+            ${makeRows(currentOut, currentLow, '#ff3b30')}
+          </div>`;
+      }
+
+      if (hasNextIssues) {
+        const label = `R${nextRound} STARTS IN ${daysToNext} DAYS — ORDER NOW`;
+        bannerHTML += `
+          <div style="background:rgba(255,140,0,0.07);border:1px solid rgba(255,140,0,0.25);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px">
+            <div style="font-size:10px;font-family:var(--font-mono);color:#ff8c00;letter-spacing:1px;font-weight:700;margin-bottom:8px">${label}</div>
+            ${makeRows(nextOut, nextLow, '#ff8c00')}
+          </div>`;
+      }
+
+      invBanner = bannerHTML;
     }
   } else {
-    invBanner = `<div class="alert-box alert-info" style="margin-bottom:14px;font-size:12px;color:var(--text3)">⏳ Loading inventory...</div>`;
+    invBanner = `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;font-family:var(--font-mono);color:var(--text3)">⏳ Loading inventory...</div>`;
   }
 
   return `
