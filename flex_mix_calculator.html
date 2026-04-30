@@ -11,6 +11,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black" />
 <meta name="apple-mobile-web-app-title" content="Flex Mix" />
 <link rel="apple-touch-icon" href="icon-512.png" />
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
@@ -562,115 +564,6 @@ header h1 {
   </footer>
 </div>
 
-<script type="module">
-// ═══════════════════════════════════════════════════════════
-//  FIREBASE INVENTORY
-// ═══════════════════════════════════════════════════════════
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getFirestore, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDN3u0nbpzieEYUttijra2L0jSdHrbT7C4",
-  authDomain: "premium-inventory-app.firebaseapp.com",
-  projectId: "premium-inventory-app",
-  storageBucket: "premium-inventory-app.firebasestorage.app",
-  messagingSenderId: "772974811893",
-  appId: "1:772974811893:web:874fc41ab5802b0e4683bc"
-};
-
-const WAREHOUSE_ID = 'J29nPerDyPRDoVqg1Wsf';
-
-const REORDER_THRESHOLDS = {
-  'Stonewall 4L (Prodiamine)': 2.5,
-  'Three-Way': 2.5,
-  '90/10 NIS': 2.5,
-  'Simazine': 2.5,
-  'Atrazine': 2.5,
-  'Prodiamine 65 WDG': 2,
-  'Triad Select': 2.5,
-  'Quin-Way 1.5L': 2.5,
-  'MSO': 2.5,
-  'LESCO 24-0-11 w/ 2% Fe + PolyPlus': 1,
-  'Terra Ally TA 22-0-0': 2.5,
-  'Artavia SC (Azoxystrobin)': 1,
-  'Celsius WG': 10,
-  'Ambition': 8,
-  'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe': 1,
-  'Propiconazole 14.3': 1,
-  'LESCO 5-0-25 w/ 10% Fe': 1,
-  'Specticle FLO': 10,
-  'LESCO 18-0-9 w/ 2% Fe': 1,
-  'Ranger Pro 41% Glyphosate': 2.5,
-};
-
-let fbApp, db;
-let inventoryCache = null; // { productName -> {quantity, unit} }
-
-function initFirebase() {
-  if (fbApp) return;
-  try {
-    fbApp = initializeApp(FIREBASE_CONFIG);
-    db = getFirestore(fbApp);
-  } catch(e) {
-    console.warn('Firebase init failed:', e);
-  }
-}
-
-async function loadInventory() {
-  if (inventoryCache) return inventoryCache;
-  initFirebase();
-  if (!db) return {};
-  try {
-    const q = query(
-      collection(db, 'companies', '940AB322-F85A-4883-8EBA-C151A88F3AD9', 'warehouses', WAREHOUSE_ID, 'inventory'),
-      where('category', '==', 'Lawn Products')
-    );
-    const snap = await getDocs(q);
-    const map = {};
-    snap.forEach(doc => {
-      const d = doc.data();
-      if (d.name) map[d.name] = { quantity: d.quantity ?? 0, unit: d.unit ?? '' };
-    });
-    inventoryCache = map;
-    return map;
-  } catch(e) {
-    console.warn('Inventory load failed:', e);
-    return {};
-  }
-}
-
-function invBadge(productName, inv) {
-  // Normalize name — strip emoji and trailing notes for lookup
-  const cleanName = productName.replace(/⚠️.*$/, '').trim();
-  const item = inv[cleanName];
-  if (!item) return '';
-  const qty = item.quantity;
-  const unit = item.unit;
-  const threshold = REORDER_THRESHOLDS[cleanName];
-  const isLow = threshold !== undefined && qty <= threshold;
-  const color = qty === 0 ? '#ff3b30' : isLow ? '#ff8c00' : '#00ff47';
-  const label = qty === 0 ? '🚨 OUT' : isLow ? `⚠️ LOW: ${qty} ${unit}` : `✓ ${qty} ${unit}`;
-  return `<span style="font-size:10px;font-family:var(--font-mono);color:${color};margin-left:6px;white-space:nowrap">${label}</span>`;
-}
-
-// Expose to window so non-module code can call it
-window.loadInventory = loadInventory;
-window.invBadge = invBadge;
-window._inventoryReady = false;
-window._inventoryData = {};
-
-// Pre-load inventory immediately on app start
-loadInventory().then(inv => {
-  window._inventoryData = inv;
-  window._inventoryReady = true;
-  // Re-render if on results screen so badges appear
-  if (window._appState && window._appState.screen === 'results') {
-    window._renderFn && window._renderFn();
-  }
-});
-
-</script>
-
 <script>
 // ═══════════════════════════════════════════════════════════
 //  CONSTANTS
@@ -679,6 +572,82 @@ const TORO_OUT = 0.34;   // gal / 1,000 sqft
 const PS_OUT   = 1.14;   // gal / 1,000 sqft
 const GATE     = 10000;  // sqft: ≥ this → Toro, < this → Power Spray
 const BUFFER   = 5000;   // sqft buffer deducted from primary equipment total
+
+// ═══════════════════════════════════════════════════════════
+//  FIREBASE INVENTORY
+// ═══════════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDN3u0nbpzieEYUttijra2L0jSdHrbT7C4",
+  authDomain: "premium-inventory-app.firebaseapp.com",
+  projectId: "premium-inventory-app",
+  storageBucket: "premium-inventory-app.firebasestorage.app",
+  messagingSenderId: "772974811893",
+  appId: "1:772974811893:web:874fc41ab5802b0e4683bc"
+};
+const WAREHOUSE_ID = 'J29nPerDyPRDoVqg1Wsf';
+const REORDER_THRESHOLDS = {
+  'Stonewall 4L (Prodiamine)':2.5, 'Three-Way':2.5, '90/10 NIS':2.5,
+  'Simazine':2.5, 'Atrazine':2.5, 'Prodiamine 65 WDG':2,
+  'Triad Select':2.5, 'Quin-Way 1.5L':2.5, 'MSO':2.5,
+  'LESCO 24-0-11 w/ 2% Fe + PolyPlus':1, 'Terra Ally TA 22-0-0':2.5,
+  'Artavia SC (Azoxystrobin)':1, 'Celsius WG':10, 'Ambition':8,
+  'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe':1, 'Propiconazole 14.3':1,
+  'LESCO 5-0-25 w/ 10% Fe':1, 'Specticle FLO':10,
+  'LESCO 18-0-9 w/ 2% Fe':1, 'Ranger Pro 41% Glyphosate':2.5,
+};
+
+let _invData = {};
+let _invReady = false;
+let _fbDb = null;
+
+function initFirebase() {
+  if (_fbDb) return _fbDb;
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    _fbDb = firebase.firestore();
+  } catch(e) { console.warn('Firebase init error:', e); }
+  return _fbDb;
+}
+
+async function loadInventory() {
+  const db = initFirebase();
+  if (!db) return;
+  try {
+    const snap = await db
+      .collection('companies')
+      .doc('940AB322-F85A-4883-8EBA-C151A88F3AD9')
+      .collection('warehouses')
+      .doc(WAREHOUSE_ID)
+      .collection('inventory')
+      .get();
+    const map = {};
+    snap.forEach(doc => {
+      const d = doc.data();
+      if (d.name && d.category === 'Lawn Products') map[d.name] = { quantity: d.quantity ?? 0, unit: d.unit ?? '' };
+    });
+    _invData = map;
+    _invReady = true;
+    console.log('Inventory loaded:', Object.keys(map).length, 'products');
+    // Re-render results screen to show badges
+    if (typeof state !== 'undefined' && state.screen === 'results') render();
+  } catch(e) {
+    console.warn('Inventory load failed:', e);
+    _invReady = true; // mark ready even on error so we don't show spinner forever
+  }
+}
+
+function invBadge(productName) {
+  const cleanName = productName.replace(/\s*⚠️.*$/, '').trim();
+  const item = _invData[cleanName];
+  if (!item) return '';
+  const qty = Number(item.quantity);
+  const unit = item.unit;
+  const t = REORDER_THRESHOLDS[cleanName];
+  const isLow = t !== undefined && qty <= t;
+  const color = qty === 0 ? '#ff3b30' : isLow ? '#ff8c00' : '#00ff47';
+  const label = qty === 0 ? '🚨 OUT' : isLow ? `⚠️ LOW: ${qty} ${unit}` : `✓ ${qty} ${unit}`;
+  return `<span style="font-size:10px;font-family:var(--font-mono);color:${color};margin-left:8px;white-space:nowrap">${label}</span>`;
+}
 
 // ═══════════════════════════════════════════════════════════
 //  ROUND DATA
@@ -947,8 +916,6 @@ const ROUNDS = {
 // ═══════════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════════
-window._appState = null; // set after state init
-window._renderFn = null; // set after render defined
 const state = {
   screen:'step1',
   routeType:null,
@@ -965,7 +932,6 @@ const state = {
   newPropName:'',
   newPropSqft:'',
 };
-window._appState = state;
 
 function detectRound() {
   const d = new Date();
@@ -1231,7 +1197,7 @@ function renderMixCard(mix, title, icon, extraNote) {
         ${p.name}
         ${p.cond ? `<span class="cond-note">⚠️ ${p.condNote}</span>` : ''}
         ${p.note ? `<span class="cond-note">${p.note}</span>` : ''}
-        ${window.invBadge ? window.invBadge(p.name, inv) : ''}
+        ${invBadge(p.name)}
       </div>
       <div>
         <span class="product-amount">${fmtOz(p.amt, p.unit)}</span>
@@ -1275,7 +1241,7 @@ function renderBGCard(items) {
         <div class="product-name">
           ${item.name}
           ${item.note ? `<span class="cond-note">${item.note}</span>` : ''}
-          ${window.invBadge ? window.invBadge(item.name, inv) : ''}
+          ${invBadge(item.name)}
         </div>
         <div class="product-amount">${item.amount}</div>
       </div>`;
@@ -1747,28 +1713,19 @@ function renderResults() {
 
   // Inventory status banner
   let invBanner = '';
-  if (window._inventoryReady) {
-    const inv = window._inventoryData || {};
+  if (_invReady) {
     const outItems = [], lowItems = [];
-    const thresholds = {
-      'Stonewall 4L (Prodiamine)':2.5,'Three-Way':2.5,'90/10 NIS':2.5,'Simazine':2.5,
-      'Atrazine':2.5,'Prodiamine 65 WDG':2,'Triad Select':2.5,'Quin-Way 1.5L':2.5,
-      'MSO':2.5,'LESCO 24-0-11 w/ 2% Fe + PolyPlus':1,'Terra Ally TA 22-0-0':2.5,
-      'Artavia SC (Azoxystrobin)':1,'Celsius WG':10,'Ambition':8,
-      'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe':1,'Propiconazole 14.3':1,
-      'LESCO 5-0-25 w/ 10% Fe':1,'Specticle FLO':10,'LESCO 18-0-9 w/ 2% Fe':1,
-      'Ranger Pro 41% Glyphosate':2.5
-    };
-    for (const [name, item] of Object.entries(inv)) {
-      const t = thresholds[name];
-      if (item.quantity === 0) outItems.push(name);
-      else if (t !== undefined && item.quantity <= t) lowItems.push(`${name} (${item.quantity} ${item.unit})`);
+    for (const [name, item] of Object.entries(_invData)) {
+      const t = REORDER_THRESHOLDS[name];
+      const qty = Number(item.quantity);
+      if (qty === 0) outItems.push(name);
+      else if (t !== undefined && qty <= t) lowItems.push(`${name} (${qty} ${item.unit})`);
     }
     if (outItems.length || lowItems.length) {
       const outHTML = outItems.length ? `<div style="font-weight:700;margin-bottom:4px">🚨 OUT OF STOCK — Order before route:<br>${outItems.join(' · ')}</div>` : '';
       const lowHTML = lowItems.length ? `<div style="margin-top:${outItems.length?6:0}px">⚠️ LOW STOCK — Monitor closely:<br>${lowItems.join(' · ')}</div>` : '';
       invBanner = `<div class="alert-box alert-danger" style="margin-bottom:14px;font-size:12px;line-height:1.6">${outHTML}${lowHTML}</div>`;
-    } else {
+    } else if (Object.keys(_invData).length > 0) {
       invBanner = `<div class="alert-box alert-info" style="margin-bottom:14px;font-size:12px">✓ All lawn products in stock</div>`;
     }
   } else {
@@ -1820,7 +1777,6 @@ function renderLoading() {
 function render() {
   const main = document.getElementById('main-content');
   if (!main) return;
-  window._renderFn = render;
 
   if (state.isLoading) { main.innerHTML = renderLoading(); return; }
 
@@ -2121,6 +2077,7 @@ window.addEventListener('error', (e) => {
 // ═══════════════════════════════════════════════════════════
 try {
   render();
+  loadInventory(); // fire after first render — non-blocking
 } catch(e) {
   const main = document.getElementById('main-content');
   if (main) main.innerHTML = `<div style="padding:20px;color:#ff3b30;font-family:monospace;font-size:13px;line-height:1.6">
