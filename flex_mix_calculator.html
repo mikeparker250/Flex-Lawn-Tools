@@ -562,6 +562,115 @@ header h1 {
   </footer>
 </div>
 
+<script type="module">
+// ═══════════════════════════════════════════════════════════
+//  FIREBASE INVENTORY
+// ═══════════════════════════════════════════════════════════
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getFirestore, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDN3u0nbpzieEYUttijra2L0jSdHrbT7C4",
+  authDomain: "premium-inventory-app.firebaseapp.com",
+  projectId: "premium-inventory-app",
+  storageBucket: "premium-inventory-app.firebasestorage.app",
+  messagingSenderId: "772974811893",
+  appId: "1:772974811893:web:874fc41ab5802b0e4683bc"
+};
+
+const WAREHOUSE_ID = 'J29nPerDyPRDoVqg1Wsf';
+
+const REORDER_THRESHOLDS = {
+  'Stonewall 4L (Prodiamine)': 2.5,
+  'Three-Way': 2.5,
+  '90/10 NIS': 2.5,
+  'Simazine': 2.5,
+  'Atrazine': 2.5,
+  'Prodiamine 65 WDG': 2,
+  'Triad Select': 2.5,
+  'Quin-Way 1.5L': 2.5,
+  'MSO': 2.5,
+  'LESCO 24-0-11 w/ 2% Fe + PolyPlus': 1,
+  'Terra Ally TA 22-0-0': 2.5,
+  'Artavia SC (Azoxystrobin)': 1,
+  'Celsius WG': 10,
+  'Ambition': 8,
+  'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe': 1,
+  'Propiconazole 14.3': 1,
+  'LESCO 5-0-25 w/ 10% Fe': 1,
+  'Specticle FLO': 10,
+  'LESCO 18-0-9 w/ 2% Fe': 1,
+  'Ranger Pro 41% Glyphosate': 2.5,
+};
+
+let fbApp, db;
+let inventoryCache = null; // { productName -> {quantity, unit} }
+
+function initFirebase() {
+  if (fbApp) return;
+  try {
+    fbApp = initializeApp(FIREBASE_CONFIG);
+    db = getFirestore(fbApp);
+  } catch(e) {
+    console.warn('Firebase init failed:', e);
+  }
+}
+
+async function loadInventory() {
+  if (inventoryCache) return inventoryCache;
+  initFirebase();
+  if (!db) return {};
+  try {
+    const q = query(
+      collection(db, 'companies', '940AB322-F85A-4883-8EBA-C151A88F3AD9', 'warehouses', WAREHOUSE_ID, 'inventory'),
+      where('category', '==', 'Lawn Products')
+    );
+    const snap = await getDocs(q);
+    const map = {};
+    snap.forEach(doc => {
+      const d = doc.data();
+      if (d.name) map[d.name] = { quantity: d.quantity ?? 0, unit: d.unit ?? '' };
+    });
+    inventoryCache = map;
+    return map;
+  } catch(e) {
+    console.warn('Inventory load failed:', e);
+    return {};
+  }
+}
+
+function invBadge(productName, inv) {
+  // Normalize name — strip emoji and trailing notes for lookup
+  const cleanName = productName.replace(/⚠️.*$/, '').trim();
+  const item = inv[cleanName];
+  if (!item) return '';
+  const qty = item.quantity;
+  const unit = item.unit;
+  const threshold = REORDER_THRESHOLDS[cleanName];
+  const isLow = threshold !== undefined && qty <= threshold;
+  const color = qty === 0 ? '#ff3b30' : isLow ? '#ff8c00' : '#00ff47';
+  const label = qty === 0 ? '🚨 OUT' : isLow ? `⚠️ LOW: ${qty} ${unit}` : `✓ ${qty} ${unit}`;
+  return `<span style="font-size:10px;font-family:var(--font-mono);color:${color};margin-left:6px;white-space:nowrap">${label}</span>`;
+}
+
+// Expose to window so non-module code can call it
+window.loadInventory = loadInventory;
+window.invBadge = invBadge;
+window._inventoryReady = false;
+window._inventoryData = {};
+
+// Pre-load inventory immediately on app start
+loadInventory().then(inv => {
+  window._inventoryData = inv;
+  window._inventoryReady = true;
+  // Re-render if on results screen so badges appear
+  if (window._appState && window._appState.screen === 'results') {
+    window._renderFn && window._renderFn();
+  }
+});
+
+</script>
+
 <script>
 // ═══════════════════════════════════════════════════════════
 //  CONSTANTS
@@ -838,6 +947,8 @@ const ROUNDS = {
 // ═══════════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════════
+window._appState = null; // set after state init
+window._renderFn = null; // set after render defined
 const state = {
   screen:'step1',
   routeType:null,
@@ -854,6 +965,7 @@ const state = {
   newPropName:'',
   newPropSqft:'',
 };
+window._appState = state;
 
 function detectRound() {
   const d = new Date();
@@ -1112,12 +1224,14 @@ function renderMixCard(mix, title, icon, extraNote) {
   const equipColor = isPS ? '#64b4ff' : 'var(--green)';
   const bufNote = mix.buf > 0 ? `<span style="color:var(--text3);font-size:12px">  (−${mix.buf.toLocaleString()} sqft buffer)</span>` : '';
 
+  const inv = window._inventoryData || {};
   const prodsHTML = mix.products.map(p => `
     <div class="product-row">
       <div class="product-name">
         ${p.name}
         ${p.cond ? `<span class="cond-note">⚠️ ${p.condNote}</span>` : ''}
         ${p.note ? `<span class="cond-note">${p.note}</span>` : ''}
+        ${window.invBadge ? window.invBadge(p.name, inv) : ''}
       </div>
       <div>
         <span class="product-amount">${fmtOz(p.amt, p.unit)}</span>
@@ -1152,6 +1266,7 @@ function renderMixCard(mix, title, icon, extraNote) {
 
 function renderBGCard(items) {
   if (!items || !items.length) return '';
+  const inv = window._inventoryData || {};
   const rows = items.map(item => {
     if (item.sep) return `<div class="bg-separator">${item.label}</div>`;
     if (item.infoOnly) return `<div class="info-row" style="padding:8px 0">${item.note}</div>`;
@@ -1160,6 +1275,7 @@ function renderBGCard(items) {
         <div class="product-name">
           ${item.name}
           ${item.note ? `<span class="cond-note">${item.note}</span>` : ''}
+          ${window.invBadge ? window.invBadge(item.name, inv) : ''}
         </div>
         <div class="product-amount">${item.amount}</div>
       </div>`;
@@ -1311,27 +1427,20 @@ function renderFly() {
   </div>
 
   <div class="section-header">Select Round & Turf Type</div>
-  <select class="round-select" id="fly-round-select" style="margin-bottom:14px"
-    onchange="
-      var val=this.value;
-      if(!val){state.flyType=null;state.flyRound=null;}
-      else{var parts=val.split('_');state.flyType=parts[0];state.flyRound=parseInt(parts[1]);}
-      render();
-    ">
+  <select class="round-select" id="fly-round-select" style="margin-bottom:14px">
     <option value="">-- Pick a round --</option>
     <optgroup label="🔥 Warm Season (Bermuda / Zoysia)">${warmRoundOpts}</optgroup>
     <optgroup label="❄️ Cool Season (Tall Fescue)">${coolRoundOpts}</optgroup>
   </select>
 
   <div class="section-header">Square Footage</div>
-  <input type="number" class="prop-input" id="fly-sqft" placeholder="e.g. 8500"
-    value="${state.flySqft||''}"
-    style="width:100%;font-size:18px;padding:12px;margin-bottom:10px"
-    onkeypress="if(event.key==='Enter'){state.flySqft=parseInt(this.value)||0;render();}" />
-  <button class="btn btn-primary" style="margin-bottom:6px"
-    onclick="state.flySqft=parseInt(document.getElementById('fly-sqft').value)||0;render();">
-    ⚡ Calculate Mix
-  </button>
+  <div style="display:flex;gap:10px;margin-bottom:6px">
+    <input type="number" class="prop-input" id="fly-sqft" placeholder="e.g. 8500"
+      value="${state.flySqft||''}" style="flex:1;font-size:18px;padding:12px" />
+    <button class="btn btn-primary" id="fly-calc-btn" style="width:auto;padding:12px 18px" ${!hasInput?'disabled':''}>
+      Calc
+    </button>
+  </div>
   <div style="font-size:12px;color:var(--text3);font-family:var(--font-mono);margin-bottom:20px">
     ≥ 10,000 sqft → Toro &nbsp;|&nbsp; &lt; 10,000 sqft → Power Spray
   </div>
@@ -1636,6 +1745,36 @@ function renderResults() {
     }
   }
 
+  // Inventory status banner
+  let invBanner = '';
+  if (window._inventoryReady) {
+    const inv = window._inventoryData || {};
+    const outItems = [], lowItems = [];
+    const thresholds = {
+      'Stonewall 4L (Prodiamine)':2.5,'Three-Way':2.5,'90/10 NIS':2.5,'Simazine':2.5,
+      'Atrazine':2.5,'Prodiamine 65 WDG':2,'Triad Select':2.5,'Quin-Way 1.5L':2.5,
+      'MSO':2.5,'LESCO 24-0-11 w/ 2% Fe + PolyPlus':1,'Terra Ally TA 22-0-0':2.5,
+      'Artavia SC (Azoxystrobin)':1,'Celsius WG':10,'Ambition':8,
+      'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe':1,'Propiconazole 14.3':1,
+      'LESCO 5-0-25 w/ 10% Fe':1,'Specticle FLO':10,'LESCO 18-0-9 w/ 2% Fe':1,
+      'Ranger Pro 41% Glyphosate':2.5
+    };
+    for (const [name, item] of Object.entries(inv)) {
+      const t = thresholds[name];
+      if (item.quantity === 0) outItems.push(name);
+      else if (t !== undefined && item.quantity <= t) lowItems.push(`${name} (${item.quantity} ${item.unit})`);
+    }
+    if (outItems.length || lowItems.length) {
+      const outHTML = outItems.length ? `<div style="font-weight:700;margin-bottom:4px">🚨 OUT OF STOCK — Order before route:<br>${outItems.join(' · ')}</div>` : '';
+      const lowHTML = lowItems.length ? `<div style="margin-top:${outItems.length?6:0}px">⚠️ LOW STOCK — Monitor closely:<br>${lowItems.join(' · ')}</div>` : '';
+      invBanner = `<div class="alert-box alert-danger" style="margin-bottom:14px;font-size:12px;line-height:1.6">${outHTML}${lowHTML}</div>`;
+    } else {
+      invBanner = `<div class="alert-box alert-info" style="margin-bottom:14px;font-size:12px">✓ All lawn products in stock</div>`;
+    }
+  } else {
+    invBanner = `<div class="alert-box alert-info" style="margin-bottom:14px;font-size:12px;color:var(--text3)">⏳ Loading inventory...</div>`;
+  }
+
   return `
   <button class="back-nav" id="back-to-3">← Edit Properties</button>
   <div class="results-header">
@@ -1659,6 +1798,7 @@ function renderResults() {
       <div class="mix-meta-value">${sections.filter(s=>s.type==='round'||s.type==='reservice').length}</div>
     </div>
   </div>
+  ${invBanner}
   ${content}
   <div class="btn-row" style="margin-top:16px">
     <button class="btn btn-secondary" id="restart-btn">↩ Start New Route</button>
@@ -1680,6 +1820,7 @@ function renderLoading() {
 function render() {
   const main = document.getElementById('main-content');
   if (!main) return;
+  window._renderFn = render;
 
   if (state.isLoading) { main.innerHTML = renderLoading(); return; }
 
@@ -1696,6 +1837,30 @@ function render() {
 
 function attachEvents() {
   // Step 2
+  document.getElementById('fly-round-select')?.addEventListener('change', (e) => {
+    const val = e.target.value;
+    if (!val) { state.flyType=null; state.flyRound=null; }
+    else {
+      const [type, num] = val.split('_');
+      state.flyType = type;
+      state.flyRound = parseInt(num);
+    }
+    render();
+  });
+  document.getElementById('fly-sqft')?.addEventListener('input', (e) => {
+    state.flySqft = parseInt(e.target.value) || 0;
+  });
+  document.getElementById('fly-calc-btn')?.addEventListener('click', () => {
+    state.flySqft = parseInt(document.getElementById('fly-sqft')?.value) || 0;
+    render();
+  });
+  document.getElementById('fly-sqft')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      state.flySqft = parseInt(e.target.value) || 0;
+      render();
+    }
+  });
+
   // Step 2
   document.getElementById('back-to-1')?.addEventListener('click', () => { state.screen='step1'; render(); });
   document.getElementById('file-input')?.addEventListener('change', async (e) => {
