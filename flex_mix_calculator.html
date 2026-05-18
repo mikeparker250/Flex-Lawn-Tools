@@ -594,6 +594,8 @@ const REORDER_THRESHOLDS = {
   'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe':1, 'Propiconazole 14.3':1,
   'LESCO 5-0-25 w/ 10% Fe':1, 'Specticle FLO':10,
   'LESCO 18-0-9 w/ 2% Fe':1, 'Ranger Pro 41% Glyphosate':2.5,
+  'Dismiss (sulfentrazone)':1, 'Revolver':1, 'Manuscript (fluazifop)':1, 'MSO Adigor':2.5,
+  'Eliminate D':1, 'Turflon Ester 4E':1,
 };
 
 let _invData = {};
@@ -665,6 +667,10 @@ function getProductsForRound(routeType, roundNum) {
   if (rd.bg) {
     rd.bg.forEach(p => { if (p.name) names.add(p.name.replace(/\s*⚠️.*$/, '').trim()); });
   }
+  // BG2 / dallisgrass sprayer
+  if (rd.bg2) {
+    rd.bg2.forEach(p => { if (p.name) names.add(p.name.replace(/\s*⚠️.*$/, '').trim()); });
+  }
   // Granular
   if (rd.granular && rd.granular.product) names.add(rd.granular.product);
   return names;
@@ -712,11 +718,22 @@ const ROUNDS = {
           {name:'Triad Select',       rate:3.24, unit:'oz'},
           {name:'Quin-Way 1.5L',      rate:4.26, unit:'fl oz'},
           {name:'MSO',                rate:1.28, unit:'oz', psRate:1.28},
+          {name:'Specticle FLO',      rate:0.085, unit:'oz', cond:true, condNote:'Pre-emergent sedge suppression — add to every R2 warm tank.'},
         ],
       },
-      granular:null, bg:null,
+      granular:null,
+      bg:[
+        {name:'Dismiss (sulfentrazone)', amount:'0.18 oz', note:'Sedge + kyllinga + spurge'},
+        {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY, never fescue'},
+        {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
+      ],
+      bg2:[
+        {name:'Manuscript (fluazifop)', amount:'0.22 oz', note:'Dallisgrass clumps only'},
+        {name:'MSO Adigor',             amount:'0.22 oz', note:'Required with Manuscript — no substitutes'},
+      ],
       alerts:[
         {type:'danger', msg:'MSO REQUIRED with Quin-Way. DO NOT substitute 90/10 NIS. If MSO is out — do not spray, reschedule.'},
+        {type:'danger', msg:'NEVER mix Manuscript with Revolver or any other product — separate 0.5-gal plastic B&G only.'},
         {type:'info',   msg:'Quin-Way: DO NOT mow 2 days before/after. Leave clippings 3 mowings. Annual cap: 2.9 oz/1K/year. Under 85°F ideal — avoid stressed turf.'},
       ],
     },
@@ -729,11 +746,20 @@ const ROUNDS = {
         note:'Water-in within 24 hours. Calibrate spreader before first property.',
       },
       bg:[
-        {name:'Quin-Way 1.5L', amount:'1.5 oz',  note:'Grassy weed spot spray'},
-        {name:'MSO',           amount:'1.28 oz', note:'Required with Quin-Way'},
+        {name:'Dismiss (sulfentrazone)', amount:'0.18 oz', note:'Sedge + kyllinga + spurge'},
+        {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY'},
+        {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
+        {sep:true, label:'QUIN-WAY — grassy weeds if needed (check annual cap)'},
+        {name:'Quin-Way 1.5L',           amount:'1.5 oz',  note:'Grassy weed spot spray'},
+        {name:'MSO',                     amount:'1.28 oz', note:'Required with Quin-Way'},
+      ],
+      bg2:[
+        {name:'Manuscript (fluazifop)', amount:'0.22 oz', note:'Dallisgrass clumps only'},
+        {name:'MSO Adigor',             amount:'0.22 oz', note:'Required with Manuscript — no substitutes'},
       ],
       alerts:[
         {type:'danger', msg:'DEEP CLEAN REQUIRED before first R3 mix. Drain all equipment → water rinse → Dawn soap rinse → final water rinse until crystal clear. Document in FieldRoutes.'},
+        {type:'danger', msg:'NEVER mix Manuscript with Revolver or any other product — separate 0.5-gal plastic B&G only.'},
         {type:'info',   msg:'Spot spray weeds only — do not blanket spray a fertilizer round.'},
       ],
     },
@@ -748,13 +774,19 @@ const ROUNDS = {
       },
       granular:null,
       bg:[
-        {name:'Celsius WG',    amount:'0.10 oz', note:'Default — broadleaf + grassy'},
-        {name:'90/10 NIS',     amount:'0.25 oz', note:''},
+        {name:'Dismiss (sulfentrazone)', amount:'0.18 oz', note:'Sedge + kyllinga + spurge + chamberbitter'},
+        {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY'},
+        {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
         {sep:true, label:'QUIN-WAY ALTERNATE — only if under 85°F AND turf not stressed'},
         {name:'Quin-Way 1.5L', amount:'1.5 oz',  note:'Check annual cap before use'},
         {name:'MSO',           amount:'1.28 oz', note:'Required with Quin-Way'},
       ],
+      bg2:[
+        {name:'Manuscript (fluazifop)', amount:'0.22 oz', note:'Dallisgrass clumps only'},
+        {name:'MSO Adigor',             amount:'0.22 oz', note:'Required with Manuscript — no substitutes'},
+      ],
       alerts:[
+        {type:'danger', msg:'NEVER mix Manuscript with Revolver or any other product — separate 0.5-gal plastic B&G only.'},
         {type:'warn', msg:'HEAT RULE: 90°F+ → complete ALL blanket spray before 9:30 AM. Celsius WG NOT over 90°F. Terra Ally foliar — water lawn 24 hrs after.'},
         {type:'info', msg:'Quin-Way annual cap: running total must stay under 2.9 oz/1K/year.'},
       ],
@@ -777,12 +809,17 @@ const ROUNDS = {
         note:'Apply same visit as fungicide. Water-in within 24 hrs.',
       },
       bg:[
-        {name:'Celsius WG', amount:'0.10 oz', note:'Broadleaf + grassy'},
-        {name:'Ambition',   amount:'0.18 oz', note:'Sedge + nutsedge — every warm route'},
-        {name:'90/10 NIS',  amount:'0.25 oz', note:''},
+        {name:'Dismiss (sulfentrazone)', amount:'0.18 oz', note:'Sedge + kyllinga + spurge + chamberbitter'},
+        {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY'},
+        {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
+      ],
+      bg2:[
+        {name:'Manuscript (fluazifop)', amount:'0.22 oz', note:'Dallisgrass clumps only'},
+        {name:'MSO Adigor',             amount:'0.22 oz', note:'Required with Manuscript — no substitutes'},
       ],
       alerts:[
         {type:'danger', msg:'NO 90/10 NIS in the dual fungicide tank — risk of phytotoxicity.'},
+        {type:'danger', msg:'NEVER mix Manuscript with Revolver or any other product — separate 0.5-gal plastic B&G only.'},
         {type:'danger', msg:'BERMUDA PROPICONAZOLE CAP: Never exceed 4 oz/1K sqft within any 30-day window. Track on route sheet.'},
         {type:'warn',   msg:'PEAK HEAT: All fungicide blanket spray before 9:30 AM on 90°F+ days. Celsius WG NOT over 90°F.'},
       ],
@@ -796,12 +833,18 @@ const ROUNDS = {
         note:'Zero N / high K — hardens cell walls, prep for dormancy. Water-in within 24 hrs.',
       },
       bg:[
-        {name:'Celsius WG',    amount:'0.10 oz', note:'Broadleaf + grassy'},
-        {name:'Quin-Way 1.5L', amount:'1.45 oz', note:'Grassy weed — check annual cap'},
-        {name:'Ambition',      amount:'0.18 oz', note:'Sedge + nutsedge'},
-        {name:'MSO',           amount:'1.28 oz', note:'Required with Quin-Way'},
+        {name:'Dismiss (sulfentrazone)', amount:'0.18 oz', note:'Sedge + kyllinga + spurge'},
+        {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY'},
+        {name:'Quin-Way 1.5L',           amount:'1.45 oz', note:'Grassy weed — check annual cap'},
+        {name:'MSO',                     amount:'1.28 oz', note:'Required with Quin-Way'},
+        {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
+      ],
+      bg2:[
+        {name:'Manuscript (fluazifop)', amount:'0.22 oz', note:'Dallisgrass clumps only'},
+        {name:'MSO Adigor',             amount:'0.22 oz', note:'Required with Manuscript — no substitutes'},
       ],
       alerts:[
+        {type:'danger', msg:'NEVER mix Manuscript with Revolver or any other product — separate 0.5-gal plastic B&G only.'},
         {type:'info', msg:'Quin-Way annual cap: confirm running total stays under 2.9 oz/1K. Zero N on Bermuda/Zoysia this round is intentional — heading into dormancy.'},
       ],
     },
@@ -868,8 +911,9 @@ const ROUNDS = {
         hardStop:true,
       },
       bg:[
-        {name:'Triad Select', amount:'1.4 oz',  note:'Post-em broadleaf'},
-        {name:'90/10 NIS',    amount:'0.25 oz', note:'Surfactant'},
+        {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
+        {name:'Dismiss (sulfentrazone)', amount:'0.09 oz', note:'Sedge + kyllinga — if visible (0.5-gal plastic B&G rate)'},
+        {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
       ],
       alerts:[],
     },
@@ -884,8 +928,9 @@ const ROUNDS = {
       },
       granular:null,
       bg:[
-        {name:'Triad Select', amount:'1.4 oz',  note:'Post-em broadleaf'},
-        {name:'90/10 NIS',    amount:'0.25 oz', note:''},
+        {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
+        {name:'Dismiss (sulfentrazone)', amount:'0.09 oz', note:'Sedge + kyllinga — if visible (0.5-gal plastic B&G rate)'},
+        {name:'90/10 NIS',               amount:'0.25 oz', note:''},
       ],
       alerts:[
         {type:'danger', msg:'DO NOT apply nitrogen to fescue in summer — fungicide only this round.'},
@@ -917,9 +962,9 @@ const ROUNDS = {
         note:'Push Spreader ONLY. Fall start after summer dormancy — 0.5 lb N/1K. Water-in within 24 hrs.',
       },
       bg:[
-        {name:'Triad Select', amount:'1.4 oz',  note:'Post-em broadleaf'},
-        {name:'Ambition',     amount:'0.18 oz', note:'Sedge + nutsedge'},
-        {name:'90/10 NIS',    amount:'0.25 oz', note:''},
+        {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
+        {name:'Dismiss (sulfentrazone)', amount:'0.18 oz', note:'Sedge + kyllinga — 1-gal metal B&G rate'},
+        {name:'90/10 NIS',               amount:'0.25 oz', note:''},
       ],
       alerts:[
         {type:'info', msg:'Fescue green-up window — this feed sets up Round 7\'s big fall push.'},
@@ -934,9 +979,9 @@ const ROUNDS = {
         note:'Push Spreader ONLY. Big fall feed — drives color and density into winter.',
       },
       bg:[
-        {name:'Triad Select', amount:'1.4 oz',  note:'Post-em broadleaf'},
-        {name:'Ambition',     amount:'0.18 oz', note:'Sedge'},
-        {name:'90/10 NIS',    amount:'0.25 oz', note:''},
+        {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
+        {name:'Dismiss (sulfentrazone)', amount:'0.18 oz', note:'Sedge — if still active'},
+        {name:'90/10 NIS',               amount:'0.25 oz', note:''},
       ],
       alerts:[
         {type:'info',   msg:'PREMIUM ACCOUNTS ONLY (Oct 16–Nov 10): Artavia SC blanket app for brown patch / pythium carryover protection.'},
@@ -961,6 +1006,10 @@ const state = {
   flyType:null,
   flyRound:null,
   flySqft:0,
+  flyMode:'round',        // 'round' or 'reservice'
+  rsTurfType:null,        // 'warm' or 'cool' for reservice
+  rsSelectedWeeds:[],     // array of weed keys
+  rsWeedSearch:'',        // search input value
   apiKey: localStorage.getItem('flex_api_key') || '',
   newPropName:'',
   newPropSqft:'',
@@ -1263,9 +1312,12 @@ function renderMixCard(mix, title, icon, extraNote) {
   </div>`;
 }
 
-function renderBGCard(items) {
+function renderBGCard(items, title, icon, sprayerLabel, accentColor) {
   if (!items || !items.length) return '';
-  const inv = window._inventoryData || {};
+  title = title || 'B&G Spot Spray — 1 Gallon';
+  icon = icon || '🧪';
+  sprayerLabel = sprayerLabel || '1-GAL METAL B&G';
+  accentColor = accentColor || '#aaa';
   const rows = items.map(item => {
     if (item.sep) return `<div class="bg-separator">${item.label}</div>`;
     if (item.infoOnly) return `<div class="info-row" style="padding:8px 0">${item.note}</div>`;
@@ -1283,13 +1335,40 @@ function renderBGCard(items) {
   return `
   <div class="mix-card">
     <div class="mix-card-header">
-      <span class="mix-card-icon">🧪</span>
-      <span class="mix-card-title">B&G Spot Spray — 1 Gallon at a Time</span>
-      <span style="font-size:10px;font-family:var(--font-mono);color:#aaa;letter-spacing:1px">B&G SPRAYER</span>
+      <span class="mix-card-icon">${icon}</span>
+      <span class="mix-card-title">${title}</span>
+      <span style="font-size:10px;font-family:var(--font-mono);color:${accentColor};letter-spacing:1px">${sprayerLabel}</span>
     </div>
     <div class="mix-card-body">
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">MIX PER 1 GALLON →</div>
       ${rows}
+    </div>
+  </div>`;
+}
+
+function renderDallisgrassCard(items) {
+  if (!items || !items.length) return '';
+  const rows = items.map(item => `
+    <div class="product-row">
+      <div class="product-name">
+        ${item.name}
+        ${item.note ? `<span class="cond-note">${item.note}</span>` : ''}
+        ${invBadge(item.name)}
+      </div>
+      <div class="product-amount">${item.amount}</div>
+    </div>`).join('');
+
+  return `
+  <div class="mix-card" style="border-color:rgba(255,140,0,0.35)">
+    <div class="mix-card-header" style="background:rgba(255,140,0,0.08)">
+      <span class="mix-card-icon">🌾</span>
+      <span class="mix-card-title">Dallisgrass — Separate Batch</span>
+      <span style="font-size:10px;font-family:var(--font-mono);color:var(--warn);letter-spacing:1px">0.5-GAL PLASTIC B&G</span>
+    </div>
+    <div class="mix-card-body">
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">MIX PER 0.5 GALLON →</div>
+      ${rows}
+      <div class="mix-order" style="margin-top:10px;color:var(--warn)">ONLY when dallisgrass clumps visible. Spot spray clumps directly. NEVER mix Manuscript with Revolver or any other product. Repeat every 3–4 weeks until controlled.</div>
     </div>
   </div>`;
 }
@@ -1341,6 +1420,247 @@ function renderGranCard(granData) {
 }
 
 // ═══════════════════════════════════════════════════════════
+//  WEED DATABASE + RESERVICE CALCULATOR
+// ═══════════════════════════════════════════════════════════
+
+const WEED_DB = {
+  nutsedge:      { label:'Nutsedge (Yellow/Purple)', aliases:['sedge','nutsedge','nutgrass','nut sedge'], turf:'both',  sprayer:'metal',   products:['dismiss'] },
+  kyllinga:      { label:'Kyllinga',                 aliases:['kyllinga','killinga'],                    turf:'both',  sprayer:'metal',   products:['dismiss'] },
+  dallisgrass:   { label:'Dallisgrass',              aliases:['dallis','dallisgrass'],                   turf:'warm',  sprayer:'plastic', products:['manuscript','mso_adigor'] },
+  goosegrass:    { label:'Goosegrass',               aliases:['goosegrass','goose grass','silver crab'], turf:'warm',  sprayer:'metal',   products:['revolver'] },
+  crabgrass:     { label:'Crabgrass',                aliases:['crabgrass','crab grass'],                 turf:'warm',  sprayer:'metal',   products:['revolver'] },
+  poa_warm:      { label:'Annual Bluegrass (Poa)',   aliases:['poa','annual bluegrass','poa annua'],     turf:'warm',  sprayer:'metal',   products:['revolver'] },
+  poa_cool:      { label:'Annual Bluegrass (Poa)',   aliases:['poa','annual bluegrass','poa annua'],     turf:'cool',  sprayer:'note',    note:'No curative option on fescue. Pre-emergent only — nothing to spray now.' },
+  clover:        { label:'Clover',                   aliases:['clover','white clover','red clover'],     turf:'both',  sprayer:'metal',   products:['eliminate_d','triad_cool'] },
+  dandelion:     { label:'Dandelion',                aliases:['dandelion'],                              turf:'both',  sprayer:'metal',   products:['eliminate_d','triad_cool'] },
+  henbit:        { label:'Henbit',                   aliases:['henbit','deadnettle','dead nettle'],      turf:'both',  sprayer:'metal',   products:['eliminate_d','triad_cool'] },
+  spurge:        { label:'Spurge',                   aliases:['spurge','spotted spurge','prostrate'],    turf:'both',  sprayer:'metal',   products:['dismiss'] },
+  chamberbitter: { label:'Chamberbitter',            aliases:['chamberbitter','chamber bitter','mimosa weed'], turf:'both', sprayer:'metal', products:['dismiss'] },
+  dollarweed:    { label:'Dollarweed',               aliases:['dollarweed','dollar weed','pennywort'],   turf:'warm',  sprayer:'metal',   products:['dismiss'] },
+  wild_violet:   { label:'Wild Violet',              aliases:['wild violet','violet','viola'],           turf:'both',  sprayer:'metal',   products:['turflon'],
+                   warning:'BERMUDA/ZOYSIA: Do not apply Turflon Ester June through August. Spring or fall only on bermuda.' },
+  ground_ivy:    { label:'Ground Ivy',               aliases:['ground ivy','creeping charlie','gill over the ground'], turf:'both', sprayer:'metal', products:['turflon'],
+                   warning:'BERMUDA/ZOYSIA: Do not apply Turflon Ester June through August. Spring or fall only on bermuda.' },
+  oxalis:        { label:'Oxalis (Wood Sorrel)',     aliases:['oxalis','wood sorrel','woodsorrel','shamrock weed'], turf:'both', sprayer:'metal', products:['eliminate_d','triad_cool'] },
+  lespedeza:     { label:'Lespedeza',                aliases:['lespedeza','japanese clover'],            turf:'both',  sprayer:'metal',   products:['eliminate_d','triad_cool'] },
+};
+
+const RESERVICE_PRODUCTS = {
+  dismiss:     { name:'Dismiss (sulfentrazone)', amount_metal:'0.18 oz',  note:'Sedge, kyllinga, spurge, chamberbitter, dollarweed' },
+  revolver:    { name:'Revolver',               amount_metal:'0.25 fl oz', note:'Goosegrass, crabgrass, annual bluegrass', warm_only:true },
+  eliminate_d: { name:'Eliminate D',            amount_metal:'1.5 oz',   note:'Broadleaf weeds — warm season', warm_only:true },
+  triad_cool:  { name:'Triad Select',           amount_metal:'1.4 oz',   note:'Broadleaf weeds — cool season', cool_only:true },
+  turflon:     { name:'Turflon Ester 4E',       amount_metal:'1.0 oz',   note:'Wild violet, ground ivy' },
+  nis:         { name:'90/10 NIS',              amount_metal:'0.25 oz',  note:'Surfactant' },
+  manuscript:  { name:'Manuscript (fluazifop)', amount_plastic:'0.22 oz', note:'Dallisgrass — plastic B&G only' },
+  mso_adigor:  { name:'MSO Adigor',             amount_plastic:'0.22 oz', note:'Required with Manuscript' },
+};
+
+function calcReserviceMix(turfType, selectedWeedKeys) {
+  if (!selectedWeedKeys.length) return null;
+  const metalProducts = new Set();
+  const plasticNeeded = selectedWeedKeys.some(k => WEED_DB[k] && WEED_DB[k].sprayer === 'plastic');
+  const notes = [];
+  const warnings = [];
+  for (const key of selectedWeedKeys) {
+    const weed = WEED_DB[key];
+    if (!weed) continue;
+    if (weed.sprayer === 'note') { notes.push({ label:weed.label, note:weed.note }); continue; }
+    if (weed.warning) warnings.push({ label:weed.label, warning:weed.warning });
+    if (weed.sprayer === 'plastic') continue;
+    if (weed.products) {
+      for (const pk of weed.products) {
+        const prod = RESERVICE_PRODUCTS[pk];
+        if (!prod) continue;
+        if (prod.warm_only && turfType !== 'warm') continue;
+        if (prod.cool_only && turfType !== 'cool') continue;
+        metalProducts.add(pk);
+      }
+    }
+  }
+  if (metalProducts.size > 0) metalProducts.add('nis');
+  return { metalProducts: Array.from(metalProducts), plasticNeeded, notes, warnings };
+}
+
+function getFilteredWeeds(turfType, searchStr) {
+  const q = searchStr.trim().toLowerCase();
+  return Object.entries(WEED_DB).filter(([key, weed]) => {
+    if (weed.turf !== 'both' && weed.turf !== turfType) return false;
+    if (key === 'poa_warm' && turfType === 'cool') return false;
+    if (key === 'poa_cool' && turfType === 'warm') return false;
+    if (!q) return true;
+    return weed.label.toLowerCase().includes(q) || weed.aliases.some(a => a.includes(q));
+  });
+}
+
+function rsAddWeed(key) {
+  if (!state.rsSelectedWeeds.includes(key)) {
+    state.rsSelectedWeeds = [...state.rsSelectedWeeds, key];
+    state.rsWeedSearch = '';
+    render();
+  }
+}
+
+function rsRemoveWeed(key) {
+  state.rsSelectedWeeds = state.rsSelectedWeeds.filter(k => k !== key);
+  render();
+}
+
+function renderReserviceScreen() {
+  const turfType = state.rsTurfType;
+  const selectedWeeds = state.rsSelectedWeeds;
+  const search = state.rsWeedSearch;
+
+  if (!turfType) {
+    return `
+    <button class="back-nav" onclick="state.flyMode='round';state.rsTurfType=null;state.rsSelectedWeeds=[];state.rsWeedSearch='';render()">← Back</button>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
+      <span style="font-size:24px">🔄</span>
+      <div>
+        <div style="font-family:var(--font-display);font-weight:900;font-size:22px;color:#ffc800">Re-Service</div>
+        <div style="font-size:12px;color:var(--text2)">Spot weed control — select what you see</div>
+      </div>
+    </div>
+    <div class="section-header">Turf Type</div>
+    <div class="route-cards">
+      <div class="route-card" onclick="state.rsTurfType='warm';render()">
+        <span class="route-icon">🔥</span>
+        <span class="route-name">Warm Season</span>
+        <span class="route-sub">Bermuda &amp; Zoysia</span>
+      </div>
+      <div class="route-card" onclick="state.rsTurfType='cool';render()">
+        <span class="route-icon">❄️</span>
+        <span class="route-name">Cool Season</span>
+        <span class="route-sub">Tall Fescue</span>
+      </div>
+    </div>`;
+  }
+
+  const filteredWeeds = getFilteredWeeds(turfType, search);
+  const turfLabel = turfType === 'warm' ? '🔥 Warm Season' : '❄️ Cool Season';
+
+  const selectedChips = selectedWeeds.length ? `
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+      ${selectedWeeds.map(key => {
+        const w = WEED_DB[key];
+        const isPlastic = w.sprayer === 'plastic';
+        const chipColor = isPlastic ? 'rgba(255,140,0,0.15)' : 'var(--green-glow)';
+        const chipBorder = isPlastic ? 'rgba(255,140,0,0.35)' : 'var(--green-border)';
+        const chipText = isPlastic ? 'var(--warn)' : 'var(--green)';
+        return `<span style="display:inline-flex;align-items:center;gap:5px;background:${chipColor};border:1px solid ${chipBorder};border-radius:100px;padding:5px 10px;font-size:12px;font-family:var(--font-mono);color:${chipText}">
+          ${w.label}
+          <button onclick="rsRemoveWeed('${key}')" style="background:none;border:none;color:${chipText};cursor:pointer;font-size:16px;line-height:1;padding:0;margin-left:2px">×</button>
+        </span>`;
+      }).join('')}
+    </div>` : '';
+
+  const weedListHTML = filteredWeeds.map(([key, weed]) => {
+    const isSelected = selectedWeeds.includes(key);
+    const isNote = weed.sprayer === 'note';
+    const isPlastic = weed.sprayer === 'plastic';
+    const bg = isSelected ? 'var(--green-glow)' : 'var(--bg2)';
+    const border = isSelected ? 'var(--green)' : 'rgba(255,255,255,0.07)';
+    const tagBg = isPlastic ? 'rgba(255,140,0,0.15)' : isNote ? 'rgba(255,255,255,0.05)' : 'rgba(0,255,71,0.10)';
+    const tagBorder = isPlastic ? 'rgba(255,140,0,0.3)' : isNote ? 'rgba(255,255,255,0.1)' : 'var(--green-border)';
+    const tagFg = isPlastic ? 'var(--warn)' : isNote ? 'var(--text3)' : 'var(--green)';
+    const tagLabel = isPlastic ? '🧪 PLASTIC B&G' : isNote ? 'ℹ️ NOTE' : '🧪 METAL B&G';
+    const action = isSelected ? `rsRemoveWeed('${key}')` : `rsAddWeed('${key}')`;
+    return `
+    <div onclick="${action}" style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:8px;background:${bg};border:1px solid ${border};cursor:pointer;margin-bottom:6px">
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600">${weed.label}</div>
+      </div>
+      <span style="font-size:10px;font-family:var(--font-mono);background:${tagBg};border:1px solid ${tagBorder};color:${tagFg};border-radius:4px;padding:2px 6px;white-space:nowrap">${tagLabel}</span>
+      <span style="font-size:${isSelected?'18':'16'}px;color:${isSelected?'var(--green)':'var(--text3)'};font-weight:${isSelected?'900':'400'};min-width:16px;text-align:center">${isSelected?'✓':'+'}</span>
+    </div>`;
+  }).join('');
+
+  let resultHTML = '';
+  if (selectedWeeds.length > 0) {
+    const mix = calcReserviceMix(turfType, selectedWeeds);
+    if (mix) {
+      const warnHTML = mix.warnings.map(w => `<div class="alert-box alert-warn">⚠️ ${w.label}: ${w.warning}</div>`).join('');
+      const noteHTML = mix.notes.map(n => `<div class="alert-box alert-info">ℹ️ ${n.label}: ${n.note}</div>`).join('');
+
+      const realMetalProds = mix.metalProducts.filter(pk => pk !== 'nis');
+      let metalHTML = '';
+      if (realMetalProds.length > 0) {
+        const rows = mix.metalProducts.map(pk => {
+          const p = RESERVICE_PRODUCTS[pk];
+          return `<div class="product-row">
+            <div class="product-name">${p.name}<span class="cond-note">${p.note}</span>${invBadge(p.name)}</div>
+            <div class="product-amount">${p.amount_metal}</div>
+          </div>`;
+        }).join('');
+        metalHTML = `
+        <div class="mix-card">
+          <div class="mix-card-header">
+            <span class="mix-card-icon">🧪</span>
+            <span class="mix-card-title">Spot Spray Mix — 1 Gallon</span>
+            <span style="font-size:10px;font-family:var(--font-mono);color:#aaa;letter-spacing:1px">1-GAL METAL B&G</span>
+          </div>
+          <div class="mix-card-body">
+            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">MIX PER 1 GALLON →</div>
+            ${rows}
+          </div>
+        </div>`;
+      }
+
+      let plasticHTML = '';
+      if (mix.plasticNeeded) {
+        plasticHTML = `
+        <div class="mix-card" style="border-color:rgba(255,140,0,0.35)">
+          <div class="mix-card-header" style="background:rgba(255,140,0,0.08)">
+            <span class="mix-card-icon">🌾</span>
+            <span class="mix-card-title">Dallisgrass — Separate Batch</span>
+            <span style="font-size:10px;font-family:var(--font-mono);color:var(--warn);letter-spacing:1px">0.5-GAL PLASTIC B&G</span>
+          </div>
+          <div class="mix-card-body">
+            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">MIX PER 0.5 GALLON →</div>
+            <div class="product-row">
+              <div class="product-name">Manuscript (fluazifop)<span class="cond-note">Dallisgrass clumps only</span>${invBadge('Manuscript (fluazifop)')}</div>
+              <div class="product-amount">0.22 oz</div>
+            </div>
+            <div class="product-row">
+              <div class="product-name">MSO Adigor<span class="cond-note">Required — no substitutes</span>${invBadge('MSO Adigor')}</div>
+              <div class="product-amount">0.22 oz</div>
+            </div>
+            <div class="mix-order" style="color:var(--warn)">NEVER mix Manuscript with anything else. Spot spray clumps only. Repeat every 3 to 4 weeks.</div>
+          </div>
+        </div>`;
+      }
+
+      resultHTML = `<div style="margin-top:8px">${warnHTML}${noteHTML}${metalHTML}${plasticHTML}</div>`;
+    }
+  }
+
+  return `
+  <button class="back-nav" onclick="state.rsTurfType=null;state.rsSelectedWeeds=[];state.rsWeedSearch='';render()">← Back</button>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+    <span style="font-size:24px">🔄</span>
+    <div>
+      <div style="font-family:var(--font-display);font-weight:900;font-size:22px;color:#ffc800">Re-Service</div>
+      <div style="font-size:12px;color:var(--text2)">${turfLabel} — tap every weed you see</div>
+    </div>
+  </div>
+
+  ${selectedChips}
+
+  <div style="margin-bottom:10px">
+    <input type="text" id="weed-search" class="prop-input"
+      placeholder="Type a weed... clover, sedge, dallisgrass..."
+      value="${search}"
+      style="width:100%;padding:12px 14px;font-size:15px" />
+  </div>
+
+  <div style="max-height:320px;overflow-y:auto;margin-bottom:8px;-webkit-overflow-scrolling:touch">
+    ${filteredWeeds.length ? weedListHTML : `<div style="padding:20px 0;text-align:center;font-size:13px;color:var(--text3)">No weeds match "${search}"</div>`}
+  </div>
+
+  ${resultHTML}`;
+}
+
+// ═══════════════════════════════════════════════════════════
 //  SCREENS
 // ═══════════════════════════════════════════════════════════
 function renderStep1() {
@@ -1362,11 +1682,17 @@ function renderStep1() {
       <span class="route-name" style="color:#ffc800">Mix on the Fly</span>
       <span class="route-sub">Quick calc — 1 or 2 properties, ran out of chemical</span>
     </div>
+    <div class="route-card" onclick="selectReservice()" style="border-color:rgba(100,180,255,0.35);background:rgba(100,180,255,0.06)">
+      <span class="route-icon">🔄</span>
+      <span class="route-name" style="color:#64b4ff">Re-Service</span>
+      <span class="route-sub">Select the weeds — get the exact mix</span>
+    </div>
   </div>`;
 }
 
 function selectRoute(type) { state.routeType=type; state.screen='step2'; render(); }
-function selectFly() { state.screen='fly'; render(); }
+function selectFly() { state.screen='fly'; state.flyMode='round'; render(); }
+function selectReservice() { state.screen='reservice'; state.rsTurfType=null; state.rsSelectedWeeds=[]; state.rsWeedSearch=''; render(); }
 
 function renderFly() {
   const detectedRound = detectRound();
@@ -1409,8 +1735,9 @@ function renderFly() {
               ${fungSepMix.ps ? renderMixCard(fungSepMix.ps,'PS Fungicide Pass','💧',null) : ''}
             </div></div>` : ''}
           ${renderGranCard(granData)}
-          ${renderBGCard(rd.bg)}
-          ${!rd.liquid && !rd.granular && !rd.bg ? `<div class="alert-box alert-info">No mix required for this round.</div>` : ''}
+          ${renderBGCard(rd.bg, 'Sedge + Grassy Weeds — 1 Gallon', '🧪', '1-GAL METAL B&G', '#aaa')}
+          ${renderDallisgrassCard(rd.bg2)}
+          ${!rd.liquid && !rd.granular && !rd.bg && !rd.bg2 ? `<div class="alert-box alert-info">No mix required for this round.</div>` : ''}
         </div>`;
     }
   }
@@ -1644,28 +1971,41 @@ function renderResults() {
           </div></div>`;
       }
       content += renderGranCard(sec.granData);
-      content += renderBGCard(rd.bg);
+      content += renderBGCard(rd.bg, 'Sedge + Grassy Weeds — 1 Gallon', '🧪', '1-GAL METAL B&G', '#aaa');
+      content += renderDallisgrassCard(rd.bg2);
 
       // Rock beds note
       const rockBedProps = sec.props.filter(p => p.hasRockBeds);
       if (rockBedProps.length > 0) {
         content += `<div class="alert-box alert-info">🪨 ROCK BEDS — FlowZone glyphosate also needed at: ${rockBedProps.map(p=>p.name).join(', ')}. Spray rock bed areas only — not the lawn.</div>`;
       }
-      if (!rd.liquid && !rd.granular && !rd.bg) {
+      if (!rd.liquid && !rd.granular && !rd.bg && !rd.bg2) {
         content += `<div class="alert-box alert-info">No mix for this round — check round notes.</div>`;
       }
 
     } else if (sec.type === 'reservice') {
       const bgItems = state.routeType==='warm'
-        ? [{name:'Celsius',amount:'0.10 oz',note:''},{name:'Quin-Way',amount:'1.45 oz',note:''},{name:'Ambition',amount:'0.18 oz',note:''}]
-        : [{name:'Quin-Way',amount:'1.45 oz',note:''},{name:'Ambition',amount:'0.18 oz',note:''}];
+        ? [
+            {name:'Dismiss (sulfentrazone)', amount:'0.18 oz', note:'Sedge + kyllinga'},
+            {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass'},
+            {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
+          ]
+        : [
+            {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
+            {name:'Dismiss (sulfentrazone)', amount:'0.18 oz', note:'Sedge — if visible'},
+            {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
+          ];
+      const bg2Items = state.routeType==='warm'
+        ? [{name:'Manuscript (fluazifop)', amount:'0.22 oz', note:'Dallisgrass clumps only'}, {name:'MSO Adigor', amount:'0.22 oz', note:'Required'}]
+        : null;
       content += `
       <div style="margin-bottom:6px;margin-top:20px">
         <div style="font-family:var(--font-display);font-weight:900;font-size:20px;letter-spacing:0.5px">🔄 RS — Re-Service</div>
         <div style="font-size:12px;font-family:var(--font-mono);color:var(--text2);margin-top:2px">${sec.props.length} propert${sec.props.length>1?'ies':'y'}</div>
       </div>
       <div class="alert-box alert-info">Spot weed spray only — B&G 1 gallon at a time on visible weeds. No blanket spray.</div>
-      ${renderBGCard(bgItems)}`;
+      ${renderBGCard(bgItems, 'Sedge + Grassy Weeds — 1 Gallon', '🧪', '1-GAL METAL B&G', '#aaa')}
+      ${renderDallisgrassCard(bg2Items)}`;
 
     } else if (sec.type === 'rockyard') {
       // FlowZone calc: 2 oz Ranger Pro per gal, 1 gal per 1,625 sqft, 0.3 oz dye per 4-gal backpack
@@ -1877,13 +2217,20 @@ function render() {
     case 'step3': main.innerHTML = renderStep3(); break;
     case 'results': main.innerHTML = renderResults(); window.scrollTo(0,0); break;
     case 'fly': main.innerHTML = renderFly(); break;
+    case 'reservice': main.innerHTML = renderReserviceScreen(); break;
   }
 
   attachEvents();
 }
 
 function attachEvents() {
-  // Step 2
+  // Reservice weed search
+  document.getElementById('weed-search')?.addEventListener('input', (e) => {
+    state.rsWeedSearch = e.target.value;
+    render();
+  });
+
+  // Fly screen — round calc
   document.getElementById('fly-round-select')?.addEventListener('change', (e) => {
     const val = e.target.value;
     if (!val) { state.flyType=null; state.flyRound=null; }
@@ -2046,10 +2393,11 @@ function readFileAsDataURL(file) {
 // ═══════════════════════════════════════════════════════════
 //  SETTINGS MODAL
 // ═══════════════════════════════════════════════════════════
-document.getElementById('restart-header-btn')?.addEventListener('click', () => {
+  document.getElementById('restart-header-btn')?.addEventListener('click', () => {
   state.screen='step1'; state.routeType=null; state.properties=[];
   state.images=[]; state.round=null; state.parseError=null; state.parseProgress=0;
   state.flyType=null; state.flyRound=null; state.flySqft=0;
+  state.flyMode='round'; state.rsTurfType=null; state.rsSelectedWeeds=[]; state.rsWeedSearch='';
   render();
 });
 
