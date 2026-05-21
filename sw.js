@@ -1,4 +1,4 @@
-const CACHE = 'flex-mix-v31';
+const CACHE = 'flex-mix-v32';
 const STATIC = [
   '/Flex-Lawn-Tools/icon-512.png',
   '/Flex-Lawn-Tools/manifest.json',
