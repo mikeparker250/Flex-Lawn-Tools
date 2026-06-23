@@ -592,9 +592,9 @@ const REORDER_THRESHOLDS = {
   'LESCO 24-0-11 w/ 2% Fe + PolyPlus':1, 'Terra Ally TA 22-0-0':2.5,
   'Artavia SC (Azoxystrobin)':1, 'Celsius WG':10, 'Ambition':8,
   'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe':1, 'Propiconazole 14.3':1,
-  'LESCO 5-0-25 w/ 10% Fe':1, 'Specticle FLO':10,
+  'LESCO 5-0-25 w/ 10% Fe':1, 'Special Sauce':2.5,
   'LESCO 18-0-9 w/ 2% Fe':1, 'Ranger Pro 41% Glyphosate':2.5,
-  'Albaugh Sulfentrazone 4SC Select':1, 'Revolver':1, 'Manuscript (fluazifop)':1, 'MSO Adigor':2.5,
+  'Revolver':1, 'Manuscript (fluazifop)':1, 'MSO Adigor':2.5,
   'Eliminate D':1, 'Turflon Ester 4E':1,
 };
 
@@ -639,7 +639,7 @@ async function loadInventory() {
 }
 
 function invBadge(productName) {
-  const cleanName = productName.replace(/\s*⚠️.*$/, '').trim();
+  const cleanName = productName.replace(/\s*⚠️.*$/, '').replace(/^"|"$/g, '').trim();
   const item = _invData[cleanName];
   if (!item) return '';
   const qty = Number(item.quantity);
@@ -657,19 +657,19 @@ function getProductsForRound(routeType, roundNum) {
   const names = new Set();
   // Liquid products
   if (rd.liquid && rd.liquid.products) {
-    rd.liquid.products.forEach(p => names.add(p.name.replace(/\s*⚠️.*$/, '').trim()));
+    rd.liquid.products.forEach(p => names.add(p.name.replace(/\s*⚠️.*$/, '').replace(/^"|"$/g, '').trim()));
   }
   // Fungicide separate pass
   if (rd.liquid && rd.liquid.fungSep && rd.liquid.fungSep.products) {
-    rd.liquid.fungSep.products.forEach(p => names.add(p.name.replace(/\s*⚠️.*$/, '').trim()));
+    rd.liquid.fungSep.products.forEach(p => names.add(p.name.replace(/\s*⚠️.*$/, '').replace(/^"|"$/g, '').trim()));
   }
   // BG / spot spray
   if (rd.bg) {
-    rd.bg.forEach(p => { if (p.name) names.add(p.name.replace(/\s*⚠️.*$/, '').trim()); });
+    rd.bg.forEach(p => { if (p.name) names.add(p.name.replace(/\s*⚠️.*$/, '').replace(/^"|"$/g, '').trim()); });
   }
   // BG2 / dallisgrass sprayer
   if (rd.bg2) {
-    rd.bg2.forEach(p => { if (p.name) names.add(p.name.replace(/\s*⚠️.*$/, '').trim()); });
+    rd.bg2.forEach(p => { if (p.name) names.add(p.name.replace(/\s*⚠️.*$/, '').replace(/^"|"$/g, '').trim()); });
   }
   // Granular
   if (rd.granular && rd.granular.product) names.add(rd.granular.product);
@@ -718,12 +718,11 @@ const ROUNDS = {
           {name:'Triad Select',       rate:3.24, unit:'oz'},
           {name:'Quin-Way 1.5L',      rate:4.26, unit:'fl oz'},
           {name:'MSO',                rate:1.28, unit:'oz', psRate:1.28},
-          {name:'Specticle FLO',      rate:0.085, unit:'oz', cond:true, condNote:'Pre-emergent sedge suppression — add to every R2 warm tank.'},
         ],
       },
       granular:null,
       bg:[
-        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga + spurge'},
+        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga + spurge'},
         {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY, never fescue'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
       ],
@@ -746,7 +745,7 @@ const ROUNDS = {
         note:'Water-in within 24 hours. Calibrate spreader before first property.',
       },
       bg:[
-        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga + spurge'},
+        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga + spurge'},
         {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
         {sep:true, label:'QUIN-WAY — grassy weeds if needed (check annual cap)'},
@@ -774,7 +773,7 @@ const ROUNDS = {
       },
       granular:null,
       bg:[
-        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga + spurge + chamberbitter'},
+        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga + spurge + chamberbitter'},
         {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
         {sep:true, label:'QUIN-WAY ALTERNATE — only if under 85°F AND turf not stressed'},
@@ -809,7 +808,7 @@ const ROUNDS = {
         note:'Apply same visit as fungicide. Water-in within 24 hrs.',
       },
       bg:[
-        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga + spurge + chamberbitter'},
+        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga + spurge + chamberbitter'},
         {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
       ],
@@ -833,7 +832,7 @@ const ROUNDS = {
         note:'Zero N / high K — hardens cell walls, prep for dormancy. Water-in within 24 hrs.',
       },
       bg:[
-        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga + spurge'},
+        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga + spurge'},
         {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY'},
         {name:'Quin-Way 1.5L',           amount:'1.45 oz', note:'Grassy weed — check annual cap'},
         {name:'MSO',                     amount:'1.28 oz', note:'Required with Quin-Way'},
@@ -852,7 +851,6 @@ const ROUNDS = {
       name:'Fall Pre-Emergent + Spring Dead Spot Prevention', icon:'❄️', dates:'Oct 16 – Nov 30',
       liquid:{
         products:[
-          {name:'Specticle FLO', rate:0.10, unit:'oz'},
           {name:'Simazine',      rate:0.73, unit:'oz'},
           {name:'Triad Select',  rate:1.47, unit:'oz'},
           {name:'90/10 NIS',     rate:0.28, unit:'oz'},
@@ -912,7 +910,7 @@ const ROUNDS = {
       },
       bg:[
         {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
-        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.09 oz', note:'Sedge + kyllinga — if visible (0.5-gal plastic B&G rate)'},
+        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga — if visible'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
       ],
       alerts:[],
@@ -929,7 +927,7 @@ const ROUNDS = {
       granular:null,
       bg:[
         {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
-        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.09 oz', note:'Sedge + kyllinga — if visible (0.5-gal plastic B&G rate)'},
+        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga — if visible'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:''},
       ],
       alerts:[
@@ -963,7 +961,7 @@ const ROUNDS = {
       },
       bg:[
         {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
-        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga — 1-gal metal B&G rate'},
+        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:''},
       ],
       alerts:[
@@ -980,7 +978,7 @@ const ROUNDS = {
       },
       bg:[
         {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
-        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge — if still active'},
+        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge — if still active'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:''},
       ],
       alerts:[
@@ -1446,7 +1444,7 @@ const WEED_DB = {
 };
 
 const RESERVICE_PRODUCTS = {
-  dismiss:     { name:'Albaugh Sulfentrazone 4SC Select', amount_metal:'0.18 oz',  note:'Sedge, kyllinga, spurge, chamberbitter, dollarweed — spot treat isolated patches. Heavy pressure: add 0.18 oz/1K sqft to main tank for broadcast.' },
+  dismiss:     { name:'"Special Sauce"', amount_metal:'2 oz',  note:'Sedge, kyllinga, spurge, chamberbitter, dollarweed — 2 oz per gallon. Spot treat visible patches.' },
   revolver:    { name:'Revolver',               amount_metal:'0.25 fl oz', note:'Goosegrass, crabgrass, annual bluegrass', warm_only:true },
   eliminate_d: { name:'Eliminate D',            amount_metal:'1.5 oz',   note:'Broadleaf weeds — warm season', warm_only:true },
   triad_cool:  { name:'Triad Select',           amount_metal:'1.4 oz',   note:'Broadleaf weeds — cool season', cool_only:true },
@@ -1986,13 +1984,13 @@ function renderResults() {
     } else if (sec.type === 'reservice') {
       const bgItems = state.routeType==='warm'
         ? [
-            {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga'},
+            {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga'},
             {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass'},
             {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
           ]
         : [
             {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
-            {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge — if visible'},
+            {name:'"Special Sauce"', amount:'2 oz', note:'Sedge — if visible'},
             {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
           ];
       const bg2Items = state.routeType==='warm'
@@ -2104,7 +2102,7 @@ function renderResults() {
     const nextOut = [], nextLow = [];
 
     for (const [name, item] of Object.entries(_invData)) {
-      const cleanName = name.replace(/\s*⚠️.*$/, '').trim();
+      const cleanName = name.replace(/\s*⚠️.*$/, '').replace(/^"|"$/g, '').trim();
       const qty = Number(item.quantity);
       const t = REORDER_THRESHOLDS[cleanName];
 
