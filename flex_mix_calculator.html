@@ -2775,13 +2775,11 @@ function renderOrderPlanner() {
   <div style="background:var(--bg2);border:1px solid rgba(160,100,255,0.25);border-radius:var(--radius);padding:14px;margin-bottom:16px">
     <div style="font-size:11px;font-family:var(--font-mono);color:#a064ff;letter-spacing:1px;margin-bottom:10px">TOTAL SQFT TO TREAT</div>
     ${savedSqft > 0 && currentSqft === 0 ? `<div style="font-size:12px;color:var(--text2);font-family:var(--font-mono);margin-bottom:8px">📁 Using saved: ${savedSqft.toLocaleString()} sqft — update below to recalculate</div>` : ''}
-    <div style="display:flex;gap:8px;align-items:center">
-      <input type="number" id="op-sqft-input" class="prop-input" placeholder="e.g. 95000"
-        value="${activeSqft || ''}"
-        style="flex:1;font-size:18px;padding:12px" />
-      <button onclick="opUpdateSqft()" class="btn btn-primary" style="width:auto;padding:12px 16px;white-space:nowrap">Save & Calc</button>
-    </div>
-    <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:6px">Enter total sqft you treat each ${rt === 'warm' ? 'warm' : 'cool'} season R${rn}. Saved to Firestore for next time.</div>
+    <input type="number" id="op-sqft-input" class="prop-input" placeholder="e.g. 95000"
+      value="${activeSqft || ''}"
+      style="width:100%;font-size:18px;padding:12px;margin-bottom:10px" />
+    <button onclick="opUpdateSqft()" class="btn btn-primary" style="width:100%;padding:14px">Save & Calculate</button>
+    <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:8px">Enter total sqft you treat each ${rt === 'warm' ? 'warm' : 'cool'} season R${rn}. Saved to Firestore for next time.</div>
   </div>`;
 
   let orderHTML = '';
