@@ -2686,21 +2686,38 @@ function fmtNeeded(val, unit) {
 
 function buildShareText(routeType, roundNum, sqft, orderList) {
   const rd = ROUNDS[routeType][roundNum];
+  const needsOrder = orderList.filter(p => p.toOrder > 0.5);
+  const stockedOk  = orderList.filter(p => p.toOrder <= 0.5);
+
   const lines = [
-    `FLEX LAWN CARE — ORDER LIST`,
-    `R${roundNum} ${rd.name} (${rd.dates})`,
-    `${routeType === 'warm' ? 'Warm Season' : 'Cool Season'} | ${sqft.toLocaleString()} sqft`,
-    `Generated: ${today()}`,
-    ``,
-    `PRODUCT             NEED        HAVE       ORDER`,
-    `${'─'.repeat(55)}`,
+    `📦 FLEX LAWN CARE — ORDER LIST`,
+    `R${roundNum}: ${rd.name}`,
+    `${routeType === 'warm' ? '🔥 Warm Season' : '❄️ Cool Season'} · ${sqft.toLocaleString()} sqft · ${today()}`,
   ];
-  for (const p of orderList) {
-    const need = fmtNeeded(p.needed, p.unit).padEnd(11);
-    const have = (p.currentStock !== null ? fmtNeeded(p.currentStock, p.stockUnit) : 'unknown').padEnd(10);
-    const order = p.toOrder > 0.05 ? fmtNeeded(p.toOrder, p.unit) : '✓ OK';
-    lines.push(`${p.name.substring(0,20).padEnd(20)} ${need} ${have} ${order}`);
+
+  if (needsOrder.length > 0) {
+    lines.push(``, `🛒 ORDER (${needsOrder.length} product${needsOrder.length > 1 ? 's' : ''})`);
+    for (const p of needsOrder) {
+      const need = fmtNeeded(p.needed, p.unit);
+      const have = p.currentStock !== null ? fmtNeeded(p.currentStock, p.stockUnit) : 'unknown';
+      const toOrder = fmtNeeded(p.toOrder, p.unit);
+      lines.push(`• ${p.name}`);
+      lines.push(`  Need ${need}  ·  Have ${have}  →  Order ${toOrder}`);
+    }
   }
+
+  if (stockedOk.length > 0) {
+    lines.push(``, `✅ STOCKED (${stockedOk.length} product${stockedOk.length > 1 ? 's' : ''})`);
+    for (const p of stockedOk) {
+      const have = p.currentStock !== null ? fmtNeeded(p.currentStock, p.stockUnit) : 'OK';
+      lines.push(`• ${p.name} · ${have}`);
+    }
+  }
+
+  if (needsOrder.length === 0) {
+    lines.push(``, `✅ All products fully stocked for R${roundNum} — no order needed.`);
+  }
+
   lines.push(``, `Total sqft: ${sqft.toLocaleString()}`);
   return lines.join('\n');
 }
