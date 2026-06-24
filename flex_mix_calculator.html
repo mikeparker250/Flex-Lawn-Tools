@@ -592,9 +592,9 @@ const REORDER_THRESHOLDS = {
   'LESCO 24-0-11 w/ 2% Fe + PolyPlus':1, 'Terra Ally TA 22-0-0':2.5,
   'Artavia SC (Azoxystrobin)':1, 'Celsius WG':10, 'Ambition':8,
   'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe':1, 'Propiconazole 14.3':1,
-  'LESCO 5-0-25 w/ 10% Fe':1, 'Special Sauce':2.5,
+  'LESCO 5-0-25 w/ 10% Fe':1, 'Specticle FLO':10,
   'LESCO 18-0-9 w/ 2% Fe':1, 'Ranger Pro 41% Glyphosate':2.5,
-  'Revolver':1, 'Manuscript (fluazifop)':1, 'MSO Adigor':2.5,
+  'Albaugh Sulfentrazone 4SC Select':1, 'Revolver':1, 'Manuscript (fluazifop)':1, 'MSO Adigor':2.5,
   'Eliminate D':1, 'Turflon Ester 4E':1,
 };
 
@@ -639,7 +639,7 @@ async function loadInventory() {
 }
 
 function invBadge(productName) {
-  const cleanName = productName.replace(/\s*⚠️.*$/, '').replace(/^"|"$/g, '').trim();
+  const cleanName = productName.replace(/\s*⚠️.*$/, '').trim();
   const item = _invData[cleanName];
   if (!item) return '';
   const qty = Number(item.quantity);
@@ -657,19 +657,19 @@ function getProductsForRound(routeType, roundNum) {
   const names = new Set();
   // Liquid products
   if (rd.liquid && rd.liquid.products) {
-    rd.liquid.products.forEach(p => names.add(p.name.replace(/\s*⚠️.*$/, '').replace(/^"|"$/g, '').trim()));
+    rd.liquid.products.forEach(p => names.add(p.name.replace(/\s*⚠️.*$/, '').trim()));
   }
   // Fungicide separate pass
   if (rd.liquid && rd.liquid.fungSep && rd.liquid.fungSep.products) {
-    rd.liquid.fungSep.products.forEach(p => names.add(p.name.replace(/\s*⚠️.*$/, '').replace(/^"|"$/g, '').trim()));
+    rd.liquid.fungSep.products.forEach(p => names.add(p.name.replace(/\s*⚠️.*$/, '').trim()));
   }
   // BG / spot spray
   if (rd.bg) {
-    rd.bg.forEach(p => { if (p.name) names.add(p.name.replace(/\s*⚠️.*$/, '').replace(/^"|"$/g, '').trim()); });
+    rd.bg.forEach(p => { if (p.name) names.add(p.name.replace(/\s*⚠️.*$/, '').trim()); });
   }
   // BG2 / dallisgrass sprayer
   if (rd.bg2) {
-    rd.bg2.forEach(p => { if (p.name) names.add(p.name.replace(/\s*⚠️.*$/, '').replace(/^"|"$/g, '').trim()); });
+    rd.bg2.forEach(p => { if (p.name) names.add(p.name.replace(/\s*⚠️.*$/, '').trim()); });
   }
   // Granular
   if (rd.granular && rd.granular.product) names.add(rd.granular.product);
@@ -718,11 +718,12 @@ const ROUNDS = {
           {name:'Triad Select',       rate:3.24, unit:'oz'},
           {name:'Quin-Way 1.5L',      rate:4.26, unit:'fl oz'},
           {name:'MSO',                rate:1.28, unit:'oz', psRate:1.28},
+          {name:'Specticle FLO',      rate:0.085, unit:'oz', cond:true, condNote:'Pre-emergent sedge suppression — add to every R2 warm tank.'},
         ],
       },
       granular:null,
       bg:[
-        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga + spurge'},
+        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga + spurge'},
         {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY, never fescue'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
       ],
@@ -745,7 +746,7 @@ const ROUNDS = {
         note:'Water-in within 24 hours. Calibrate spreader before first property.',
       },
       bg:[
-        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga + spurge'},
+        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga + spurge'},
         {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
         {sep:true, label:'QUIN-WAY — grassy weeds if needed (check annual cap)'},
@@ -763,7 +764,7 @@ const ROUNDS = {
       ],
     },
     4: {
-      name:'Early Summer Health', icon:'☀️', dates:'Jun 1 – Jul 15',
+      name:'Early Summer Health', icon:'☀️', dates:'Jun 1 – Jul 31',
       liquid:{
         products:[
           {name:'Terra Ally TA 22-0-0',  rate:44.12, unit:'fl oz'},
@@ -773,7 +774,7 @@ const ROUNDS = {
       },
       granular:null,
       bg:[
-        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga + spurge + chamberbitter'},
+        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga + spurge + chamberbitter'},
         {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
         {sep:true, label:'QUIN-WAY ALTERNATE — only if under 85°F AND turf not stressed'},
@@ -808,7 +809,7 @@ const ROUNDS = {
         note:'Apply same visit as fungicide. Water-in within 24 hrs.',
       },
       bg:[
-        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga + spurge + chamberbitter'},
+        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga + spurge + chamberbitter'},
         {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
       ],
@@ -832,7 +833,7 @@ const ROUNDS = {
         note:'Zero N / high K — hardens cell walls, prep for dormancy. Water-in within 24 hrs.',
       },
       bg:[
-        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga + spurge'},
+        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga + spurge'},
         {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY'},
         {name:'Quin-Way 1.5L',           amount:'1.45 oz', note:'Grassy weed — check annual cap'},
         {name:'MSO',                     amount:'1.28 oz', note:'Required with Quin-Way'},
@@ -851,6 +852,7 @@ const ROUNDS = {
       name:'Fall Pre-Emergent + Spring Dead Spot Prevention', icon:'❄️', dates:'Oct 16 – Nov 30',
       liquid:{
         products:[
+          {name:'Specticle FLO', rate:0.10, unit:'oz'},
           {name:'Simazine',      rate:0.73, unit:'oz'},
           {name:'Triad Select',  rate:1.47, unit:'oz'},
           {name:'90/10 NIS',     rate:0.28, unit:'oz'},
@@ -910,13 +912,13 @@ const ROUNDS = {
       },
       bg:[
         {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
-        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga — if visible'},
+        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.09 oz', note:'Sedge + kyllinga — if visible (0.5-gal plastic B&G rate)'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
       ],
       alerts:[],
     },
     4: {
-      name:'Early Summer Health — Fungicide Only', icon:'☀️', dates:'Jun 1 – Jul 15',
+      name:'Early Summer Health — Fungicide Only', icon:'☀️', dates:'Jun 1 – Jul 31',
       liquid:{
         products:[
           {name:'Artavia SC (Azoxy) — FRAC 11', rate:2.21, unit:'fl oz'},
@@ -927,7 +929,7 @@ const ROUNDS = {
       granular:null,
       bg:[
         {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
-        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga — if visible'},
+        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.09 oz', note:'Sedge + kyllinga — if visible (0.5-gal plastic B&G rate)'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:''},
       ],
       alerts:[
@@ -961,7 +963,7 @@ const ROUNDS = {
       },
       bg:[
         {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
-        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga'},
+        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga — 1-gal metal B&G rate'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:''},
       ],
       alerts:[
@@ -978,7 +980,7 @@ const ROUNDS = {
       },
       bg:[
         {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
-        {name:'"Special Sauce"', amount:'2 oz', note:'Sedge — if still active'},
+        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge — if still active'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:''},
       ],
       alerts:[
@@ -1008,6 +1010,15 @@ const state = {
   rsTurfType:null,        // 'warm' or 'cool' for reservice
   rsSelectedWeeds:[],     // array of weed keys
   rsWeedSearch:'',        // search input value
+  // Order Planner
+  opRound: null,
+  opRouteType: null,
+  opSqftWarm: 0,
+  opSqftCool: 0,
+  opLoading: false,
+  opError: null,
+  opFRData: null,         // { warmCount, coolCount, warmSqft, coolSqft, source }
+  opSavedSqft: {},        // { 'warm_4': 95000, 'cool_4': 42000, ... }
   apiKey: localStorage.getItem('flex_api_key') || '',
   newPropName:'',
   newPropSqft:'',
@@ -1019,7 +1030,7 @@ function detectRound() {
   if (v>=125&&v<=228) return 1;
   if (v>=301&&v<=414) return 2;
   if (v>=415&&v<=531) return 3;
-  if (v>=601&&v<=715) return 4;
+  if (v>=601&&v<=731) return 4;
   if (v>=801&&v<=915) return 5;
   if (v>=916&&v<=1015) return 6;
   if (v>=1016&&v<=1130) return 7;
@@ -1444,7 +1455,7 @@ const WEED_DB = {
 };
 
 const RESERVICE_PRODUCTS = {
-  dismiss:     { name:'"Special Sauce"', amount_metal:'2 oz',  note:'Sedge, kyllinga, spurge, chamberbitter, dollarweed — 2 oz per gallon. Spot treat visible patches.' },
+  dismiss:     { name:'Albaugh Sulfentrazone 4SC Select', amount_metal:'0.18 oz',  note:'Sedge, kyllinga, spurge, chamberbitter, dollarweed — spot treat isolated patches. Heavy pressure: add 0.18 oz/1K sqft to main tank for broadcast.' },
   revolver:    { name:'Revolver',               amount_metal:'0.25 fl oz', note:'Goosegrass, crabgrass, annual bluegrass', warm_only:true },
   eliminate_d: { name:'Eliminate D',            amount_metal:'1.5 oz',   note:'Broadleaf weeds — warm season', warm_only:true },
   triad_cool:  { name:'Triad Select',           amount_metal:'1.4 oz',   note:'Broadleaf weeds — cool season', cool_only:true },
@@ -1685,12 +1696,18 @@ function renderStep1() {
       <span class="route-name" style="color:#64b4ff">Re-Service</span>
       <span class="route-sub">Select the weeds — get the exact mix</span>
     </div>
+    <div class="route-card" onclick="selectOrderPlanner()" style="border-color:rgba(160,100,255,0.35);background:rgba(160,100,255,0.06)">
+      <span class="route-icon">📦</span>
+      <span class="route-name" style="color:#a064ff">Order Planner</span>
+      <span class="route-sub">See what to order before the next round</span>
+    </div>
   </div>`;
 }
 
 function selectRoute(type) { state.routeType=type; state.screen='step2'; render(); }
 function selectFly() { state.screen='fly'; state.flyMode='round'; render(); }
 function selectReservice() { state.screen='reservice'; state.rsTurfType=null; state.rsSelectedWeeds=[]; state.rsWeedSearch=''; render(); }
+function selectOrderPlanner() { state.screen='orderplanner'; state.opRound=null; state.opRouteType=null; state.opSqftWarm=0; state.opSqftCool=0; state.opLoading=false; state.opError=null; state.opFRData=null; render(); }
 
 function renderFly() {
   const detectedRound = detectRound();
@@ -1984,13 +2001,13 @@ function renderResults() {
     } else if (sec.type === 'reservice') {
       const bgItems = state.routeType==='warm'
         ? [
-            {name:'"Special Sauce"', amount:'2 oz', note:'Sedge + kyllinga'},
+            {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga'},
             {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass'},
             {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
           ]
         : [
             {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
-            {name:'"Special Sauce"', amount:'2 oz', note:'Sedge — if visible'},
+            {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge — if visible'},
             {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
           ];
       const bg2Items = state.routeType==='warm'
@@ -2102,7 +2119,7 @@ function renderResults() {
     const nextOut = [], nextLow = [];
 
     for (const [name, item] of Object.entries(_invData)) {
-      const cleanName = name.replace(/\s*⚠️.*$/, '').replace(/^"|"$/g, '').trim();
+      const cleanName = name.replace(/\s*⚠️.*$/, '').trim();
       const qty = Number(item.quantity);
       const t = REORDER_THRESHOLDS[cleanName];
 
@@ -2216,6 +2233,7 @@ function render() {
     case 'results': main.innerHTML = renderResults(); window.scrollTo(0,0); break;
     case 'fly': main.innerHTML = renderFly(); break;
     case 'reservice': main.innerHTML = renderReserviceScreen(); break;
+    case 'orderplanner': main.innerHTML = renderOrderPlanner(); break;
   }
 
   attachEvents();
@@ -2538,6 +2556,362 @@ window.addEventListener('error', (e) => {
     </div>`;
   }
 });
+
+// ═══════════════════════════════════════════════════════════
+//  ORDER PLANNER — FieldRoutes sqft pull + chemical calc
+// ═══════════════════════════════════════════════════════════
+
+const FR_BASE = 'https://fieldroutes-mcp.vercel.app/mcp';
+const LAWN_CARE_SERVICE_ID = 111;
+
+// Firestore path for stored sqft data
+async function loadSavedSqft() {
+  const db = initFirebase();
+  if (!db) return {};
+  try {
+    const doc = await db
+      .collection('companies')
+      .doc('940AB322-F85A-4883-8EBA-C151A88F3AD9')
+      .collection('app_data')
+      .doc('order_planner_sqft')
+      .get();
+    return doc.exists ? (doc.data() || {}) : {};
+  } catch(e) { console.warn('loadSavedSqft error:', e); return {}; }
+}
+
+async function saveSqftToFirestore(key, sqft) {
+  const db = initFirebase();
+  if (!db) return;
+  try {
+    await db
+      .collection('companies')
+      .doc('940AB322-F85A-4883-8EBA-C151A88F3AD9')
+      .collection('app_data')
+      .doc('order_planner_sqft')
+      .set({ [key]: sqft }, { merge: true });
+  } catch(e) { console.warn('saveSqftToFirestore error:', e); }
+}
+
+// Pull active Lawn Care subscriptions from FieldRoutes via direct API
+// Returns { warmCount, coolCount } — sqft not available from FR directly
+async function fetchFRLawnCareData() {
+  // We use the existing Firestore-connected Firebase approach; FR API is not
+  // directly callable from browser without proxy. Instead we query via the
+  // FieldRoutes MCP proxy URL that is available as a connected server.
+  // Since we can't call MCP from the browser directly, we use a best-effort
+  // count from Firestore cache if available, otherwise return null to prompt manual entry.
+  // The count is informational only — sqft is what drives chemical calcs.
+  return null; // FR pull happens server-side via MCP; browser app uses stored sqft
+}
+
+// Calculate the total chemical needed for a full round given sqft
+// Returns array of { name, totalNeeded (oz or lbs), unit, currentStock, stockUnit, toOrder }
+function calcOrderList(routeType, roundNum, totalSqftWarm, totalSqftCool) {
+  const sqft = routeType === 'warm' ? totalSqftWarm : totalSqftCool;
+  if (!sqft || sqft <= 0) return [];
+  const rd = ROUNDS[routeType] && ROUNDS[routeType][roundNum];
+  if (!rd) return [];
+
+  const products = [];
+
+  // Helper: split sqft into toro vs PS portions for rate blending
+  const toroSqft = Math.max(0, sqft - BUFFER); // approximate — actual split varies by property
+  const psSqft = Math.min(sqft, BUFFER * 2);   // rough estimate for PS-sized properties
+  // For ordering purposes we use a conservative calculation:
+  // assume full sqft at Toro rate (over-orders slightly = safe for not running out)
+  const galForCalc = (sqft / 1000) * TORO_OUT;
+
+  function addLiquidProducts(prodList, gal) {
+    for (const p of prodList) {
+      if (!p.name || p.name.includes('⚠️')) {
+        const cleanName = p.name ? p.name.replace(/\s*⚠️.*$/, '').trim() : null;
+        if (!cleanName) continue;
+        products.push({ name: cleanName, needed: gal * p.rate, unit: p.unit || 'oz', cond: p.condNote || null });
+      } else {
+        products.push({ name: p.name, needed: gal * p.rate, unit: p.unit || 'oz', cond: null });
+      }
+    }
+  }
+
+  if (rd.liquid && rd.liquid.products) {
+    addLiquidProducts(rd.liquid.products, galForCalc);
+  }
+  if (rd.liquid && rd.liquid.fungSep && rd.liquid.fungSep.products) {
+    addLiquidProducts(rd.liquid.fungSep.products, galForCalc);
+  }
+
+  // Granular
+  if (rd.granular && rd.granular.product) {
+    const rates = rd.granular.rates || [];
+    for (const r of rates) {
+      const lbs = (sqft / 1000) * r.lbs;
+      products.push({ name: rd.granular.product, needed: lbs, unit: 'lbs', cond: null });
+    }
+  }
+
+  // Deduplicate by name (same product listed multiple times → sum)
+  const merged = {};
+  for (const p of products) {
+    const cleanName = p.name.replace(/\s*⚠️.*$/, '').replace(/\s*—.*$/, '').trim();
+    if (!merged[cleanName]) merged[cleanName] = { name: cleanName, needed: 0, unit: p.unit, cond: p.cond };
+    merged[cleanName].needed += p.needed;
+  }
+
+  // Attach inventory data
+  const result = [];
+  for (const [cleanName, item] of Object.entries(merged)) {
+    const inv = _invData[cleanName];
+    const currentStock = inv ? Number(inv.quantity) : null;
+    const stockUnit = inv ? inv.unit : item.unit;
+    const toOrder = currentStock !== null ? Math.max(0, item.needed - currentStock) : item.needed;
+    result.push({
+      name: cleanName,
+      needed: item.needed,
+      unit: item.unit,
+      currentStock,
+      stockUnit,
+      toOrder,
+      cond: item.cond,
+    });
+  }
+
+  return result;
+}
+
+function fmtNeeded(val, unit) {
+  if (unit === 'lbs') return val.toFixed(1) + ' lbs';
+  if (unit === 'fl oz' || unit === 'oz' || unit === 'oz dry') return val.toFixed(1) + ' oz';
+  return val.toFixed(1) + ' ' + unit;
+}
+
+function buildShareText(routeType, roundNum, sqft, orderList) {
+  const rd = ROUNDS[routeType][roundNum];
+  const lines = [
+    `FLEX LAWN CARE — ORDER LIST`,
+    `R${roundNum} ${rd.name} (${rd.dates})`,
+    `${routeType === 'warm' ? 'Warm Season' : 'Cool Season'} | ${sqft.toLocaleString()} sqft`,
+    `Generated: ${today()}`,
+    ``,
+    `PRODUCT             NEED        HAVE       ORDER`,
+    `${'─'.repeat(55)}`,
+  ];
+  for (const p of orderList) {
+    const need = fmtNeeded(p.needed, p.unit).padEnd(11);
+    const have = (p.currentStock !== null ? fmtNeeded(p.currentStock, p.stockUnit) : 'unknown').padEnd(10);
+    const order = p.toOrder > 0.05 ? fmtNeeded(p.toOrder, p.unit) : '✓ OK';
+    lines.push(`${p.name.substring(0,20).padEnd(20)} ${need} ${have} ${order}`);
+  }
+  lines.push(``, `Total sqft: ${sqft.toLocaleString()}`);
+  return lines.join('\n');
+}
+
+async function opSaveSqft() {
+  const rt = state.opRouteType;
+  const rn = state.opRound;
+  if (!rt || !rn) return;
+  const sqft = rt === 'warm' ? state.opSqftWarm : state.opSqftCool;
+  if (!sqft || sqft <= 0) return;
+  const key = `${rt}_${rn}`;
+  state.opSavedSqft[key] = sqft;
+  await saveSqftToFirestore(key, sqft);
+  render();
+}
+
+function renderOrderPlanner() {
+  // ── ROUND PICKER SCREEN ──
+  if (!state.opRound || !state.opRouteType) {
+    const detectedRound = detectRound();
+    const nextRound = detectedRound ? (detectedRound < 7 ? detectedRound + 1 : null) : null;
+
+    const rounds = [1,2,3,4,5,6,7];
+    const roundCards = (routeType) => rounds.map(n => {
+      const rd = ROUNDS[routeType][n];
+      const isNext = n === nextRound;
+      const isCurrent = n === detectedRound;
+      const border = isNext ? 'rgba(160,100,255,0.5)' : isCurrent ? 'var(--green-border)' : 'rgba(255,255,255,0.08)';
+      const bg = isNext ? 'rgba(160,100,255,0.08)' : isCurrent ? 'var(--green-glow)' : 'var(--bg2)';
+      const tag = isNext ? `<span style="font-size:10px;font-family:var(--font-mono);color:#a064ff;background:rgba(160,100,255,0.15);border:1px solid rgba(160,100,255,0.3);border-radius:4px;padding:2px 6px;margin-left:8px">NEXT UP</span>`
+        : isCurrent ? `<span style="font-size:10px;font-family:var(--font-mono);color:var(--green);background:var(--green-glow);border:1px solid var(--green-border);border-radius:4px;padding:2px 6px;margin-left:8px">CURRENT</span>`
+        : '';
+      return `<div onclick="state.opRound=${n};state.opRouteType='${routeType}';opInitRound();render()" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius);background:${bg};border:1px solid ${border};cursor:pointer;margin-bottom:8px">
+        <span style="font-family:var(--font-display);font-weight:900;font-size:20px;color:#a064ff;min-width:28px">R${n}</span>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600">${rd.name}${tag}</div>
+          <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:2px">${rd.dates}</div>
+        </div>
+        <span style="font-size:18px">${rd.icon}</span>
+      </div>`;
+    }).join('');
+
+    return `
+    <button class="back-nav" onclick="state.screen='step1';render()">← Back</button>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
+      <span style="font-size:24px">📦</span>
+      <div>
+        <div style="font-family:var(--font-display);font-weight:900;font-size:22px;color:#a064ff">Order Planner</div>
+        <div style="font-size:12px;color:var(--text2)">Pick a round to see your order list</div>
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--green-border)">🔥 Warm Season Rounds</div>
+    ${roundCards('warm')}
+
+    <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;margin-top:20px;padding-bottom:6px;border-bottom:1px solid rgba(100,180,255,0.2)">❄️ Cool Season Rounds</div>
+    ${roundCards('cool')}`;
+  }
+
+  // ── ORDER LIST SCREEN ──
+  const rt = state.opRouteType;
+  const rn = state.opRound;
+  const rd = ROUNDS[rt][rn];
+  const sqftKey = `${rt}_${rn}`;
+  const savedSqft = state.opSavedSqft[sqftKey] || 0;
+  const currentSqft = rt === 'warm' ? state.opSqftWarm : state.opSqftCool;
+  const activeSqft = currentSqft > 0 ? currentSqft : savedSqft;
+
+  const loadingIndicator = state.opLoading ? `<div style="text-align:center;padding:16px 0;font-size:12px;font-family:var(--font-mono);color:var(--text3)"><div class="spinner" style="width:24px;height:24px;border-width:2px;margin:0 auto 8px"></div>Loading data...</div>` : '';
+
+  const sqftSection = `
+  <div style="background:var(--bg2);border:1px solid rgba(160,100,255,0.25);border-radius:var(--radius);padding:14px;margin-bottom:16px">
+    <div style="font-size:11px;font-family:var(--font-mono);color:#a064ff;letter-spacing:1px;margin-bottom:10px">TOTAL SQFT TO TREAT</div>
+    ${savedSqft > 0 && currentSqft === 0 ? `<div style="font-size:12px;color:var(--text2);font-family:var(--font-mono);margin-bottom:8px">📁 Using saved: ${savedSqft.toLocaleString()} sqft — update below to recalculate</div>` : ''}
+    <div style="display:flex;gap:8px;align-items:center">
+      <input type="number" id="op-sqft-input" class="prop-input" placeholder="e.g. 95000"
+        value="${activeSqft || ''}"
+        style="flex:1;font-size:18px;padding:12px" />
+      <button onclick="opUpdateSqft()" class="btn btn-primary" style="width:auto;padding:12px 16px;white-space:nowrap">Save & Calc</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:6px">Enter total sqft you treat each ${rt === 'warm' ? 'warm' : 'cool'} season R${rn}. Saved to Firestore for next time.</div>
+  </div>`;
+
+  let orderHTML = '';
+  if (activeSqft > 0 && _invReady) {
+    const orderList = calcOrderList(rt, rn, rt === 'warm' ? activeSqft : 0, rt === 'cool' ? activeSqft : 0);
+
+    if (orderList.length === 0) {
+      orderHTML = `<div class="alert-box alert-info">No liquid or granular products for this round — nothing to order.</div>`;
+    } else {
+      const needsOrder = orderList.filter(p => p.toOrder > 0.5);
+      const stockedOk  = orderList.filter(p => p.toOrder <= 0.5);
+
+      const summaryBanner = needsOrder.length === 0
+        ? `<div style="background:rgba(0,255,71,0.06);border:1px solid rgba(0,255,71,0.2);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;font-size:12px;font-family:var(--font-mono);color:var(--green)">✓ ALL PRODUCTS STOCKED FOR R${rn} — NO ORDER NEEDED</div>`
+        : `<div style="background:rgba(160,100,255,0.08);border:1px solid rgba(160,100,255,0.25);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;font-size:12px;font-family:var(--font-mono);color:#a064ff">📋 ${needsOrder.length} PRODUCT${needsOrder.length>1?'S':''} TO ORDER FOR R${rn}</div>`;
+
+      const makeRow = (p, highlight) => {
+        const needStr = fmtNeeded(p.needed, p.unit);
+        const haveStr = p.currentStock !== null ? fmtNeeded(p.currentStock, p.stockUnit) : '?';
+        const haveColor = p.currentStock === null ? 'var(--text3)' : p.currentStock === 0 ? 'var(--danger)' : p.toOrder > 0.5 ? 'var(--warn)' : 'var(--green)';
+        const orderStr = p.toOrder > 0.5 ? fmtNeeded(p.toOrder, p.unit) : '✓';
+        const orderColor = p.toOrder > 0.5 ? '#a064ff' : 'var(--green)';
+        const rowBg = highlight ? 'rgba(160,100,255,0.06)' : 'transparent';
+        return `
+        <div style="background:${rowBg};border-bottom:1px solid rgba(255,255,255,0.05);padding:10px 0">
+          <div style="font-size:13px;font-weight:600;margin-bottom:5px">${p.name}${p.cond ? `<span style="font-size:10px;color:var(--warn);font-family:var(--font-mono);margin-left:6px">${p.cond}</span>` : ''}</div>
+          <div style="display:flex;gap:0;font-size:11px;font-family:var(--font-mono)">
+            <div style="flex:1"><span style="color:var(--text3)">NEED </span><span style="color:var(--text);font-weight:700">${needStr}</span></div>
+            <div style="flex:1"><span style="color:var(--text3)">HAVE </span><span style="color:${haveColor};font-weight:700">${haveStr}</span></div>
+            <div style="flex:1;text-align:right"><span style="color:var(--text3)">ORDER </span><span style="color:${orderColor};font-weight:700">${orderStr}</span></div>
+          </div>
+        </div>`;
+      };
+
+      const orderRows = needsOrder.map(p => makeRow(p, true)).join('');
+      const stockedRows = stockedOk.map(p => makeRow(p, false)).join('');
+
+      const shareBtn = `
+      <button onclick="opShareOrder()" class="btn btn-primary" style="margin-top:16px;background:rgba(160,100,255,0.9);border:none">
+        📤 Share Order List
+      </button>`;
+
+      orderHTML = `
+      ${summaryBanner}
+      <div class="mix-card">
+        <div class="mix-card-header">
+          <span class="mix-card-icon">${rd.icon}</span>
+          <span class="mix-card-title">R${rn} — ${rd.name}</span>
+          <span style="font-size:10px;font-family:var(--font-mono);color:#a064ff">${activeSqft.toLocaleString()} SQFT</span>
+        </div>
+        <div class="mix-card-body">
+          ${needsOrder.length > 0 ? `<div style="font-size:11px;font-family:var(--font-mono);color:#a064ff;letter-spacing:1px;margin-bottom:4px">ORDER THESE →</div>${orderRows}` : ''}
+          ${stockedOk.length > 0 ? `<div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;margin-top:${needsOrder.length>0?'12':'0'}px;margin-bottom:4px">FULLY STOCKED →</div>${stockedRows}` : ''}
+        </div>
+      </div>
+      ${shareBtn}
+      <div id="op-share-fallback" style="display:none;margin-top:12px">
+        <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:6px">Copy the text below:</div>
+        <textarea id="op-share-text" readonly style="width:100%;height:180px;background:var(--bg3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--text2);padding:10px;font-family:var(--font-mono);font-size:11px;line-height:1.5;resize:none"></textarea>
+      </div>`;
+    }
+  } else if (activeSqft > 0 && !_invReady) {
+    orderHTML = `<div style="text-align:center;padding:16px 0;font-size:12px;font-family:var(--font-mono);color:var(--text3)"><div class="spinner" style="width:24px;height:24px;border-width:2px;margin:0 auto 8px"></div>Loading inventory...</div>`;
+  }
+
+  const routeLabel = rt === 'warm' ? '🔥 Warm Season' : '❄️ Cool Season';
+  return `
+  <button class="back-nav" onclick="state.opRound=null;state.opRouteType=null;render()">← Back</button>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
+    <span style="font-size:24px">📦</span>
+    <div>
+      <div style="font-family:var(--font-display);font-weight:900;font-size:22px;color:#a064ff">Order Planner</div>
+      <div style="font-size:12px;color:var(--text2)">${routeLabel} — R${rn} ${rd.name}</div>
+    </div>
+  </div>
+  ${loadingIndicator}
+  ${sqftSection}
+  ${orderHTML}`;
+}
+
+function opInitRound() {
+  // Load saved sqft from Firestore when entering an order round
+  loadSavedSqft().then(saved => {
+    state.opSavedSqft = saved || {};
+    const key = `${state.opRouteType}_${state.opRound}`;
+    const savedVal = saved[key] || 0;
+    if (state.opRouteType === 'warm') state.opSqftWarm = savedVal;
+    else state.opSqftCool = savedVal;
+    render();
+  });
+}
+
+function opUpdateSqft() {
+  const val = parseInt(document.getElementById('op-sqft-input')?.value) || 0;
+  if (val > 0) {
+    if (state.opRouteType === 'warm') state.opSqftWarm = val;
+    else state.opSqftCool = val;
+    opSaveSqft();
+  } else {
+    render();
+  }
+}
+
+function opShareOrder() {
+  const rt = state.opRouteType;
+  const rn = state.opRound;
+  const sqft = rt === 'warm' ? state.opSqftWarm : state.opSqftCool;
+  const orderList = calcOrderList(rt, rn, rt === 'warm' ? sqft : 0, rt === 'cool' ? sqft : 0);
+  const text = buildShareText(rt, rn, sqft, orderList);
+
+  if (navigator.share) {
+    navigator.share({
+      title: `Flex Lawn — R${rn} Order List`,
+      text: text,
+    }).catch(() => showFallbackShare(text));
+  } else {
+    showFallbackShare(text);
+  }
+}
+
+function showFallbackShare(text) {
+  const fb = document.getElementById('op-share-fallback');
+  const ta = document.getElementById('op-share-text');
+  if (fb && ta) {
+    ta.value = text;
+    fb.style.display = 'block';
+    ta.select();
+    fb.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
 
 // ═══════════════════════════════════════════════════════════
 //  BOOT
