@@ -1750,6 +1750,17 @@ function renderFly() {
     const section = calcRoundSection(state.flyType, state.flyRound, props);
     if (section) {
       const {rd, toroMix, psMix, fungSepMix, granData} = section;
+
+      // Mix on the Fly: never use PS rig (can't mix on-site).
+      // Use Toro rates throughout; if total liquid ≤ 4 gal → FlowZone backpack, else Toro.
+      const flyMix = toroMix || psMix; // prefer toro calc; fall back to ps if toro absent
+      const flyGal = flyMix ? flyMix.gal : 0;
+      const useFlowZone = flyMix && flyGal <= 4;
+      const flyEquipLabel = useFlowZone ? '🎒 FlowZone Backpack' : '🚜 Toro SprayMaster';
+      const flyEquipNote = useFlowZone
+        ? `<div class="alert-box alert-info">≤ 4 gal needed — use FlowZone backpack. Max capacity 4 gal.</div>`
+        : '';
+
       resultHTML = `
         <div style="margin-top:20px">
           <div style="font-family:var(--font-display);font-weight:900;font-size:18px;margin-bottom:12px">
@@ -1758,8 +1769,8 @@ function renderFly() {
           </div>
           ${renderAlerts(rd.alerts)}
           ${rd.liquid?.tankNote ? `<div class="alert-box alert-warn">${rd.liquid.tankNote}</div>` : ''}
-          ${renderMixCard(toroMix, 'Toro SprayMaster Mix', '🚜', rd.liquid?.mixOrder)}
-          ${renderMixCard(psMix, 'Power Spray Rig Mix', '💧', rd.liquid?.mixOrder)}
+          ${flyEquipNote}
+          ${flyMix ? renderMixCard(flyMix, flyEquipLabel, useFlowZone ? '🎒' : '🚜', rd.liquid?.mixOrder) : ''}
           ${rd.liquid?.note ? `<div class="alert-box alert-info">${rd.liquid.note}</div>` : ''}
           ${fungSepMix ? `<div class="mix-card" style="border-color:rgba(0,255,71,0.35)">
             <div class="mix-card-header" style="background:rgba(0,255,71,0.08)">
@@ -1768,8 +1779,7 @@ function renderFly() {
             </div>
             <div class="mix-card-body">
               <div class="alert-box alert-info" style="margin-bottom:12px">${fungSepMix.config.note}</div>
-              ${fungSepMix.toro ? renderMixCard(fungSepMix.toro,'Toro Fungicide Pass','🚜',null) : ''}
-              ${fungSepMix.ps ? renderMixCard(fungSepMix.ps,'PS Fungicide Pass','💧',null) : ''}
+              ${fungSepMix.toro ? renderMixCard(fungSepMix.toro, fungSepMix.toro.gal <= 4 ? '🎒 FlowZone Backpack' : '🚜 Toro Fungicide Pass', fungSepMix.toro.gal <= 4 ? '🎒' : '🚜', null) : ''}
             </div></div>` : ''}
           ${renderGranCard(granData)}
           ${renderBGCard(rd.bg, 'Sedge + Grassy Weeds — 1 Gallon', '🧪', '1-GAL METAL B&G', '#aaa')}
@@ -1804,7 +1814,7 @@ function renderFly() {
     Calculate
   </button>
   <div style="font-size:12px;color:var(--text3);font-family:var(--font-mono);margin-bottom:20px">
-    ≥ 10,000 sqft → Toro &nbsp;|&nbsp; &lt; 10,000 sqft → Power Spray
+    ≤ 4 gal needed → FlowZone backpack &nbsp;|&nbsp; &gt; 4 gal → Toro
   </div>
 
   ${resultHTML}`;
