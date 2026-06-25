@@ -768,18 +768,17 @@ const ROUNDS = {
       liquid:{
         products:[
           {name:'Terra Ally TA 22-0-0',  rate:44.12, unit:'fl oz'},
-          {name:'Artavia SC (Azoxy)',     rate:2.21,  unit:'fl oz'},
           {name:'90/10 NIS',             rate:0.82,  unit:'oz'},
         ],
       },
       granular:null,
+      truckStock:[
+        {name:'Artavia SC (Azoxystrobin)', note:'Reactive fungicide — brown patch / pythium. B&G only on flagged properties.'},
+        {name:'Propiconazole 14.3',        note:'Reactive fungicide — rotate with Artavia. B&G only on flagged properties.'},
+      ],
       bg:[
-        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga + spurge + chamberbitter'},
-        {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY'},
-        {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
-        {sep:true, label:'QUIN-WAY ALTERNATE — only if under 85°F AND turf not stressed'},
-        {name:'Quin-Way 1.5L', amount:'1.5 oz',  note:'Check annual cap before use'},
-        {name:'MSO',           amount:'1.28 oz', note:'Required with Quin-Way'},
+        {name:'Special Sauce', amount:'2 oz', note:'Sulfentrazone + Revolver + 90/10 NIS — sedge, goosegrass, crabgrass'},
+        {name:'Simazine',      amount:'0.5 oz', note:'Grassy weed kill boost'},
       ],
       bg2:[
         {name:'Manuscript (fluazifop)', amount:'0.22 oz', note:'Dallisgrass clumps only'},
@@ -787,41 +786,37 @@ const ROUNDS = {
       ],
       alerts:[
         {type:'danger', msg:'NEVER mix Manuscript with Revolver or any other product — separate 0.5-gal plastic B&G only.'},
-        {type:'warn', msg:'HEAT RULE: 90°F+ → complete ALL blanket spray before 9:30 AM. Celsius WG NOT over 90°F. Terra Ally foliar — water lawn 24 hrs after.'},
-        {type:'info', msg:'Quin-Way annual cap: running total must stay under 2.9 oz/1K/year.'},
+        {type:'warn',   msg:'HEAT RULE: 90°F+ → complete ALL blanket spray before 9:30 AM. Terra Ally foliar — water lawn 24 hrs after.'},
+        {type:'info',   msg:'FUNGICIDE IS REACTIVE THIS ROUND — treat flagged properties only with B&G. Artavia SC + Propiconazole must be on the truck.'},
       ],
     },
     5: {
       name:'Mid-Summer Protection', icon:'🔥', dates:'Aug 1 – Sep 15',
-      liquid:{
-        products:[
-          {name:'Artavia SC (Azoxy) — FRAC 11', rate:2.26, unit:'fl oz'},
-          {name:'Propiconazole 14.3 — FRAC 3',  rate:2.94, unit:'fl oz'},
-        ],
-        mixOrder:'NO 90/10 in this tank. Add Artavia SC first, then Propiconazole 14.3. Agitate 60 sec.',
-      },
+      liquid:null,
+      truckStock:[
+        {name:'Artavia SC (Azoxystrobin)', note:'Reactive fungicide — brown patch / pythium. B&G only on flagged properties.'},
+        {name:'Propiconazole 14.3',        note:'Reactive fungicide — rotate with Artavia. B&G only on flagged properties.'},
+      ],
       granular:{
         product:'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe',
         rates:[
           {label:'Bermuda', lbs:3.57},
           {label:'Zoysia',  lbs:2.75},
         ],
-        note:'Apply same visit as fungicide. Water-in within 24 hrs.',
+        note:'Water-in within 24 hrs.',
       },
       bg:[
-        {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga + spurge + chamberbitter'},
-        {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY'},
-        {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
+        {name:'Special Sauce', amount:'2 oz', note:'Sulfentrazone + Revolver + 90/10 NIS — sedge, goosegrass, crabgrass'},
+        {name:'Simazine',      amount:'0.5 oz', note:'Grassy weed kill boost'},
       ],
       bg2:[
         {name:'Manuscript (fluazifop)', amount:'0.22 oz', note:'Dallisgrass clumps only'},
         {name:'MSO Adigor',             amount:'0.22 oz', note:'Required with Manuscript — no substitutes'},
       ],
       alerts:[
-        {type:'danger', msg:'NO 90/10 NIS in the dual fungicide tank — risk of phytotoxicity.'},
         {type:'danger', msg:'NEVER mix Manuscript with Revolver or any other product — separate 0.5-gal plastic B&G only.'},
-        {type:'danger', msg:'BERMUDA PROPICONAZOLE CAP: Never exceed 4 oz/1K sqft within any 30-day window. Track on route sheet.'},
-        {type:'warn',   msg:'PEAK HEAT: All fungicide blanket spray before 9:30 AM on 90°F+ days. Celsius WG NOT over 90°F.'},
+        {type:'warn',   msg:'PEAK HEAT: Celsius WG NOT over 90°F. B&G spot spray before 9:30 AM on 90°F+ days.'},
+        {type:'info',   msg:'FUNGICIDE IS REACTIVE THIS ROUND — treat flagged properties only with B&G. Artavia SC + Propiconazole must be on the truck.'},
       ],
     },
     6: {
@@ -1382,6 +1377,33 @@ function renderDallisgrassCard(items) {
   </div>`;
 }
 
+function renderTruckStockCard(items) {
+  if (!items || !items.length) return '';
+  const rows = items.map(item => `
+    <div class="product-row">
+      <div class="product-name">
+        ${item.name}
+        ${item.note ? `<span class="cond-note">${item.note}</span>` : ''}
+        ${invBadge(item.name)}
+      </div>
+      <div class="product-amount" style="color:var(--warn);font-size:11px">ON TRUCK</div>
+    </div>`).join('');
+
+  return `
+  <div class="mix-card" style="border-color:rgba(255,140,0,0.35)">
+    <div class="mix-card-header" style="background:rgba(255,140,0,0.08)">
+      <span class="mix-card-icon">🍄</span>
+      <span class="mix-card-title">Reactive Fungicide — Keep on Truck</span>
+      <span style="font-size:10px;font-family:var(--font-mono);color:var(--warn);letter-spacing:1px">B&G ONLY</span>
+    </div>
+    <div class="mix-card-body">
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">NOT MIXED IN MAIN TANK →</div>
+      ${rows}
+      <div class="mix-order" style="margin-top:10px;color:var(--warn)">Apply B&G spot treatment ONLY on properties flagged in FieldRoutes for active disease. Alternate Artavia SC and Propiconazole — never use FRAC 11 back-to-back.</div>
+    </div>
+  </div>`;
+}
+
 function renderGranCard(granData) {
   if (!granData) return '';
   const cfg = granData.config;
@@ -1704,10 +1726,10 @@ function renderStep1() {
   </div>`;
 }
 
-function selectRoute(type) { state.routeType=type; state.screen='step2'; render(); }
-function selectFly() { state.screen='fly'; state.flyMode='round'; render(); }
-function selectReservice() { state.screen='reservice'; state.rsTurfType=null; state.rsSelectedWeeds=[]; state.rsWeedSearch=''; render(); }
-function selectOrderPlanner() { state.screen='orderplanner'; state.opRound=null; state.opRouteType=null; state.opSqftWarm=0; state.opSqftCool=0; state.opLoading=false; state.opError=null; state.opFRData=null; render(); }
+function selectRoute(type) { state.routeType=type; navigateTo('step2'); }
+function selectFly() { state.flyMode='round'; navigateTo('fly'); }
+function selectReservice() { state.rsTurfType=null; state.rsSelectedWeeds=[]; state.rsWeedSearch=''; navigateTo('reservice'); }
+function selectOrderPlanner() { state.opRound=null; state.opRouteType=null; state.opSqftWarm=0; state.opSqftCool=0; state.opLoading=false; state.opError=null; state.opFRData=null; navigateTo('orderplanner'); }
 
 function renderFly() {
   const detectedRound = detectRound();
@@ -1752,13 +1774,14 @@ function renderFly() {
           ${renderGranCard(granData)}
           ${renderBGCard(rd.bg, 'Sedge + Grassy Weeds — 1 Gallon', '🧪', '1-GAL METAL B&G', '#aaa')}
           ${renderDallisgrassCard(rd.bg2)}
+          ${renderTruckStockCard(rd.truckStock)}
           ${!rd.liquid && !rd.granular && !rd.bg && !rd.bg2 ? `<div class="alert-box alert-info">No mix required for this round.</div>` : ''}
         </div>`;
     }
   }
 
   return `
-  <button class="back-nav" onclick="state.screen='step1';render()">← Back</button>
+  <button class="back-nav" onclick="navigateTo('step1')">← Back</button>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
     <span style="font-size:24px">⚡</span>
     <div>
@@ -1988,6 +2011,7 @@ function renderResults() {
       content += renderGranCard(sec.granData);
       content += renderBGCard(rd.bg, 'Sedge + Grassy Weeds — 1 Gallon', '🧪', '1-GAL METAL B&G', '#aaa');
       content += renderDallisgrassCard(rd.bg2);
+      content += renderTruckStockCard(rd.truckStock);
 
       // Rock beds note
       const rockBedProps = sec.props.filter(p => p.hasRockBeds);
@@ -2289,6 +2313,7 @@ function attachEvents() {
   });
   document.getElementById('fly-sqft')?.addEventListener('input', (e) => {
     state.flySqft = parseInt(e.target.value) || 0;
+    render();
   });
   document.getElementById('fly-calc-btn')?.addEventListener('click', () => {
     state.flySqft = parseInt(document.getElementById('fly-sqft')?.value) || 0;
@@ -2302,7 +2327,7 @@ function attachEvents() {
   });
 
   // Step 2
-  document.getElementById('back-to-1')?.addEventListener('click', () => { state.screen='step1'; render(); });
+  document.getElementById('back-to-1')?.addEventListener('click', () => { navigateTo('step1'); });
   document.getElementById('file-input')?.addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
     for (const file of files) {
@@ -2347,7 +2372,7 @@ function attachEvents() {
   });
 
   // Step 3
-  document.getElementById('back-to-2')?.addEventListener('click', () => { state.screen='step2'; render(); });
+  document.getElementById('back-to-2')?.addEventListener('click', () => { navigateTo('step2'); });
   document.querySelectorAll('[data-del]').forEach(btn => {
     btn.addEventListener('click', () => {
       state.properties.splice(Number(btn.dataset.del), 1);
@@ -2377,7 +2402,7 @@ function attachEvents() {
   });
 
   // Results
-  document.getElementById('back-to-3')?.addEventListener('click', () => { state.screen='step3'; render(); });
+  document.getElementById('back-to-3')?.addEventListener('click', () => { navigateTo('step3'); });
   document.getElementById('restart-btn')?.addEventListener('click', () => {
     state.screen='step1'; state.routeType=null; state.properties=[];
     state.images=[]; state.round=null; state.parseError=null;
@@ -2515,8 +2540,38 @@ if (isIOS && !isStandalone && !localStorage.getItem('ios-install-shown')) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  SERVICE WORKER
+//  ANDROID HARDWARE BACK BUTTON — history API
 // ═══════════════════════════════════════════════════════════
+const BACK_MAP = {
+  step2:      'step1',
+  step3:      'step2',
+  results:    'step3',
+  fly:        'step1',
+  reservice:  'step1',
+  orderplanner:'step1',
+};
+
+function navigateTo(screen, opts={}) {
+  const prev = state.screen;
+  state.screen = screen;
+  // Push a history entry so popstate fires on Android back
+  history.pushState({ screen, prev }, '', '');
+  if (opts.reset) {
+    state.routeType = opts.routeType || state.routeType;
+  }
+  render();
+}
+
+window.addEventListener('popstate', (e) => {
+  const target = (e.state && e.state.prev) || BACK_MAP[state.screen] || 'step1';
+  state.screen = target;
+  render();
+  // Push another entry so the back button keeps working
+  history.pushState({ screen: state.screen, prev: BACK_MAP[state.screen] || 'step1' }, '', '');
+});
+
+// Seed initial history entry on load
+history.replaceState({ screen: 'step1', prev: null }, '', '');
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/Flex-Lawn-Tools/sw.js').then(reg => {
     reg.update();
@@ -2761,7 +2816,7 @@ function renderOrderPlanner() {
     }).join('');
 
     return `
-    <button class="back-nav" onclick="state.screen='step1';render()">← Back</button>
+    <button class="back-nav" onclick="navigateTo('step1')">← Back</button>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
       <span style="font-size:24px">📦</span>
       <div>
