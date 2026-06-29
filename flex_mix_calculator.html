@@ -2749,6 +2749,19 @@ function fmtNeeded(val, unit) {
   return val.toFixed(1) + ' ' + unit;
 }
 
+// Container sizes (fl oz): products that ship in fixed containers
+const CONTAINER_SIZES = {
+  'Terra Ally TA 22-0-0': { oz: 320, label: '2.5 gal jug' },  // 2.5 gal × 128 oz/gal = 320 oz
+};
+
+// Returns a container line string if the product has a known container size, else null
+function fmtContainers(productName, ozNeeded) {
+  const cfg = CONTAINER_SIZES[productName];
+  if (!cfg || !ozNeeded || ozNeeded <= 0) return null;
+  const count = Math.ceil(ozNeeded / cfg.oz);
+  return `${count} × ${cfg.label}`;
+}
+
 function buildShareText(routeType, roundNum, sqft, orderList) {
   const rd = ROUNDS[routeType][roundNum];
   const needsOrder = orderList.filter(p => p.toOrder > 0.5);
@@ -2766,8 +2779,9 @@ function buildShareText(routeType, roundNum, sqft, orderList) {
       const need = fmtNeeded(p.needed, p.unit);
       const have = p.currentStock !== null ? fmtNeeded(p.currentStock, p.stockUnit) : 'unknown';
       const toOrder = fmtNeeded(p.toOrder, p.unit);
+      const containerLine = fmtContainers(p.name, p.toOrder);
       lines.push(`• ${p.name}`);
-      lines.push(`  Need ${need}  ·  Have ${have}  →  Order ${toOrder}`);
+      lines.push(`  Need ${need}  ·  Have ${have}  →  Order ${toOrder}${containerLine ? ` (${containerLine})` : ''}`);
     }
   }
 
@@ -2885,6 +2899,7 @@ function renderOrderPlanner() {
         const orderStr = p.toOrder > 0.5 ? fmtNeeded(p.toOrder, p.unit) : '✓';
         const orderColor = p.toOrder > 0.5 ? '#a064ff' : 'var(--green)';
         const rowBg = highlight ? 'rgba(160,100,255,0.06)' : 'transparent';
+        const containerLine = p.toOrder > 0.5 ? fmtContainers(p.name, p.toOrder) : null;
         return `
         <div style="background:${rowBg};border-bottom:1px solid rgba(255,255,255,0.05);padding:10px 0">
           <div style="font-size:13px;font-weight:600;margin-bottom:5px">${p.name}${p.cond ? `<span style="font-size:10px;color:var(--warn);font-family:var(--font-mono);margin-left:6px">${p.cond}</span>` : ''}</div>
@@ -2893,6 +2908,7 @@ function renderOrderPlanner() {
             <div style="flex:1"><span style="color:var(--text3)">HAVE </span><span style="color:${haveColor};font-weight:700">${haveStr}</span></div>
             <div style="flex:1;text-align:right"><span style="color:var(--text3)">ORDER </span><span style="color:${orderColor};font-weight:700">${orderStr}</span></div>
           </div>
+          ${containerLine ? `<div style="font-size:11px;font-family:var(--font-mono);color:#a064ff;margin-top:4px;text-align:right">🛒 ${containerLine}</div>` : ''}
         </div>`;
       };
 
