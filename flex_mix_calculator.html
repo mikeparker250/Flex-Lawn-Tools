@@ -572,6 +572,9 @@ const TORO_OUT = 0.34;   // gal / 1,000 sqft
 const PS_OUT   = 1.14;   // gal / 1,000 sqft
 const GATE     = 10000;  // sqft: ≥ this → Toro, < this → Power Spray
 const BUFFER   = 5000;   // sqft buffer deducted from primary equipment total
+const TORO_TANK_CAP = 12; // gallons — capacity of ONE physical tank on the Toro SprayMaster
+const TORO_TANKS_ON_TRUCK = 2; // SprayMaster carries 2 tanks — both filled before departure
+const OZ_PER_GAL = 128;   // fl oz in 1 gallon, used to convert product volume into tank space
 
 // ═══════════════════════════════════════════════════════════
 //  FIREBASE INVENTORY
@@ -594,7 +597,7 @@ const REORDER_THRESHOLDS = {
   'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe':1, 'Propiconazole 14.3':1,
   'LESCO 5-0-25 w/ 10% Fe':1, 'Specticle FLO':10,
   'LESCO 18-0-9 w/ 2% Fe':1, 'Ranger Pro 41% Glyphosate':2.5,
-  'Albaugh Sulfentrazone 4SC Select':1, 'Revolver':1, 'Manuscript (fluazifop)':1, 'MSO Adigor':2.5,
+  'Albaugh Sulfentrazone 4SC Select':1, 'Revolver':1, 'Special Sauce':2.5, 'Empero (Halosulfuron)':1,
   'Eliminate D':1, 'Turflon Ester 4E':1,
 };
 
@@ -667,6 +670,10 @@ function getProductsForRound(routeType, roundNum) {
   if (rd.bg) {
     rd.bg.forEach(p => { if (p.name) names.add(p.name.replace(/\s*⚠️.*$/, '').trim()); });
   }
+  // BG Special Sauce — separate bottle, own inventory tracking
+  if (rd.bgSpecialSauce) {
+    rd.bgSpecialSauce.forEach(p => { if (p.name) names.add(p.name.replace(/\s*⚠️.*$/, '').trim()); });
+  }
   // BG2 / dallisgrass sprayer
   if (rd.bg2) {
     rd.bg2.forEach(p => { if (p.name) names.add(p.name.replace(/\s*⚠️.*$/, '').trim()); });
@@ -724,16 +731,15 @@ const ROUNDS = {
       granular:null,
       bg:[
         {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga + spurge'},
-        {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY, never fescue'},
+        {name:'Empero (Halosulfuron)', amount:'1 scoop (0.9g)', cond:true, condNote:'Add ONLY where nutsedge/kyllinga new shoots are visible — early-season pass to knock down the tuber bank before summer. No mow 2 days before/after. Retreat in 3–4 wks if it returns.'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
       ],
-      bg2:[
-        {name:'Manuscript (fluazifop)', amount:'0.22 oz', note:'Dallisgrass clumps only'},
-        {name:'MSO Adigor',             amount:'0.22 oz', note:'Required with Manuscript — no substitutes'},
+      bgSpecialSauce:[
+        {name:'Special Sauce', amount:'2 oz', note:'Crabgrass, dallisgrass, goosegrass'},
       ],
+      bg2:null,
       alerts:[
         {type:'danger', msg:'MSO REQUIRED with Quin-Way. DO NOT substitute 90/10 NIS. If MSO is out — do not spray, reschedule.'},
-        {type:'danger', msg:'NEVER mix Manuscript with Revolver or any other product — separate 0.5-gal plastic B&G only.'},
         {type:'info',   msg:'Quin-Way: DO NOT mow 2 days before/after. Leave clippings 3 mowings. Annual cap: 2.9 oz/1K/year. Under 85°F ideal — avoid stressed turf.'},
       ],
     },
@@ -747,19 +753,17 @@ const ROUNDS = {
       },
       bg:[
         {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga + spurge'},
-        {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
         {sep:true, label:'QUIN-WAY — grassy weeds if needed (check annual cap)'},
         {name:'Quin-Way 1.5L',           amount:'1.5 oz',  note:'Grassy weed spot spray'},
         {name:'MSO',                     amount:'1.28 oz', note:'Required with Quin-Way'},
       ],
-      bg2:[
-        {name:'Manuscript (fluazifop)', amount:'0.22 oz', note:'Dallisgrass clumps only'},
-        {name:'MSO Adigor',             amount:'0.22 oz', note:'Required with Manuscript — no substitutes'},
+      bgSpecialSauce:[
+        {name:'Special Sauce', amount:'2 oz', note:'Crabgrass, dallisgrass, goosegrass'},
       ],
+      bg2:null,
       alerts:[
         {type:'danger', msg:'DEEP CLEAN REQUIRED before first R3 mix. Drain all equipment → water rinse → Dawn soap rinse → final water rinse until crystal clear. Document in FieldRoutes.'},
-        {type:'danger', msg:'NEVER mix Manuscript with Revolver or any other product — separate 0.5-gal plastic B&G only.'},
         {type:'info',   msg:'Spot spray weeds only — do not blanket spray a fertilizer round.'},
       ],
     },
@@ -777,15 +781,11 @@ const ROUNDS = {
         {name:'Propiconazole 14.3',        note:'Reactive fungicide — rotate with Artavia. B&G only on flagged properties.'},
       ],
       bg:[
-        {name:'Special Sauce', amount:'2 oz', note:'Sulfentrazone + Revolver + 90/10 NIS — sedge, goosegrass, crabgrass'},
+        {name:'Special Sauce', amount:'2 oz', note:'Crabgrass, dallisgrass, goosegrass'},
         {name:'Simazine',      amount:'0.5 oz', note:'Grassy weed kill boost'},
       ],
-      bg2:[
-        {name:'Manuscript (fluazifop)', amount:'0.22 oz', note:'Dallisgrass clumps only'},
-        {name:'MSO Adigor',             amount:'0.22 oz', note:'Required with Manuscript — no substitutes'},
-      ],
+      bg2:null,
       alerts:[
-        {type:'danger', msg:'NEVER mix Manuscript with Revolver or any other product — separate 0.5-gal plastic B&G only.'},
         {type:'warn',   msg:'HEAT RULE: 90°F+ → complete ALL blanket spray before 9:30 AM. Terra Ally foliar — water lawn 24 hrs after.'},
         {type:'info',   msg:'FUNGICIDE IS REACTIVE THIS ROUND — treat flagged properties only with B&G. Artavia SC + Propiconazole must be on the truck.'},
       ],
@@ -806,15 +806,11 @@ const ROUNDS = {
         note:'Water-in within 24 hrs.',
       },
       bg:[
-        {name:'Special Sauce', amount:'2 oz', note:'Sulfentrazone + Revolver + 90/10 NIS — sedge, goosegrass, crabgrass'},
+        {name:'Special Sauce', amount:'2 oz', note:'Crabgrass, dallisgrass, goosegrass'},
         {name:'Simazine',      amount:'0.5 oz', note:'Grassy weed kill boost'},
       ],
-      bg2:[
-        {name:'Manuscript (fluazifop)', amount:'0.22 oz', note:'Dallisgrass clumps only'},
-        {name:'MSO Adigor',             amount:'0.22 oz', note:'Required with Manuscript — no substitutes'},
-      ],
+      bg2:null,
       alerts:[
-        {type:'danger', msg:'NEVER mix Manuscript with Revolver or any other product — separate 0.5-gal plastic B&G only.'},
         {type:'warn',   msg:'PEAK HEAT: Celsius WG NOT over 90°F. B&G spot spray before 9:30 AM on 90°F+ days.'},
         {type:'info',   msg:'FUNGICIDE IS REACTIVE THIS ROUND — treat flagged properties only with B&G. Artavia SC + Propiconazole must be on the truck.'},
       ],
@@ -829,17 +825,15 @@ const ROUNDS = {
       },
       bg:[
         {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga + spurge'},
-        {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass — WARM SEASON ONLY'},
         {name:'Quin-Way 1.5L',           amount:'1.45 oz', note:'Grassy weed — check annual cap'},
         {name:'MSO',                     amount:'1.28 oz', note:'Required with Quin-Way'},
         {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
       ],
-      bg2:[
-        {name:'Manuscript (fluazifop)', amount:'0.22 oz', note:'Dallisgrass clumps only'},
-        {name:'MSO Adigor',             amount:'0.22 oz', note:'Required with Manuscript — no substitutes'},
+      bgSpecialSauce:[
+        {name:'Special Sauce', amount:'2 oz', note:'Crabgrass, dallisgrass, goosegrass'},
       ],
+      bg2:null,
       alerts:[
-        {type:'danger', msg:'NEVER mix Manuscript with Revolver or any other product — separate 0.5-gal plastic B&G only.'},
         {type:'info', msg:'Quin-Way annual cap: confirm running total stays under 2.9 oz/1K. Zero N on Bermuda/Zoysia this round is intentional — heading into dormancy.'},
       ],
     },
@@ -1046,6 +1040,37 @@ function fmtOz(n, unit) {
 
 function assignEquip(sqft) {
   return sqft >= GATE ? 'toro' : 'ps';
+}
+
+// Splits a Toro SprayMaster batch into physical tank loads when the finished
+// mix volume (water + all liquid product volume) exceeds the tank's real
+// capacity. Returns null if the batch fits in one tank. Each returned batch
+// keeps the exact same water:product ratio as the full mix — full tanks are
+// filled to capacity, the last tank carries the remainder.
+function splitTankBatches(mix) {
+  if (!mix || mix.equipment !== 'toro') return null;
+  const productVolGal = mix.products.reduce((s, p) => s + (p.amt / OZ_PER_GAL), 0);
+  const totalVol = mix.gal + productVolGal;
+  if (totalVol <= TORO_TANK_CAP) return null;
+
+  const numTanks = Math.ceil(totalVol / TORO_TANK_CAP);
+  const batches = [];
+  let remaining = totalVol;
+  for (let i = 0; i < numTanks; i++) {
+    const tankVol = Math.min(TORO_TANK_CAP, remaining);
+    const fraction = tankVol / totalVol;
+    const label = i < TORO_TANKS_ON_TRUCK
+      ? `TANK ${i + 1} — FILL BEFORE DEPARTURE`
+      : `REFILL ${i - TORO_TANKS_ON_TRUCK + 1} — TOP OFF IN FIELD`;
+    batches.push({
+      label,
+      totalVol: tankVol,
+      waterGal: mix.gal * fraction,
+      products: mix.products.map(p => ({...p, amt: p.amt * fraction})),
+    });
+    remaining -= tankVol;
+  }
+  return batches;
 }
 
 function today() {
@@ -1269,15 +1294,25 @@ function renderAlerts(alerts) {
   ).join('');
 }
 
-function renderMixCard(mix, title, icon, extraNote) {
-  if (!mix) return '';
-  const isPS = mix.equipment === 'ps';
-  const equipLabel = isPS ? 'POWER SPRAY RIG' : 'TORO SPRAYMASTER';
-  const equipColor = isPS ? '#64b4ff' : 'var(--green)';
-  const bufNote = mix.buf > 0 ? `<span style="color:var(--text3);font-size:12px">  (−${mix.buf.toLocaleString()} sqft buffer)</span>` : '';
+// Products at or under 1 gal (128 oz) display as-is with decimals.
+// Anything over 1 gal shows a whole-number oz total, plus a clean
+// "(X gal Y oz)" breakdown underneath — no decimals, easy to read at a glance.
+function fmtProductAmount(amt, unit) {
+  if (amt <= OZ_PER_GAL) {
+    return { primary: fmtOz(amt, unit), secondary: null };
+  }
+  const whole = Math.round(amt);
+  const gal = Math.floor(whole / OZ_PER_GAL);
+  const remOz = whole - gal * OZ_PER_GAL;
+  const galLabel = gal + (gal === 1 ? ' gal' : ' gal');
+  const secondary = remOz > 0 ? `${galLabel} ${remOz} oz` : galLabel;
+  return { primary: `${whole} ${unit}`, secondary: `(${secondary})` };
+}
 
-  const inv = window._inventoryData || {};
-  const prodsHTML = mix.products.map(p => `
+function renderProductRows(products) {
+  return products.map(p => {
+    const {primary, secondary} = fmtProductAmount(p.amt, p.unit);
+    return `
     <div class="product-row">
       <div class="product-name">
         ${p.name}
@@ -1285,20 +1320,39 @@ function renderMixCard(mix, title, icon, extraNote) {
         ${p.note ? `<span class="cond-note">${p.note}</span>` : ''}
         ${invBadge(p.name)}
       </div>
-      <div>
-        <span class="product-amount">${fmtOz(p.amt, p.unit)}</span>
-        <span class="product-unit"> ${p.unit}</span>
+      <div style="text-align:right">
+        <span class="product-amount">${primary}</span>
+        ${secondary ? `<div class="product-unit" style="font-size:11px;color:var(--text3)">${secondary}</div>` : ''}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
 
-  return `
-  <div class="mix-card">
-    <div class="mix-card-header">
-      <span class="mix-card-icon">${icon}</span>
-      <span class="mix-card-title">${title}</span>
-      <span style="font-size:10px;font-family:var(--font-mono);color:${equipColor};letter-spacing:1px">${equipLabel}</span>
-    </div>
-    <div class="mix-card-body">
+function renderMixCard(mix, title, icon, extraNote) {
+  if (!mix) return '';
+  const isPS = mix.equipment === 'ps';
+  const equipLabel = isPS ? 'POWER SPRAY RIG' : 'TORO SPRAYMASTER';
+  const equipColor = isPS ? '#64b4ff' : 'var(--green)';
+  const bufNote = mix.buf > 0 ? `<span style="color:var(--text3);font-size:12px">  (−${mix.buf.toLocaleString()} sqft buffer)</span>` : '';
+
+  const tankBatches = splitTankBatches(mix);
+
+  const needsFieldRefill = tankBatches && tankBatches.length > TORO_TANKS_ON_TRUCK;
+  const bodyHTML = tankBatches ? `
+      <div class="alert-box alert-warn">⚠️ Mix volume exceeds one ${TORO_TANK_CAP}-gal tank — ${needsFieldRefill
+        ? `fill both tanks before departure, then top off in the field ${tankBatches.length - TORO_TANKS_ON_TRUCK} more time(s).`
+        : `fill both tanks before departure — no field refill needed.`}</div>
+      ${tankBatches.map((b, i) => `
+        <div class="mix-meta" style="margin-top:${i === 0 ? '0' : '14px'}">
+          <div class="mix-meta-item">
+            <div class="mix-meta-label">${b.label} — ${fmtGal(b.totalVol)} total</div>
+            <div class="mix-meta-value">${fmtGal(b.waterGal)} <span class="mix-meta-unit">water</span></div>
+          </div>
+        </div>
+        <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">ADD →</div>
+        ${renderProductRows(b.products)}
+      `).join('')}
+    ` : `
       <div class="mix-meta">
         <div class="mix-meta-item">
           <div class="mix-meta-label">Effective sqft</div>
@@ -1310,7 +1364,18 @@ function renderMixCard(mix, title, icon, extraNote) {
         </div>
       </div>
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">ADD PER BATCH →</div>
-      ${prodsHTML}
+      ${renderProductRows(mix.products)}
+    `;
+
+  return `
+  <div class="mix-card">
+    <div class="mix-card-header">
+      <span class="mix-card-icon">${icon}</span>
+      <span class="mix-card-title">${title}</span>
+      <span style="font-size:10px;font-family:var(--font-mono);color:${equipColor};letter-spacing:1px">${equipLabel}</span>
+    </div>
+    <div class="mix-card-body">
+      ${bodyHTML}
       ${extraNote ? `<div class="mix-order">${extraNote}</div>` : ''}
     </div>
   </div>`;
@@ -1329,6 +1394,7 @@ function renderBGCard(items, title, icon, sprayerLabel, accentColor) {
       <div class="product-row">
         <div class="product-name">
           ${item.name}
+          ${item.cond ? `<span class="cond-note">⚠️ ${item.condNote}</span>` : ''}
           ${item.note ? `<span class="cond-note">${item.note}</span>` : ''}
           ${invBadge(item.name)}
         </div>
@@ -1372,7 +1438,7 @@ function renderDallisgrassCard(items) {
     <div class="mix-card-body">
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">MIX PER 0.5 GALLON →</div>
       ${rows}
-      <div class="mix-order" style="margin-top:10px;color:var(--warn)">ONLY when dallisgrass clumps visible. Spot spray clumps directly. NEVER mix Manuscript with Revolver or any other product. Repeat every 3–4 weeks until controlled.</div>
+      <div class="mix-order" style="margin-top:10px;color:var(--warn)">ONLY when dallisgrass clumps visible. Spot spray clumps directly. Repeat every 3–4 weeks until controlled.</div>
     </div>
   </div>`;
 }
@@ -1455,19 +1521,21 @@ function renderGranCard(granData) {
 // ═══════════════════════════════════════════════════════════
 
 const WEED_DB = {
-  nutsedge:      { label:'Nutsedge (Yellow/Purple)', aliases:['sedge','nutsedge','nutgrass','nut sedge'], turf:'both',  sprayer:'metal',   products:['dismiss'] },
-  kyllinga:      { label:'Kyllinga',                 aliases:['kyllinga','killinga'],                    turf:'both',  sprayer:'metal',   products:['dismiss'] },
-  dallisgrass:   { label:'Dallisgrass',              aliases:['dallis','dallisgrass'],                   turf:'warm',  sprayer:'plastic', products:['manuscript','mso_adigor'] },
-  goosegrass:    { label:'Goosegrass',               aliases:['goosegrass','goose grass','silver crab'], turf:'warm',  sprayer:'metal',   products:['revolver'] },
-  crabgrass:     { label:'Crabgrass',                aliases:['crabgrass','crab grass'],                 turf:'warm',  sprayer:'metal',   products:['revolver'] },
+  nutsedge:      { label:'Nutsedge (Yellow/Purple)', aliases:['sedge','nutsedge','nutgrass','nut sedge'], turf:'both',  sprayer:'metal',   products:['sulfentrazone','empero'],
+                   warning:'Avoid applying above 90°F. Do not mow 2 days before/after Empero — needs leaf contact time to move down to the tubers.' },
+  kyllinga:      { label:'Kyllinga',                 aliases:['kyllinga','killinga'],                    turf:'both',  sprayer:'metal',   products:['sulfentrazone','empero'],
+                   warning:'Avoid applying above 90°F. Do not mow 2 days before/after Empero — needs leaf contact time to move down to the tubers.' },
+  dallisgrass:   { label:'Dallisgrass',              aliases:['dallis','dallisgrass'],                   turf:'warm',  sprayer:'metal',   products:['special_sauce'] },
+  goosegrass:    { label:'Goosegrass',               aliases:['goosegrass','goose grass','silver crab'], turf:'warm',  sprayer:'metal',   products:['special_sauce'] },
+  crabgrass:     { label:'Crabgrass',                aliases:['crabgrass','crab grass'],                 turf:'warm',  sprayer:'metal',   products:['special_sauce'] },
   poa_warm:      { label:'Annual Bluegrass (Poa)',   aliases:['poa','annual bluegrass','poa annua'],     turf:'warm',  sprayer:'metal',   products:['revolver'] },
   poa_cool:      { label:'Annual Bluegrass (Poa)',   aliases:['poa','annual bluegrass','poa annua'],     turf:'cool',  sprayer:'note',    note:'No curative option on fescue. Pre-emergent only — nothing to spray now.' },
   clover:        { label:'Clover',                   aliases:['clover','white clover','red clover'],     turf:'both',  sprayer:'metal',   products:['eliminate_d','triad_cool'] },
   dandelion:     { label:'Dandelion',                aliases:['dandelion'],                              turf:'both',  sprayer:'metal',   products:['eliminate_d','triad_cool'] },
   henbit:        { label:'Henbit',                   aliases:['henbit','deadnettle','dead nettle'],      turf:'both',  sprayer:'metal',   products:['eliminate_d','triad_cool'] },
-  spurge:        { label:'Spurge',                   aliases:['spurge','spotted spurge','prostrate'],    turf:'both',  sprayer:'metal',   products:['dismiss'] },
-  chamberbitter: { label:'Chamberbitter',            aliases:['chamberbitter','chamber bitter','mimosa weed'], turf:'both', sprayer:'metal', products:['dismiss'] },
-  dollarweed:    { label:'Dollarweed',               aliases:['dollarweed','dollar weed','pennywort'],   turf:'warm',  sprayer:'metal',   products:['dismiss'] },
+  spurge:        { label:'Spurge',                   aliases:['spurge','spotted spurge','prostrate'],    turf:'both',  sprayer:'metal',   products:['sulfentrazone'] },
+  chamberbitter: { label:'Chamberbitter',            aliases:['chamberbitter','chamber bitter','mimosa weed'], turf:'both', sprayer:'metal', products:['sulfentrazone'] },
+  dollarweed:    { label:'Dollarweed',               aliases:['dollarweed','dollar weed','pennywort'],   turf:'warm',  sprayer:'metal',   products:['sulfentrazone'] },
   wild_violet:   { label:'Wild Violet',              aliases:['wild violet','violet','viola'],           turf:'both',  sprayer:'metal',   products:['turflon'],
                    warning:'BERMUDA/ZOYSIA: Do not apply Turflon Ester June through August. Spring or fall only on bermuda.' },
   ground_ivy:    { label:'Ground Ivy',               aliases:['ground ivy','creeping charlie','gill over the ground'], turf:'both', sprayer:'metal', products:['turflon'],
@@ -1477,19 +1545,20 @@ const WEED_DB = {
 };
 
 const RESERVICE_PRODUCTS = {
-  dismiss:     { name:'Albaugh Sulfentrazone 4SC Select', amount_metal:'0.18 oz',  note:'Sedge, kyllinga, spurge, chamberbitter, dollarweed — spot treat isolated patches. Heavy pressure: add 0.18 oz/1K sqft to main tank for broadcast.' },
-  revolver:    { name:'Revolver',               amount_metal:'0.25 fl oz', note:'Goosegrass, crabgrass, annual bluegrass', warm_only:true },
+  sulfentrazone: { name:'Albaugh Sulfentrazone 4SC Select', amount_metal:'0.18 oz',  note:'Sedge, kyllinga, spurge, chamberbitter, dollarweed — spot treat isolated patches. Heavy pressure: add 0.18 oz/1K sqft to main tank for broadcast.' },
+  revolver:    { name:'Revolver',               amount_metal:'0.25 fl oz', note:'Annual bluegrass (Poa)', warm_only:true },
   eliminate_d: { name:'Eliminate D',            amount_metal:'1.5 oz',   note:'Broadleaf weeds — warm season', warm_only:true },
   triad_cool:  { name:'Triad Select',           amount_metal:'1.4 oz',   note:'Broadleaf weeds — cool season', cool_only:true },
   turflon:     { name:'Turflon Ester 4E',       amount_metal:'1.0 oz',   note:'Wild violet, ground ivy' },
   nis:         { name:'90/10 NIS',              amount_metal:'0.25 oz',  note:'Surfactant' },
-  manuscript:  { name:'Manuscript (fluazifop)', amount_plastic:'0.22 oz', note:'Dallisgrass — plastic B&G only' },
-  mso_adigor:  { name:'MSO Adigor',             amount_plastic:'0.22 oz', note:'Required with Manuscript' },
+  special_sauce: { name:'Special Sauce',        amount_metal:'2 oz',      note:'Crabgrass, dallisgrass, goosegrass', warm_only:true },
+  empero:      { name:'Empero (Halosulfuron)', amount_metal:'1 scoop (0.9g)', note:'Nutsedge/kyllinga — systemic, no mow 2 days before/after, retreat in 3–4 wks' },
 };
 
 function calcReserviceMix(turfType, selectedWeedKeys) {
   if (!selectedWeedKeys.length) return null;
   const metalProducts = new Set();
+  let specialSauceNeeded = false;
   const plasticNeeded = selectedWeedKeys.some(k => WEED_DB[k] && WEED_DB[k].sprayer === 'plastic');
   const notes = [];
   const warnings = [];
@@ -1505,12 +1574,15 @@ function calcReserviceMix(turfType, selectedWeedKeys) {
         if (!prod) continue;
         if (prod.warm_only && turfType !== 'warm') continue;
         if (prod.cool_only && turfType !== 'cool') continue;
+        // Special Sauce is undisclosed proprietary formula and runs on its own
+        // retreat schedule — it NEVER shares a bottle with anything else.
+        if (pk === 'special_sauce') { specialSauceNeeded = true; continue; }
         metalProducts.add(pk);
       }
     }
   }
   if (metalProducts.size > 0) metalProducts.add('nis');
-  return { metalProducts: Array.from(metalProducts), plasticNeeded, notes, warnings };
+  return { metalProducts: Array.from(metalProducts), specialSauceNeeded, plasticNeeded, notes, warnings };
 }
 
 function getFilteredWeeds(turfType, searchStr) {
@@ -1637,31 +1709,27 @@ function renderReserviceScreen() {
         </div>`;
       }
 
-      let plasticHTML = '';
-      if (mix.plasticNeeded) {
-        plasticHTML = `
-        <div class="mix-card" style="border-color:rgba(255,140,0,0.35)">
-          <div class="mix-card-header" style="background:rgba(255,140,0,0.08)">
-            <span class="mix-card-icon">🌾</span>
-            <span class="mix-card-title">Dallisgrass — Separate Batch</span>
-            <span style="font-size:10px;font-family:var(--font-mono);color:var(--warn);letter-spacing:1px">0.5-GAL PLASTIC B&G</span>
+      let ssHTML = '';
+      if (mix.specialSauceNeeded) {
+        ssHTML = `
+        <div class="mix-card">
+          <div class="mix-card-header">
+            <span class="mix-card-icon">🧪</span>
+            <span class="mix-card-title">Special Sauce — 1 Gallon</span>
+            <span style="font-size:10px;font-family:var(--font-mono);color:#aaa;letter-spacing:1px">1-GAL METAL B&G — SEPARATE BOTTLE</span>
           </div>
           <div class="mix-card-body">
-            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">MIX PER 0.5 GALLON →</div>
+            <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">MIX PER 1 GALLON →</div>
             <div class="product-row">
-              <div class="product-name">Manuscript (fluazifop)<span class="cond-note">Dallisgrass clumps only</span>${invBadge('Manuscript (fluazifop)')}</div>
-              <div class="product-amount">0.22 oz</div>
+              <div class="product-name">Special Sauce<span class="cond-note">Crabgrass, dallisgrass, goosegrass</span>${invBadge('Special Sauce')}</div>
+              <div class="product-amount">2 oz</div>
             </div>
-            <div class="product-row">
-              <div class="product-name">MSO Adigor<span class="cond-note">Required — no substitutes</span>${invBadge('MSO Adigor')}</div>
-              <div class="product-amount">0.22 oz</div>
-            </div>
-            <div class="mix-order" style="color:var(--warn)">NEVER mix Manuscript with anything else. Spot spray clumps only. Repeat every 3 to 4 weeks.</div>
+            <div class="mix-order" style="color:var(--warn)">NEVER combine with the sedge/nutsedge bottle — separate batch, separate sprayer trip.</div>
           </div>
         </div>`;
       }
 
-      resultHTML = `<div style="margin-top:8px">${warnHTML}${noteHTML}${metalHTML}${plasticHTML}</div>`;
+      resultHTML = `<div style="margin-top:8px">${warnHTML}${noteHTML}${metalHTML}${ssHTML}</div>`;
     }
   }
 
@@ -1783,9 +1851,10 @@ function renderFly() {
             </div></div>` : ''}
           ${renderGranCard(granData)}
           ${renderBGCard(rd.bg, 'Sedge + Grassy Weeds — 1 Gallon', '🧪', '1-GAL METAL B&G', '#aaa')}
+          ${renderBGCard(rd.bgSpecialSauce, 'Special Sauce — 1 Gallon', '🧪', '1-GAL METAL B&G — SEPARATE BOTTLE', '#aaa')}
           ${renderDallisgrassCard(rd.bg2)}
           ${renderTruckStockCard(rd.truckStock)}
-          ${!rd.liquid && !rd.granular && !rd.bg && !rd.bg2 ? `<div class="alert-box alert-info">No mix required for this round.</div>` : ''}
+          ${!rd.liquid && !rd.granular && !rd.bg && !rd.bgSpecialSauce && !rd.bg2 ? `<div class="alert-box alert-info">No mix required for this round.</div>` : ''}
         </div>`;
     }
   }
@@ -2018,6 +2087,7 @@ function renderResults() {
       }
       content += renderGranCard(sec.granData);
       content += renderBGCard(rd.bg, 'Sedge + Grassy Weeds — 1 Gallon', '🧪', '1-GAL METAL B&G', '#aaa');
+      content += renderBGCard(rd.bgSpecialSauce, 'Special Sauce — 1 Gallon', '🧪', '1-GAL METAL B&G — SEPARATE BOTTLE', '#aaa');
       content += renderDallisgrassCard(rd.bg2);
       content += renderTruckStockCard(rd.truckStock);
 
@@ -2026,7 +2096,7 @@ function renderResults() {
       if (rockBedProps.length > 0) {
         content += `<div class="alert-box alert-info">🪨 ROCK BEDS — FlowZone glyphosate also needed at: ${rockBedProps.map(p=>p.name).join(', ')}. Spray rock bed areas only — not the lawn.</div>`;
       }
-      if (!rd.liquid && !rd.granular && !rd.bg && !rd.bg2) {
+      if (!rd.liquid && !rd.granular && !rd.bg && !rd.bgSpecialSauce && !rd.bg2) {
         content += `<div class="alert-box alert-info">No mix for this round — check round notes.</div>`;
       }
 
@@ -2034,7 +2104,6 @@ function renderResults() {
       const bgItems = state.routeType==='warm'
         ? [
             {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga'},
-            {name:'Revolver',                amount:'0.25 fl oz', note:'Goosegrass + crabgrass'},
             {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
           ]
         : [
@@ -2042,8 +2111,8 @@ function renderResults() {
             {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge — if visible'},
             {name:'90/10 NIS',               amount:'0.25 oz', note:'Surfactant'},
           ];
-      const bg2Items = state.routeType==='warm'
-        ? [{name:'Manuscript (fluazifop)', amount:'0.22 oz', note:'Dallisgrass clumps only'}, {name:'MSO Adigor', amount:'0.22 oz', note:'Required'}]
+      const ssItems = state.routeType==='warm'
+        ? [{name:'Special Sauce', amount:'2 oz', note:'Crabgrass, dallisgrass, goosegrass'}]
         : null;
       content += `
       <div style="margin-bottom:6px;margin-top:20px">
@@ -2052,7 +2121,7 @@ function renderResults() {
       </div>
       <div class="alert-box alert-info">Spot weed spray only — B&G 1 gallon at a time on visible weeds. No blanket spray.</div>
       ${renderBGCard(bgItems, 'Sedge + Grassy Weeds — 1 Gallon', '🧪', '1-GAL METAL B&G', '#aaa')}
-      ${renderDallisgrassCard(bg2Items)}`;
+      ${ssItems ? renderBGCard(ssItems, 'Special Sauce — 1 Gallon', '🧪', '1-GAL METAL B&G — SEPARATE BOTTLE', '#aaa') : ''}`;
 
     } else if (sec.type === 'rockyard') {
       // FlowZone calc: 2 oz Ranger Pro per gal, 1 gal per 1,625 sqft, 0.3 oz dye per 4-gal backpack
@@ -2749,19 +2818,6 @@ function fmtNeeded(val, unit) {
   return val.toFixed(1) + ' ' + unit;
 }
 
-// Container sizes (fl oz): products that ship in fixed containers
-const CONTAINER_SIZES = {
-  'Terra Ally TA 22-0-0': { oz: 320, label: '2.5 gal jug' },  // 2.5 gal × 128 oz/gal = 320 oz
-};
-
-// Returns a container line string if the product has a known container size, else null
-function fmtContainers(productName, ozNeeded) {
-  const cfg = CONTAINER_SIZES[productName];
-  if (!cfg || !ozNeeded || ozNeeded <= 0) return null;
-  const count = Math.ceil(ozNeeded / cfg.oz);
-  return `${count} × ${cfg.label}`;
-}
-
 function buildShareText(routeType, roundNum, sqft, orderList) {
   const rd = ROUNDS[routeType][roundNum];
   const needsOrder = orderList.filter(p => p.toOrder > 0.5);
@@ -2779,9 +2835,8 @@ function buildShareText(routeType, roundNum, sqft, orderList) {
       const need = fmtNeeded(p.needed, p.unit);
       const have = p.currentStock !== null ? fmtNeeded(p.currentStock, p.stockUnit) : 'unknown';
       const toOrder = fmtNeeded(p.toOrder, p.unit);
-      const containerLine = fmtContainers(p.name, p.toOrder);
       lines.push(`• ${p.name}`);
-      lines.push(`  Need ${need}  ·  Have ${have}  →  Order ${toOrder}${containerLine ? ` (${containerLine})` : ''}`);
+      lines.push(`  Need ${need}  ·  Have ${have}  →  Order ${toOrder}`);
     }
   }
 
@@ -2899,7 +2954,6 @@ function renderOrderPlanner() {
         const orderStr = p.toOrder > 0.5 ? fmtNeeded(p.toOrder, p.unit) : '✓';
         const orderColor = p.toOrder > 0.5 ? '#a064ff' : 'var(--green)';
         const rowBg = highlight ? 'rgba(160,100,255,0.06)' : 'transparent';
-        const containerLine = p.toOrder > 0.5 ? fmtContainers(p.name, p.toOrder) : null;
         return `
         <div style="background:${rowBg};border-bottom:1px solid rgba(255,255,255,0.05);padding:10px 0">
           <div style="font-size:13px;font-weight:600;margin-bottom:5px">${p.name}${p.cond ? `<span style="font-size:10px;color:var(--warn);font-family:var(--font-mono);margin-left:6px">${p.cond}</span>` : ''}</div>
@@ -2908,7 +2962,6 @@ function renderOrderPlanner() {
             <div style="flex:1"><span style="color:var(--text3)">HAVE </span><span style="color:${haveColor};font-weight:700">${haveStr}</span></div>
             <div style="flex:1;text-align:right"><span style="color:var(--text3)">ORDER </span><span style="color:${orderColor};font-weight:700">${orderStr}</span></div>
           </div>
-          ${containerLine ? `<div style="font-size:11px;font-family:var(--font-mono);color:#a064ff;margin-top:4px;text-align:right">🛒 ${containerLine}</div>` : ''}
         </div>`;
       };
 
