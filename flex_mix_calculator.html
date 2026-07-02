@@ -2812,8 +2812,15 @@ function calcOrderList(routeType, roundNum, totalSqftWarm, totalSqftCool) {
   return result;
 }
 
+const GRANULE_BAG_LBS = 50;
+
+function fmtBags(lbs) {
+  const bags = Math.ceil(lbs / GRANULE_BAG_LBS);
+  return bags + ' bag' + (bags === 1 ? '' : 's') + ' @ ' + GRANULE_BAG_LBS + 'lb';
+}
+
 function fmtNeeded(val, unit) {
-  if (unit === 'lbs') return val.toFixed(1) + ' lbs';
+  if (unit === 'lbs') return val.toFixed(1) + ' lbs (' + fmtBags(val) + ')';
   if (unit === 'fl oz' || unit === 'oz' || unit === 'oz dry') return val.toFixed(1) + ' oz';
   return val.toFixed(1) + ' ' + unit;
 }
