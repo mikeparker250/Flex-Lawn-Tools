@@ -533,16 +533,26 @@ header h1 {
   </div>
 </div>
 
-<!-- Settings Modal -->
+<!-- Android/Generic Install Modal -->
+<div id="android-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3>📲 Install This App</h3>
+    <p>Add Flex Mix to your home screen for fast one-tap access.</p>
+    <ol>
+      <li>Open your browser menu (⋮ or Share icon)</li>
+      <li>Tap <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong></li>
+      <li>Confirm to add it</li>
+    </ol>
+    <button class="modal-close-btn" onclick="document.getElementById('android-modal').classList.add('hidden')">Got it</button>
+  </div>
+</div>
+
+<!-- About Modal -->
 <div id="settings-modal" class="settings-modal hidden">
   <div class="settings-box">
-    <h3>⚙ Settings</h3>
-    <p>The AI screenshot parser requires an Anthropic API key. Get yours at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys.</p>
-    <div class="input-row">
-      <input type="password" id="settings-api-input" class="api-input" placeholder="sk-ant-..." />
-      <button class="save-key-btn" id="save-key-btn">Save</button>
-    </div>
-    <div id="key-status-msg" class="key-status unset">No API key saved</div>
+    <h3>⚙ About</h3>
+    <p>Flex Mix Calculator</p>
+    <p style="color:var(--text2);font-size:13px">Version <span id="about-version">—</span></p>
     <div class="btn-row" style="margin-top:20px">
       <button class="btn btn-secondary" onclick="document.getElementById('settings-modal').classList.add('hidden')">Close</button>
     </div>
@@ -555,7 +565,8 @@ header h1 {
     <img src="icon-512.png" alt="Flex" />
     <h1>Flex Mix Calc</h1>
     <button class="icon-btn" id="restart-header-btn" title="Start Over" style="font-size:13px;width:auto;padding:0 10px;gap:4px">↩ New</button>
-    <button class="icon-btn" id="settings-btn" title="Settings">⚙</button>
+    <button class="icon-btn" id="install-header-btn" title="Install App" style="font-size:13px;width:auto;padding:0 10px;gap:4px">⬇ Install</button>
+    <button class="icon-btn" id="settings-btn" title="About">⚙</button>
   </header>
   <main id="main-content"></main>
   <footer class="brand-footer">
@@ -1008,7 +1019,6 @@ const state = {
   opError: null,
   opFRData: null,         // { warmCount, coolCount, warmSqft, coolSqft, source }
   opSavedSqft: {},        // { 'warm_4': 95000, 'cool_4': 42000, ... }
-  apiKey: localStorage.getItem('flex_api_key') || '',
   newPropName:'',
   newPropSqft:'',
 };
@@ -1188,7 +1198,7 @@ function calcAllResults(routeType, properties) {
 // ═══════════════════════════════════════════════════════════
 //  AI PARSING
 // ═══════════════════════════════════════════════════════════
-async function parseSingleImage(img, apiKey) {
+async function parseSingleImage(img) {
   const prompt = `This is a FieldRoutes "My Routes" screenshot from an iPhone. Examine it carefully — zoom into every card.
 
 For EACH customer property card visible, extract:
@@ -1209,13 +1219,10 @@ Return ONLY a valid JSON array, no markdown, no explanation:
 
   let res;
   try {
-    res = await fetch('https://api.anthropic.com/v1/messages', {
+    res = await fetch('/api/parse', {
       method:'POST',
       headers:{
         'Content-Type':'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true',
       },
       body: JSON.stringify({
         model:'claude-sonnet-4-6',
@@ -1244,7 +1251,7 @@ Return ONLY a valid JSON array, no markdown, no explanation:
   return arr;
 }
 
-async function parseImages(images, apiKey) {
+async function parseImages(images) {
   const allResults = [];
   const seenNames = new Set();
   const errors = [];
@@ -1253,7 +1260,7 @@ async function parseImages(images, apiKey) {
     try {
       state.parseProgress = i + 1;
       render(); // Update "Reading screenshot X of Y"
-      const props = await parseSingleImage(images[i], apiKey);
+      const props = await parseSingleImage(images[i]);
       for (const p of props) {
         if (!p.name) continue;
         const key = p.name.trim().toLowerCase();
@@ -1891,7 +1898,6 @@ function renderFly() {
 
 function renderStep2() {
   const hasImages = state.images.length > 0;
-  const hasKey = !!state.apiKey;
   const previewsHTML = hasImages ? `
     <div class="upload-previews">
       ${state.images.map((img,i) => `
@@ -1901,24 +1907,13 @@ function renderStep2() {
         </div>`).join('')}
     </div>` : '';
 
-  const apiKeySection = !hasKey ? `
-    <div class="api-key-section">
-      <p>AI parsing requires an Anthropic API key. Get one free at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com → API Keys</a> (Starter tier works).</p>
-      <div class="input-row">
-        <input type="password" id="inline-api-input" class="api-input" placeholder="sk-ant-..." />
-        <button class="save-key-btn" id="inline-save-key">Save</button>
-      </div>
-    </div>` : '';
-
   return `
   <button class="back-nav" id="back-to-1">← Back</button>
   <div class="route-chip">${state.routeType==='warm'?'🔥 Warm Season':'❄️ Cool Season'}</div>
   <div class="step-label">STEP 2 OF 3</div>
   <div class="step-title">Upload your FieldRoutes screenshots</div>
 
-  ${state.parseError ? `<div class="error-box">❌ ${state.parseError}<div class="info-row" style="margin-top:6px">Check your API key in ⚙️ Settings, then try again or add properties manually below.</div></div>` : ''}
-
-  ${apiKeySection}
+  ${state.parseError ? `<div class="error-box">❌ ${state.parseError}<div class="info-row" style="margin-top:6px">Try again or add properties manually below.</div></div>` : ''}
 
   <div class="upload-zone" id="upload-zone">
     <input type="file" accept="image/*" multiple id="file-input" />
@@ -1927,8 +1922,8 @@ function renderStep2() {
     <span class="upload-sub">${hasImages ? 'Tap to add more' : 'Multiple screenshots OK — all properties will be combined'}</span>
   </div>
   ${previewsHTML}
-  ${hasImages ? `<button class="btn btn-primary" id="parse-btn" style="margin-bottom:16px" ${!hasKey?'disabled':''}>
-    ${!hasKey ? '🔒 Save API Key to Parse' : '🤖 Parse Properties with AI'}
+  ${hasImages ? `<button class="btn btn-primary" id="parse-btn" style="margin-bottom:16px">
+    🤖 Parse Properties with AI
   </button>` : ''}
 
   <div class="or-divider">OR</div>
@@ -2427,11 +2422,11 @@ function attachEvents() {
     });
   });
   document.getElementById('parse-btn')?.addEventListener('click', async () => {
-    if (!state.apiKey) return;
+    if (!state.images.length) return;
     state.isLoading = true; state.parseError = null;
     render();
     try {
-      const props = await parseImages(state.images, state.apiKey);
+      const props = await parseImages(state.images);
       if (!props.length) throw new Error('No properties found. Make sure sqft data is visible in your screenshots.');
       state.properties = props;
       state.round = detectRound();
@@ -2444,12 +2439,6 @@ function attachEvents() {
   document.getElementById('skip-to-manual')?.addEventListener('click', () => {
     state.screen='step3'; state.round=detectRound(); render();
   });
-  // Inline API key save
-  document.getElementById('inline-save-key')?.addEventListener('click', () => {
-    const val = document.getElementById('inline-api-input')?.value.trim();
-    if (val) { state.apiKey = val; localStorage.setItem('flex_api_key', val); render(); }
-  });
-
   // Step 3
   document.getElementById('back-to-2')?.addEventListener('click', () => { navigateTo('step2'); });
   document.querySelectorAll('[data-del]').forEach(btn => {
@@ -2541,9 +2530,9 @@ function readFileAsDataURL(file) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  SETTINGS MODAL
+//  ABOUT MODAL
 // ═══════════════════════════════════════════════════════════
-  document.getElementById('restart-header-btn')?.addEventListener('click', () => {
+document.getElementById('restart-header-btn')?.addEventListener('click', () => {
   state.screen='step1'; state.routeType=null; state.properties=[];
   state.images=[]; state.round=null; state.parseError=null; state.parseProgress=0;
   state.flyType=null; state.flyRound=null; state.flySqft=0;
@@ -2552,29 +2541,9 @@ function readFileAsDataURL(file) {
 });
 
 document.getElementById('settings-btn')?.addEventListener('click', () => {
-  const modal = document.getElementById('settings-modal');
-  modal.classList.remove('hidden');
-  const inp = document.getElementById('settings-api-input');
-  if (inp) inp.value = state.apiKey;
-  updateKeyStatus();
-});
-
-function updateKeyStatus() {
-  const el = document.getElementById('key-status-msg');
-  if (!el) return;
-  if (state.apiKey) {
-    el.textContent = '✓ API key saved';
-    el.className = 'key-status set';
-  } else {
-    el.textContent = '⚠ No API key — AI parsing disabled';
-    el.className = 'key-status unset';
-  }
-}
-
-document.getElementById('save-key-btn')?.addEventListener('click', () => {
-  const val = document.getElementById('settings-api-input')?.value.trim();
-  if (val) { state.apiKey = val; localStorage.setItem('flex_api_key', val); }
-  updateKeyStatus();
+  document.getElementById('settings-modal')?.classList.remove('hidden');
+  const versionEl = document.getElementById('about-version');
+  if (versionEl) versionEl.textContent = localStorage.getItem('flex_app_version') || '—';
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -2585,12 +2554,17 @@ const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches
   || window.navigator.standalone === true;
 
+if (isStandalone) {
+  const installHeaderBtn = document.getElementById('install-header-btn');
+  if (installHeaderBtn) installHeaderBtn.style.display = 'none';
+}
+
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   installPrompt = e;
   if (!isStandalone) {
-    document.getElementById('install-banner').classList.remove('hidden');
-    document.getElementById('app').classList.add('banner-visible');
+    document.getElementById('install-banner')?.classList.remove('hidden');
+    document.getElementById('app')?.classList.add('banner-visible');
   }
 });
 
@@ -2599,21 +2573,39 @@ document.getElementById('install-btn')?.addEventListener('click', async () => {
   installPrompt.prompt();
   const {outcome} = await installPrompt.userChoice;
   if (outcome === 'accepted') {
-    document.getElementById('install-banner').classList.add('hidden');
-    document.getElementById('app').classList.remove('banner-visible');
+    document.getElementById('install-banner')?.classList.add('hidden');
+    document.getElementById('app')?.classList.remove('banner-visible');
   }
   installPrompt = null;
 });
 
 document.getElementById('install-dismiss')?.addEventListener('click', () => {
-  document.getElementById('install-banner').classList.add('hidden');
-  document.getElementById('app').classList.remove('banner-visible');
+  document.getElementById('install-banner')?.classList.add('hidden');
+  document.getElementById('app')?.classList.remove('banner-visible');
+});
+
+document.getElementById('install-header-btn')?.addEventListener('click', async () => {
+  if (isStandalone) {
+    alert('Flex Mix Calculator is already installed on this device.');
+    return;
+  }
+  if (installPrompt) {
+    installPrompt.prompt();
+    const {outcome} = await installPrompt.userChoice;
+    if (outcome === 'accepted') installPrompt = null;
+    return;
+  }
+  if (isIOS) {
+    document.getElementById('ios-modal')?.classList.remove('hidden');
+    return;
+  }
+  document.getElementById('android-modal')?.classList.remove('hidden');
 });
 
 // Show iOS instructions on first visit if on iOS and not installed
 if (isIOS && !isStandalone && !localStorage.getItem('ios-install-shown')) {
   setTimeout(() => {
-    document.getElementById('ios-modal').classList.remove('hidden');
+    document.getElementById('ios-modal')?.classList.remove('hidden');
     localStorage.setItem('ios-install-shown', '1');
   }, 1500);
 }
@@ -2652,7 +2644,7 @@ window.addEventListener('popstate', (e) => {
 // Seed initial history entry on load
 history.replaceState({ screen: 'step1', prev: null }, '', '');
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/Flex-Lawn-Tools/sw.js').then(reg => {
+  navigator.serviceWorker.register('/sw.js').then(reg => {
     reg.update();
   }).catch(() => {});
 }
@@ -2660,7 +2652,7 @@ if ('serviceWorker' in navigator) {
 // Version check — runs on load AND every 5 minutes
 async function checkVersion() {
   try {
-    const res = await fetch('/Flex-Lawn-Tools/version.json?t=' + Date.now(), {cache:'no-store'});
+    const res = await fetch('/version.json?t=' + Date.now(), {cache:'no-store'});
     if (!res.ok) return;
     const {v} = await res.json();
     const stored = localStorage.getItem('flex_app_version');

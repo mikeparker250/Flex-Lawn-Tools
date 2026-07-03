@@ -1,7 +1,7 @@
-const CACHE = 'flex-mix-v45';
+const CACHE = 'flex-mix-v46';
 const STATIC = [
-  '/Flex-Lawn-Tools/icon-512.png',
-  '/Flex-Lawn-Tools/manifest.json',
+  '/icon-512.png',
+  '/manifest.json',
 ];
 
 // Install — only cache static assets, NEVER the HTML
