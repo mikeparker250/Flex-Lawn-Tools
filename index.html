@@ -1053,6 +1053,75 @@ function assignEquip(sqft) {
   return sqft >= GATE ? 'toro' : 'ps';
 }
 
+// DIY RM43-equivalent dosing: Ranger Pro (glyphosate) + Ecomazapyr 2SL (imazapyr),
+// matched to RM43 label's actual per-1,000-sqft active ingredient delivery.
+const RANGER_PER_1K = 7.79;   // oz Ranger Pro per 1,000 sqft (glyphosate ae match)
+const ECO_PER_1K    = 0.229;  // oz Ecomazapyr per 1,000 sqft (imazapyr ae match)
+const DYE_PER_GAL   = 0.075;  // oz dye per gallon of finished mix, any equipment
+
+function calcRockMix(props, galPer1K) {
+  const totalSqft = props.reduce((s,p) => s+p.sqft, 0);
+  const galNeeded = Math.ceil((totalSqft/1000) * galPer1K * 10) / 10;
+  const rangerOz  = (totalSqft/1000) * RANGER_PER_1K;
+  const ecoOz     = (totalSqft/1000) * ECO_PER_1K;
+  const dyeOz     = galNeeded * DYE_PER_GAL;
+  return {totalSqft, galNeeded, rangerOz, ecoOz, dyeOz};
+}
+
+function renderRockPropRow(p, galPer1K, label) {
+  const pgal = Math.ceil((p.sqft/1000) * galPer1K * 10) / 10;
+  const pranger = (p.sqft/1000) * RANGER_PER_1K;
+  const peco    = (p.sqft/1000) * ECO_PER_1K;
+  return `
+  <div class="property-row" style="flex-wrap:wrap;gap:6px">
+    <div class="prop-name">${p.name}</div>
+    <div class="prop-sqft">${p.sqft>0?p.sqft.toLocaleString()+' sqft':'—'}</div>
+    <span class="equip-badge" style="background:rgba(255,140,0,0.12);color:var(--warn);border-color:rgba(255,140,0,0.3)">🪨 ${label}</span>
+    <div style="width:100%;padding-top:4px;display:flex;gap:16px;font-family:var(--font-mono);font-size:12px;color:var(--text2)">
+      <span>~${fmt(pgal,1)} gal water</span>
+      <span style="color:var(--warn);font-weight:700">${fmt(pranger,2)} oz Ranger Pro</span>
+      <span style="color:var(--warn);font-weight:700">${fmt(peco,2)} oz Ecomazapyr</span>
+    </div>
+  </div>`;
+}
+
+function renderRockMixCard(mix, title, icon, badge) {
+  if (mix.totalSqft <= 0) return '';
+  return `
+  <div class="mix-card">
+    <div class="mix-card-header">
+      <span class="mix-card-icon">${icon}</span>
+      <span class="mix-card-title">${title}</span>
+      <span style="font-size:10px;font-family:var(--font-mono);color:var(--warn);letter-spacing:1px">${badge}</span>
+    </div>
+    <div class="mix-card-body">
+      <div class="mix-meta">
+        <div class="mix-meta-item">
+          <div class="mix-meta-label">Total rock sqft</div>
+          <div class="mix-meta-value">${mix.totalSqft.toLocaleString()}</div>
+        </div>
+        <div class="mix-meta-item">
+          <div class="mix-meta-label">Water needed</div>
+          <div class="mix-meta-value">${fmt(mix.galNeeded,1)} <span class="mix-meta-unit">gal</span></div>
+        </div>
+      </div>
+      <div class="product-row">
+        <div class="product-name">Ranger Pro (41% Glyphosate)</div>
+        <div><span class="product-amount">${fmt(mix.rangerOz,2)}</span><span class="product-unit"> oz</span></div>
+      </div>
+      <div class="product-row">
+        <div class="product-name">Ecomazapyr 2 SL (Imazapyr)</div>
+        <div><span class="product-amount">${fmt(mix.ecoOz,2)}</span><span class="product-unit"> oz</span></div>
+      </div>
+      <div class="product-row">
+        <div class="product-name">Dye</div>
+        <div><span class="product-amount">${fmt(mix.dyeOz,2)}</span><span class="product-unit"> oz</span></div>
+      </div>
+      <div class="mix-order">Matches RM43 label active ingredient rate exactly. Pre-mix at office before leaving. Never use on lawns. Do not apply near desirable trees/shrubs or on slopes draining toward lawn.</div>
+    </div>
+  </div>`;
+}
+
 // Splits a Toro SprayMaster batch into physical tank loads when the finished
 // mix volume (water + all liquid product volume) exceeds the tank's real
 // capacity. Returns null if the batch fits in one tank. Each returned batch
@@ -2124,83 +2193,17 @@ function renderResults() {
       // DIY RM43-equivalent: Ranger Pro (glyphosate) + Ecomazapyr 2SL (imazapyr).
       // Dose matched to RM43 label's actual per-1,000-sqft active ingredient delivery.
       const ROCK_GATE = 2000; // sqft: >= this -> Power Sprayer, < this -> FlowZone backpack
-      const RANGER_PER_1K = 7.79;   // oz Ranger Pro per 1,000 sqft (glyphosate ae match)
-      const ECO_PER_1K    = 0.229;  // oz Ecomazapyr per 1,000 sqft (imazapyr ae match)
-      const DYE_PER_GAL   = 0.075;  // oz dye per gallon of finished mix, any equipment
 
       const fzProps = sec.props.filter(p => p.sqft < ROCK_GATE);
       const psProps = sec.props.filter(p => p.sqft >= ROCK_GATE);
 
-      function calcRockMix(props, galPer1K) {
-        const totalSqft = props.reduce((s,p) => s+p.sqft, 0);
-        const galNeeded = Math.ceil((totalSqft/1000) * galPer1K * 10) / 10;
-        const rangerOz  = (totalSqft/1000) * RANGER_PER_1K;
-        const ecoOz     = (totalSqft/1000) * ECO_PER_1K;
-        const dyeOz     = galNeeded * DYE_PER_GAL;
-        return {totalSqft, galNeeded, rangerOz, ecoOz, dyeOz};
-      }
-
       const fz = calcRockMix(fzProps, 1000/1625);
       const ps = calcRockMix(psProps, PS_OUT);
-
-      function renderRockPropRow(p, galPer1K, label) {
-        const pgal = Math.ceil((p.sqft/1000) * galPer1K * 10) / 10;
-        const pranger = (p.sqft/1000) * RANGER_PER_1K;
-        const peco    = (p.sqft/1000) * ECO_PER_1K;
-        return `
-        <div class="property-row" style="flex-wrap:wrap;gap:6px">
-          <div class="prop-name">${p.name}</div>
-          <div class="prop-sqft">${p.sqft>0?p.sqft.toLocaleString()+' sqft':'—'}</div>
-          <span class="equip-badge" style="background:rgba(255,140,0,0.12);color:var(--warn);border-color:rgba(255,140,0,0.3)">🪨 ${label}</span>
-          <div style="width:100%;padding-top:4px;display:flex;gap:16px;font-family:var(--font-mono);font-size:12px;color:var(--text2)">
-            <span>~${fmt(pgal,1)} gal water</span>
-            <span style="color:var(--warn);font-weight:700">${fmt(pranger,2)} oz Ranger Pro</span>
-            <span style="color:var(--warn);font-weight:700">${fmt(peco,2)} oz Ecomazapyr</span>
-          </div>
-        </div>`;
-      }
 
       const rockList = [
         ...fzProps.map(p => renderRockPropRow(p, 1000/1625, 'FLOWZONE')),
         ...psProps.map(p => renderRockPropRow(p, PS_OUT, 'POWER SPRAYER')),
       ].join('');
-
-      function renderRockMixCard(mix, title, icon, badge) {
-        if (mix.totalSqft <= 0) return '';
-        return `
-        <div class="mix-card">
-          <div class="mix-card-header">
-            <span class="mix-card-icon">${icon}</span>
-            <span class="mix-card-title">${title}</span>
-            <span style="font-size:10px;font-family:var(--font-mono);color:var(--warn);letter-spacing:1px">${badge}</span>
-          </div>
-          <div class="mix-card-body">
-            <div class="mix-meta">
-              <div class="mix-meta-item">
-                <div class="mix-meta-label">Total rock sqft</div>
-                <div class="mix-meta-value">${mix.totalSqft.toLocaleString()}</div>
-              </div>
-              <div class="mix-meta-item">
-                <div class="mix-meta-label">Water needed</div>
-                <div class="mix-meta-value">${fmt(mix.galNeeded,1)} <span class="mix-meta-unit">gal</span></div>
-              </div>
-            </div>
-            <div class="product-row">
-              <div class="product-name">Ranger Pro (41% Glyphosate)</div>
-              <div><span class="product-amount">${fmt(mix.rangerOz,2)}</span><span class="product-unit"> oz</span></div>
-            </div>
-            <div class="product-row">
-              <div class="product-name">Ecomazapyr 2 SL (Imazapyr)</div>
-              <div><span class="product-amount">${fmt(mix.ecoOz,2)}</span><span class="product-unit"> oz</span></div>
-            </div>
-            <div class="product-row">
-              <div class="product-name">Dye</div>
-              <div><span class="product-amount">${fmt(mix.dyeOz,2)}</span><span class="product-unit"> oz</span></div>
-            </div>
-            <div class="mix-order">Matches RM43 label active ingredient rate exactly. Pre-mix at office before leaving. Never use on lawns. Do not apply near desirable trees/shrubs or on slopes draining toward lawn.</div>
-          </div>
-        </div>`;
-      }
 
       content += `
       <div style="margin-bottom:6px;margin-top:20px">
