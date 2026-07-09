@@ -238,14 +238,14 @@ header h1 {
 /* ─── STEP 3: PROPERTY LIST ─── */
 .property-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 .property-row {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap;
   background: var(--bg2); border: 1px solid rgba(255,255,255,0.07);
-  border-radius: var(--radius); padding: 12px 14px;
+  border-radius: var(--radius); padding: 12px 14px; max-width: 100%;
 }
-.prop-name { flex: 1; font-size: 15px; font-weight: 600; }
+.prop-name { flex: 1 1 120px; min-width: 0; font-size: 15px; font-weight: 600; overflow-wrap: break-word; }
 .prop-sqft {
   font-family: var(--font-mono); font-size: 14px; color: var(--text2);
-  white-space: nowrap;
+  white-space: nowrap; flex-shrink: 0;
 }
 .equip-badge {
   font-family: var(--font-display); font-weight: 700; font-size: 11px;
@@ -259,10 +259,10 @@ header h1 {
 
 /* Editable inputs */
 .prop-row-inputs {
-  display: flex; gap: 8px; margin-bottom: 12px;
+  display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; max-width: 100%;
 }
 .prop-input {
-  flex: 1; background: var(--bg3); border: 1px solid rgba(255,255,255,0.12);
+  flex: 1 1 100px; min-width: 0; background: var(--bg3); border: 1px solid rgba(255,255,255,0.12);
   border-radius: 6px; color: var(--text); padding: 10px 12px;
   font-size: 14px; outline: none;
 }
@@ -270,7 +270,7 @@ header h1 {
 .add-prop-btn {
   background: var(--green); color: #000; border: none; border-radius: 6px;
   font-family: var(--font-display); font-weight: 700; font-size: 13px;
-  padding: 10px 14px; cursor: pointer;
+  padding: 10px 14px; cursor: pointer; flex-shrink: 0;
 }
 
 /* Round selector */
@@ -490,14 +490,13 @@ header h1 {
   opacity: 1; background: rgba(255,140,0,0.15);
   border-color: var(--warn); box-shadow: 0 0 6px rgba(255,140,0,0.3);
 }
+.round-mini-select {
   background: var(--bg3); border: 1px solid rgba(0,255,71,0.25);
   border-radius: 5px; color: var(--green); padding: 3px 6px;
   font-family: var(--font-mono); font-size: 12px; font-weight: 700;
   outline: none; cursor: pointer; flex-shrink: 0; max-width: 62px;
 }
 .round-mini-select:focus { border-color: var(--green); }
-  #main-content { padding: 24px 20px; }
-}
 </style>
 </head>
 <body>
