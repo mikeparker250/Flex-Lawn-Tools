@@ -490,6 +490,16 @@ header h1 {
   opacity: 1; background: rgba(255,140,0,0.15);
   border-color: var(--warn); box-shadow: 0 0 6px rgba(255,140,0,0.3);
 }
+.equip-toggle-btn {
+  background: none; border: 1px solid rgba(255,255,255,0.1); border-radius: 5px;
+  font-size: 14px; cursor: pointer; padding: 2px 5px; opacity: 0.35;
+  transition: all 0.15s ease; flex-shrink: 0;
+}
+.equip-toggle-btn:hover { opacity: 0.8; border-color: #64b4ff; }
+.equip-toggle-btn.equip-active {
+  opacity: 1; background: rgba(100,180,255,0.15);
+  border-color: #64b4ff; box-shadow: 0 0 6px rgba(100,180,255,0.3);
+}
 .round-mini-select {
   background: var(--bg3); border: 1px solid rgba(0,255,71,0.25);
   border-radius: 5px; color: var(--green); padding: 3px 6px;
@@ -1052,6 +1062,15 @@ function assignEquip(sqft) {
   return sqft >= GATE ? 'toro' : 'ps';
 }
 
+// Per-property manual override for the liquid equipment gate — lets a
+// specific house be forced to Toro or Power Sprayer regardless of its
+// sqft vs GATE. Falls back to the sqft-based auto assignment when unset.
+function resolveLiquidEquip(p) {
+  return (p.liquidEquipOverride === 'toro' || p.liquidEquipOverride === 'ps')
+    ? p.liquidEquipOverride
+    : assignEquip(p.sqft);
+}
+
 // DIY RM43-equivalent dosing: Ranger Pro (glyphosate) + Ecomazapyr 2SL (imazapyr),
 // matched to RM43 label's actual per-1,000-sqft active ingredient delivery.
 const RANGER_PER_1K = 7.79;   // oz Ranger Pro per 1,000 sqft (glyphosate ae match)
@@ -1193,9 +1212,10 @@ function calcRoundSection(routeType, roundNum, props) {
       if (forcedEquip === 'toro') toroMix = mix;
       else psMix = mix;
     } else {
-      // 10K gate — applies to both warm and cool season
-      const toroProps = props.filter(p => p.sqft >= GATE);
-      const psProps   = props.filter(p => p.sqft < GATE);
+      // 10K gate — applies to both warm and cool season, unless a
+      // per-property liquidEquipOverride forces that house the other way
+      const toroProps = props.filter(p => resolveLiquidEquip(p) === 'toro');
+      const psProps   = props.filter(p => resolveLiquidEquip(p) === 'ps');
       const toroSqft  = toroProps.reduce((s,p) => s+p.sqft, 0);
       const psSqft    = psProps.reduce((s,p) => s+p.sqft, 0);
       if (toroSqft > 0) toroMix = calcLiqMix(toroSqft, 'toro', rd.liquid.products, true);
@@ -1203,8 +1223,8 @@ function calcRoundSection(routeType, roundNum, props) {
     }
     if (rd.liquid.fungSep) {
       const fs = rd.liquid.fungSep;
-      const toroProps = props.filter(p => p.sqft >= GATE);
-      const psProps   = props.filter(p => p.sqft < GATE);
+      const toroProps = props.filter(p => resolveLiquidEquip(p) === 'toro');
+      const psProps   = props.filter(p => resolveLiquidEquip(p) === 'ps');
       const toroSqft  = toroProps.reduce((s,p) => s+p.sqft, 0);
       const psSqft    = psProps.reduce((s,p) => s+p.sqft, 0);
       const tm = toroSqft > 0 ? calcLiqMix(toroSqft,'toro',fs.products,true) : null;
@@ -1343,6 +1363,7 @@ async function parseImages(images) {
           isRockYard: !!p.isRockYard,
           hasRockBeds: !!p.hasRockBeds,
           isHoseDrag: !!p.isHoseDrag,
+          liquidEquipOverride: null,
         });
       }
     } catch(err) {
@@ -2007,13 +2028,21 @@ function renderStep3() {
 
   const propsHTML = hasProps
     ? state.properties.map((p,i) => {
+        const autoEquip = assignEquip(p.sqft);
+        const isOverridden = !p.isRockYard && state.routeType==='warm' && !!p.liquidEquipOverride;
         const equip = p.isRockYard ? 'rock'
-          : state.routeType==='warm' ? assignEquip(p.sqft) : 'ps';
+          : state.routeType==='warm' ? resolveLiquidEquip(p) : 'ps';
         const equipBadge = p.isRockYard
           ? `<span class="equip-badge" style="background:rgba(255,140,0,0.12);color:var(--warn);border-color:rgba(255,140,0,0.3)">🪨 ROCK YARD</span>`
           : equip==='toro'
-            ? `<span class="equip-badge badge-toro">TORO</span>`
-            : `<span class="equip-badge badge-ps">POWER SPRAY</span>`;
+            ? `<span class="equip-badge badge-toro">TORO${isOverridden?' ✋':''}</span>`
+            : `<span class="equip-badge badge-ps">POWER SPRAY${isOverridden?' ✋':''}</span>`;
+        const equipToggle = (!p.isRockYard && state.routeType==='warm')
+          ? `<button class="equip-toggle-btn ${isOverridden?'equip-active':''}" data-equip-idx="${i}" title="${isOverridden
+              ? `Manual override active — tap to revert to auto (${autoEquip==='toro'?'Toro':'Power Sprayer'})`
+              : `Auto: ${autoEquip==='toro'?'Toro':'Power Sprayer'} — tap to force ${autoEquip==='toro'?'Power Sprayer':'Toro'}`
+            }">🔁</button>`
+          : '';
         const roundOpts = ['R1','R2','R3','R4','R5','R6','R7','RS'].map(r =>
           `<option value="${r}" ${p.round===r?'selected':''}>${r}</option>`
         ).join('');
@@ -2032,6 +2061,7 @@ function renderStep3() {
           ${roundBadge}
           ${equipBadge}
           ${rockBedsBadge}
+          ${equipToggle}
           ${rockToggle}
           <button class="prop-delete" data-del="${i}">×</button>
         </div>`;
@@ -2048,8 +2078,8 @@ function renderStep3() {
 
   // Totals
   const sprayProps = state.properties.filter(p => !p.isRockYard);
-  const toroSqft  = sprayProps.filter(p=>p.sqft>=GATE).reduce((s,p)=>s+p.sqft,0);
-  const psSqft    = sprayProps.filter(p=>p.sqft<GATE).reduce((s,p)=>s+p.sqft,0);
+  const toroSqft  = sprayProps.filter(p=>resolveLiquidEquip(p)==='toro').reduce((s,p)=>s+p.sqft,0);
+  const psSqft    = sprayProps.filter(p=>resolveLiquidEquip(p)==='ps').reduce((s,p)=>s+p.sqft,0);
   const totalSqft  = state.properties.reduce((s,p)=>s+p.sqft,0);
   const rockSqft   = state.properties.filter(p=>p.isRockYard).reduce((s,p)=>s+p.sqft,0);
   const rsCount    = state.properties.filter(p=>p.round==='RS').length;
@@ -2484,6 +2514,20 @@ function attachEvents() {
       render();
     });
   });
+  // Per-property liquid equipment override (Toro <-> Power Sprayer)
+  document.querySelectorAll('[data-equip-idx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.equipIdx);
+      const p = state.properties[idx];
+      if (p.liquidEquipOverride) {
+        p.liquidEquipOverride = null;
+      } else {
+        const auto = assignEquip(p.sqft);
+        p.liquidEquipOverride = auto === 'toro' ? 'ps' : 'toro';
+      }
+      render();
+    });
+  });
   // Per-property round overrides
   document.querySelectorAll('[data-round-idx]').forEach(sel => {
     sel.addEventListener('change', (e) => {
@@ -2513,7 +2557,7 @@ function addProp() {
   const sqft  = parseInt(sqftEl?.value) || 0;
   const round = roundEl?.value || null;
   if (name) {
-    state.properties.push({name, sqft, round, isRockYard:false, hasRockBeds:false, isHoseDrag:false});
+    state.properties.push({name, sqft, round, isRockYard:false, hasRockBeds:false, isHoseDrag:false, liquidEquipOverride:null});
     state.newPropName=''; state.newPropSqft='';
     if (nameEl) nameEl.value='';
     if (sqftEl) sqftEl.value='';
