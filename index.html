@@ -1203,7 +1203,10 @@ function calcRoundSection(routeType, roundNum, props) {
   const totalSqft = props.reduce((s, p) => s + p.sqft, 0);
   let toroMix=null, psMix=null, fungSepMix=null, granData=null;
 
-  // Both warm and cool now use 10K gate for liquid unless a specific equipment is forced
+  // Warm uses the 10K gate for liquid (per-property liquidEquipOverride can
+  // force a house the other way); cool season liquid is always Power
+  // Sprayer, same as granular always being Push Spreader on cool — there is
+  // no Toro option on fescue liquid rounds regardless of sqft.
   if (rd.liquid) {
     const forcedEquip = rd.liquid.equipment; // only set when a round forces single equipment
     if (forcedEquip) {
@@ -1211,9 +1214,9 @@ function calcRoundSection(routeType, roundNum, props) {
       const mix = calcLiqMix(totalSqft, forcedEquip, rd.liquid.products, true);
       if (forcedEquip === 'toro') toroMix = mix;
       else psMix = mix;
+    } else if (routeType === 'cool') {
+      if (totalSqft > 0) psMix = calcLiqMix(totalSqft, 'ps', psRates(rd.liquid.products), false);
     } else {
-      // 10K gate — applies to both warm and cool season, unless a
-      // per-property liquidEquipOverride forces that house the other way
       const toroProps = props.filter(p => resolveLiquidEquip(p) === 'toro');
       const psProps   = props.filter(p => resolveLiquidEquip(p) === 'ps');
       const toroSqft  = toroProps.reduce((s,p) => s+p.sqft, 0);
@@ -1223,13 +1226,18 @@ function calcRoundSection(routeType, roundNum, props) {
     }
     if (rd.liquid.fungSep) {
       const fs = rd.liquid.fungSep;
-      const toroProps = props.filter(p => resolveLiquidEquip(p) === 'toro');
-      const psProps   = props.filter(p => resolveLiquidEquip(p) === 'ps');
-      const toroSqft  = toroProps.reduce((s,p) => s+p.sqft, 0);
-      const psSqft    = psProps.reduce((s,p) => s+p.sqft, 0);
-      const tm = toroSqft > 0 ? calcLiqMix(toroSqft,'toro',fs.products,true) : null;
-      const pm = psSqft > 0   ? calcLiqMix(psSqft,  'ps',  psRates(fs.products),false) : null;
-      if (tm||pm) fungSepMix = {toro:tm, ps:pm, config:fs};
+      if (routeType === 'cool') {
+        const pm = totalSqft > 0 ? calcLiqMix(totalSqft,'ps',psRates(fs.products),false) : null;
+        if (pm) fungSepMix = {toro:null, ps:pm, config:fs};
+      } else {
+        const toroProps = props.filter(p => resolveLiquidEquip(p) === 'toro');
+        const psProps   = props.filter(p => resolveLiquidEquip(p) === 'ps');
+        const toroSqft  = toroProps.reduce((s,p) => s+p.sqft, 0);
+        const psSqft    = psProps.reduce((s,p) => s+p.sqft, 0);
+        const tm = toroSqft > 0 ? calcLiqMix(toroSqft,'toro',fs.products,true) : null;
+        const pm = psSqft > 0   ? calcLiqMix(psSqft,  'ps',  psRates(fs.products),false) : null;
+        if (tm||pm) fungSepMix = {toro:tm, ps:pm, config:fs};
+      }
     }
   }
 
