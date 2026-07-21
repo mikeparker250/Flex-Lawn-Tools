@@ -1203,10 +1203,9 @@ function calcRoundSection(routeType, roundNum, props) {
   const totalSqft = props.reduce((s, p) => s + p.sqft, 0);
   let toroMix=null, psMix=null, fungSepMix=null, granData=null;
 
-  // Warm uses the 10K gate for liquid (per-property liquidEquipOverride can
-  // force a house the other way); cool season liquid is always Power
-  // Sprayer, same as granular always being Push Spreader on cool — there is
-  // no Toro option on fescue liquid rounds regardless of sqft.
+  // Liquid rounds use the 10K gate regardless of turf type (per-property
+  // liquidEquipOverride can force a house the other way) — warm and cool
+  // liquid both split into Toro/PS mixes on the same GATE.
   if (rd.liquid) {
     const forcedEquip = rd.liquid.equipment; // only set when a round forces single equipment
     if (forcedEquip) {
@@ -1214,8 +1213,6 @@ function calcRoundSection(routeType, roundNum, props) {
       const mix = calcLiqMix(totalSqft, forcedEquip, rd.liquid.products, true);
       if (forcedEquip === 'toro') toroMix = mix;
       else psMix = mix;
-    } else if (routeType === 'cool') {
-      if (totalSqft > 0) psMix = calcLiqMix(totalSqft, 'ps', psRates(rd.liquid.products), false);
     } else {
       const toroProps = props.filter(p => resolveLiquidEquip(p) === 'toro');
       const psProps   = props.filter(p => resolveLiquidEquip(p) === 'ps');
@@ -1226,18 +1223,13 @@ function calcRoundSection(routeType, roundNum, props) {
     }
     if (rd.liquid.fungSep) {
       const fs = rd.liquid.fungSep;
-      if (routeType === 'cool') {
-        const pm = totalSqft > 0 ? calcLiqMix(totalSqft,'ps',psRates(fs.products),false) : null;
-        if (pm) fungSepMix = {toro:null, ps:pm, config:fs};
-      } else {
-        const toroProps = props.filter(p => resolveLiquidEquip(p) === 'toro');
-        const psProps   = props.filter(p => resolveLiquidEquip(p) === 'ps');
-        const toroSqft  = toroProps.reduce((s,p) => s+p.sqft, 0);
-        const psSqft    = psProps.reduce((s,p) => s+p.sqft, 0);
-        const tm = toroSqft > 0 ? calcLiqMix(toroSqft,'toro',fs.products,true) : null;
-        const pm = psSqft > 0   ? calcLiqMix(psSqft,  'ps',  psRates(fs.products),false) : null;
-        if (tm||pm) fungSepMix = {toro:tm, ps:pm, config:fs};
-      }
+      const toroProps = props.filter(p => resolveLiquidEquip(p) === 'toro');
+      const psProps   = props.filter(p => resolveLiquidEquip(p) === 'ps');
+      const toroSqft  = toroProps.reduce((s,p) => s+p.sqft, 0);
+      const psSqft    = psProps.reduce((s,p) => s+p.sqft, 0);
+      const tm = toroSqft > 0 ? calcLiqMix(toroSqft,'toro',fs.products,true) : null;
+      const pm = psSqft > 0   ? calcLiqMix(psSqft,  'ps',  psRates(fs.products),false) : null;
+      if (tm||pm) fungSepMix = {toro:tm, ps:pm, config:fs};
     }
   }
 
@@ -2036,16 +2028,17 @@ function renderStep3() {
 
   const propsHTML = hasProps
     ? state.properties.map((p,i) => {
+        const currentRd = ROUNDS[state.routeType][currentRound];
         const autoEquip = assignEquip(p.sqft);
-        const isOverridden = !p.isRockYard && state.routeType==='warm' && !!p.liquidEquipOverride;
+        const isOverridden = !p.isRockYard && !!(currentRd && currentRd.liquid) && !!p.liquidEquipOverride;
         const equip = p.isRockYard ? 'rock'
-          : state.routeType==='warm' ? resolveLiquidEquip(p) : 'ps';
+          : (currentRd && currentRd.liquid) ? resolveLiquidEquip(p) : 'ps';
         const equipBadge = p.isRockYard
           ? `<span class="equip-badge" style="background:rgba(255,140,0,0.12);color:var(--warn);border-color:rgba(255,140,0,0.3)">🪨 ROCK YARD</span>`
           : equip==='toro'
             ? `<span class="equip-badge badge-toro">TORO${isOverridden?' ✋':''}</span>`
             : `<span class="equip-badge badge-ps">POWER SPRAY${isOverridden?' ✋':''}</span>`;
-        const equipToggle = (!p.isRockYard && state.routeType==='warm')
+        const equipToggle = (!p.isRockYard && currentRd && currentRd.liquid)
           ? `<button class="equip-toggle-btn ${isOverridden?'equip-active':''}" data-equip-idx="${i}" title="${isOverridden
               ? `Manual override active — tap to revert to auto (${autoEquip==='toro'?'Toro':'Power Sprayer'})`
               : `Auto: ${autoEquip==='toro'?'Toro':'Power Sprayer'} — tap to force ${autoEquip==='toro'?'Power Sprayer':'Toro'}`
