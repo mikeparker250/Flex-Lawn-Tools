@@ -591,7 +591,8 @@ header h1 {
 const TORO_OUT = 0.34;   // gal / 1,000 sqft
 const PS_OUT   = 1.14;   // gal / 1,000 sqft
 const GATE     = 10000;  // sqft: ≥ this → Toro, < this → Power Spray
-const BUFFER   = 5000;   // sqft buffer deducted from primary equipment total
+const BUFFER   = 5000;   // max buffer cap — sqft buffer deducted from primary equipment total
+const BUFFER_PCT = 0.10; // buffer scales as this percent of total sqft, capped at BUFFER
 const TORO_TANK_CAP = 12; // gallons — capacity of ONE physical tank on the Toro SprayMaster
 const TORO_TANKS_ON_TRUCK = 2; // SprayMaster carries 2 tanks — both filled before departure
 const OZ_PER_GAL = 128;   // fl oz in 1 gallon, used to convert product volume into tank space
@@ -1179,7 +1180,7 @@ function today() {
 //  CALCULATIONS
 // ═══════════════════════════════════════════════════════════
 function calcLiqMix(sqft, equipment, products, applyBuffer) {
-  const buf = applyBuffer ? BUFFER : 0;
+  const buf = applyBuffer ? Math.min(BUFFER, sqft * BUFFER_PCT) : 0;
   const eff = Math.max(0, sqft - buf);
   if (eff <= 0) return null;
   const outputRate = equipment === 'toro' ? TORO_OUT : PS_OUT;
@@ -2813,7 +2814,7 @@ function calcOrderList(routeType, roundNum, totalSqftWarm, totalSqftCool) {
   const products = [];
 
   // Helper: split sqft into toro vs PS portions for rate blending
-  const toroSqft = Math.max(0, sqft - BUFFER); // approximate — actual split varies by property
+  const toroSqft = Math.max(0, sqft - Math.min(BUFFER, sqft * BUFFER_PCT)); // approximate — actual split varies by property
   const psSqft = Math.min(sqft, BUFFER * 2);   // rough estimate for PS-sized properties
   // For ordering purposes we use a conservative calculation:
   // assume full sqft at Toro rate (over-orders slightly = safe for not running out)
