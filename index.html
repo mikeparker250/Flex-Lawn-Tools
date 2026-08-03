@@ -500,6 +500,36 @@ header h1 {
   opacity: 1; background: rgba(100,180,255,0.15);
   border-color: #64b4ff; box-shadow: 0 0 6px rgba(100,180,255,0.3);
 }
+/* Per-property Bermuda/Zoysia tag — warm routes only, needed to split R5's
+   liquid-alt override into the correct tank recipe per grass type. */
+.grass-toggle-btn {
+  background: none; border: 1px solid rgba(255,255,255,0.1); border-radius: 5px;
+  font-family: var(--font-mono); font-weight: 700; font-size: 10px; letter-spacing: 0.5px;
+  cursor: pointer; padding: 3px 7px; opacity: 0.6; white-space: nowrap;
+  transition: all 0.15s ease; flex-shrink: 0;
+}
+.grass-toggle-btn:hover { opacity: 0.9; }
+.grass-toggle-btn.grass-bermuda {
+  opacity: 1; background: rgba(0,255,71,0.12); color: var(--green); border-color: var(--green-border);
+}
+.grass-toggle-btn.grass-zoysia {
+  opacity: 1; background: rgba(100,180,255,0.12); color: #64b4ff; border-color: rgba(100,180,255,0.25);
+}
+.grass-toggle-btn.grass-unset {
+  opacity: 1; background: rgba(255,140,0,0.12); color: var(--warn); border-color: rgba(255,140,0,0.3);
+}
+/* Per-round granular↔liquid override — resets to granular on every new route load. */
+.feed-toggle-btn {
+  background: none; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px;
+  font-family: var(--font-mono); font-weight: 700; font-size: 12px; letter-spacing: 0.3px;
+  cursor: pointer; padding: 5px 10px; opacity: 0.65; color: var(--text2);
+  transition: all 0.15s ease; flex-shrink: 0;
+}
+.feed-toggle-btn:hover { opacity: 0.9; border-color: #64b4ff; }
+.feed-toggle-btn.feed-liquid {
+  opacity: 1; background: rgba(100,180,255,0.15);
+  border-color: #64b4ff; color: #64b4ff; box-shadow: 0 0 6px rgba(100,180,255,0.3);
+}
 .round-mini-select {
   background: var(--bg3); border: 1px solid rgba(0,255,71,0.25);
   border-radius: 5px; color: var(--green); padding: 3px 6px;
@@ -827,6 +857,30 @@ const ROUNDS = {
         ],
         note:'Water-in within 24 hrs.',
       },
+      liquidAlt: {
+        label: 'Liquid Alt — Terra Ally TA 22-0-0 (override granular)',
+        note: 'Heat-safe reduced rate — do NOT scale up to full granular N target in this round.',
+        bermuda: {
+          toro: [
+            {name:'Terra Ally TA 22-0-0', rate: 111.2, unit:'fl oz'},
+            {name:'90/10 NIS',            rate: 2.1,   unit:'oz'},
+          ],
+          ps: [
+            {name:'Terra Ally TA 22-0-0', rate: 33.2,  unit:'fl oz'},
+            {name:'90/10 NIS',            rate: 0.6,   unit:'oz'},
+          ],
+        },
+        zoysia: {
+          toro: [
+            {name:'Terra Ally TA 22-0-0', rate: 85.6,  unit:'fl oz'},
+            {name:'90/10 NIS',            rate: 1.6,   unit:'oz'},
+          ],
+          ps: [
+            {name:'Terra Ally TA 22-0-0', rate: 25.5,  unit:'fl oz'},
+            {name:'90/10 NIS',            rate: 0.5,   unit:'oz'},
+          ],
+        },
+      },
       bg:[
         {name:'Special Sauce', amount:'2 oz', note:'Crabgrass, dallisgrass, goosegrass'},
         {name:'Simazine',      amount:'0.5 oz', note:'Grassy weed kill boost'},
@@ -972,6 +1026,20 @@ const ROUNDS = {
         rates:[{label:'Tall Fescue', lbs:2.8}],
         note:'Push Spreader ONLY. Fall start after summer dormancy — 0.5 lb N/1K. Water-in within 24 hrs.',
       },
+      liquidAlt: {
+        label: 'Liquid Alt — Terra Ally TA 22-0-0 (override granular)',
+        note: 'Full parity with granular 0.5 lb N/1K target — no reduction needed, cooler round.',
+        products: {
+          toro: [
+            {name:'Terra Ally TA 22-0-0', rate: 85.6, unit:'fl oz'},
+            {name:'90/10 NIS',            rate: 1.6,  unit:'oz'},
+          ],
+          ps: [
+            {name:'Terra Ally TA 22-0-0', rate: 25.5, unit:'fl oz'},
+            {name:'90/10 NIS',            rate: 0.5,  unit:'oz'},
+          ],
+        },
+      },
       bg:[
         {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
         {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga — 1-gal metal B&G rate'},
@@ -988,6 +1056,23 @@ const ROUNDS = {
         product:'LESCO 24-0-11 w/ 2% Fe + PolyPlus',
         rates:[{label:'Tall Fescue', lbs:4.17}],
         note:'Push Spreader ONLY. Big fall feed — drives color and density into winter.',
+      },
+      liquidAlt: {
+        label: 'Liquid Alt — Terra Ally TA 22-0-0 (override granular)',
+        note: 'PS properties get full parity (1.0 lb N/1K). Toro properties (≥10K sqft) ' +
+              'CANNOT physically reach full parity — max-strength compromise (~0.71 lb N/1K) ' +
+              'is the ceiling. This is a real equipment limit, not a rate typo — do not "fix" ' +
+              'by increasing the Toro number further, it is already near 100% concentrate.',
+        products: {
+          toro: [
+            {name:'Terra Ally TA 22-0-0', rate: 121, unit:'fl oz'},
+            {name:'90/10 NIS',            rate: 2,   unit:'oz'},
+          ],
+          ps: [
+            {name:'Terra Ally TA 22-0-0', rate: 51.1, unit:'fl oz'},
+            {name:'90/10 NIS',            rate: 1.0,  unit:'oz'},
+          ],
+        },
       },
       bg:[
         {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
@@ -1032,6 +1117,9 @@ const state = {
   opSavedSqft: {},        // { 'warm_4': 95000, 'cool_4': 42000, ... }
   newPropName:'',
   newPropSqft:'',
+  // Per-round granular↔liquid override, keyed '${routeType}_${roundNum}' (e.g. 'warm_5').
+  // Daily manual choice, NOT persisted — reset to granular default on every new route load.
+  feedMode: {},
 };
 
 function detectRound() {
@@ -1198,11 +1286,61 @@ function psRates(products) {
   return products.map(p => ({...p, rate: p.psRate !== undefined ? p.psRate : p.rate * ratio}));
 }
 
-function calcRoundSection(routeType, roundNum, props) {
+// R5 warm's liquid-alt override needs a different Terra Ally rate per grass
+// type (Bermuda vs Zoysia), so — unlike every other liquid round — it can't
+// just split a Toro/PS section into one tank. It splits into up to FOUR:
+// Bermuda-Toro, Bermuda-PS, Zoysia-Toro, Zoysia-PS. Properties with no
+// grassType tag are excluded (and reported) rather than guessed into either
+// bucket — see cycleGrassType().
+function calcLiquidAltR5Warm(rd, props) {
+  const la = rd.liquidAlt;
+  const missingGrassType = [];
+  const buckets = {bermuda:{toro:[],ps:[]}, zoysia:{toro:[],ps:[]}};
+  for (const p of props) {
+    if (p.isRockYard) continue;
+    if (p.grassType !== 'bermuda' && p.grassType !== 'zoysia') { missingGrassType.push(p); continue; }
+    buckets[p.grassType][resolveLiquidEquip(p)].push(p);
+  }
+  const mixes = {};
+  for (const gt of ['bermuda','zoysia']) {
+    for (const equip of ['toro','ps']) {
+      const sqft = buckets[gt][equip].reduce((s,p) => s+p.sqft, 0);
+      if (sqft > 0) mixes[`${gt}_${equip}`] = calcLiqMix(sqft, equip, la[gt][equip], equip==='toro');
+    }
+  }
+  return {kind:'r5warm', label:la.label, note:la.note, missingGrassType, mixes};
+}
+
+// R6/R7 cool's liquid-alt override is a single turf type (fescue), so it's a
+// plain Toro/PS split on the standard gate — same shape as rd.liquid rounds.
+// IMPORTANT: R7's ps rate is a deliberately different N target from its toro
+// rate (PS reaches full parity; Toro is capped at a max-strength compromise —
+// see rd.liquidAlt.note). Pull both straight from data — never run them
+// through psRates(), which assumes a shared ratio that doesn't hold here.
+function calcLiquidAltStandard(rd, props) {
+  const la = rd.liquidAlt;
+  const toroProps = props.filter(p => !p.isRockYard && resolveLiquidEquip(p) === 'toro');
+  const psProps   = props.filter(p => !p.isRockYard && resolveLiquidEquip(p) === 'ps');
+  const toroSqft  = toroProps.reduce((s,p) => s+p.sqft, 0);
+  const psSqft    = psProps.reduce((s,p) => s+p.sqft, 0);
+  return {
+    kind:'standard', label:la.label, note:la.note,
+    toroMix: toroSqft > 0 ? calcLiqMix(toroSqft, 'toro', la.products.toro, true) : null,
+    psMix:   psSqft > 0   ? calcLiqMix(psSqft,   'ps',   la.products.ps,   false) : null,
+  };
+}
+
+function calcRoundSection(routeType, roundNum, props, feedMode) {
   const rd = ROUNDS[routeType][roundNum];
   if (!rd) return null;
   const totalSqft = props.reduce((s, p) => s + p.sqft, 0);
-  let toroMix=null, psMix=null, fungSepMix=null, granData=null;
+  let toroMix=null, psMix=null, fungSepMix=null, granData=null, liquidAltData=null;
+
+  // Per-round granular↔liquid override — only relevant where rd.liquidAlt
+  // exists (R5 warm, R6/R7 cool). feedMode is undefined for callers (like Fly)
+  // that don't wire up the toggle, which correctly falls through to granular.
+  const mode = (feedMode && feedMode[`${routeType}_${roundNum}`]) || 'granular';
+  const useLiquidAlt = mode === 'liquid' && !!rd.liquidAlt;
 
   // Liquid rounds use the 10K gate regardless of turf type (per-property
   // liquidEquipOverride can force a house the other way) — warm and cool
@@ -1234,8 +1372,13 @@ function calcRoundSection(routeType, roundNum, props) {
     }
   }
 
-  // Granular — warm uses 10K gate, cool always Push Spreader
-  if (rd.granular) {
+  // Granular — warm uses 10K gate, cool always Push Spreader.
+  // Skipped entirely when the liquid-alt override is toggled on for this round.
+  if (useLiquidAlt) {
+    liquidAltData = (routeType === 'warm' && roundNum === 5)
+      ? calcLiquidAltR5Warm(rd, props)
+      : calcLiquidAltStandard(rd, props);
+  } else if (rd.granular) {
     if (routeType === 'warm') {
       const toroProps = props.filter(p => p.sqft >= GATE);
       const psProps   = props.filter(p => p.sqft < GATE);
@@ -1251,10 +1394,10 @@ function calcRoundSection(routeType, roundNum, props) {
     }
   }
 
-  return {rd, totalSqft, toroMix, psMix, fungSepMix, granData};
+  return {rd, totalSqft, toroMix, psMix, fungSepMix, granData, liquidAltData, mode};
 }
 
-function calcAllResults(routeType, properties) {
+function calcAllResults(routeType, properties, feedMode) {
   const sprayProps = properties.filter(p => !p.isRockYard);
   const rockYards  = properties.filter(p => p.isRockYard);
   const roundGroups = {};
@@ -1278,7 +1421,7 @@ function calcAllResults(routeType, properties) {
     if (isNaN(roundNum)||!ROUNDS[routeType]?.[roundNum]) {
       sections.push({type:'unknown', key, props, sqft}); continue;
     }
-    const calc = calcRoundSection(routeType, roundNum, props);
+    const calc = calcRoundSection(routeType, roundNum, props, feedMode);
     sections.push({type:'round', key, roundNum, props, sqft, ...calc});
   }
   if (rockYards.length > 0) sections.push({type:'rockyard', props:rockYards});
@@ -1365,6 +1508,7 @@ async function parseImages(images) {
           hasRockBeds: !!p.hasRockBeds,
           isHoseDrag: !!p.isHoseDrag,
           liquidEquipOverride: null,
+          grassType: null,   // 'bermuda' | 'zoysia' | null — set manually, never guessed
         });
       }
     } catch(err) {
@@ -1613,6 +1757,44 @@ function renderGranCard(granData) {
       ${cfg.hardStop && !isHardStop ? `<div class="info-row" style="margin-top:10px;color:var(--warn)">⚠️ MAY 1 HARD STOP: If today is after May 1 — skip granular entirely.</div>` : ''}
     </div>
   </div>`;
+}
+
+// Renders the mix card(s) for a round's liquid-alt override (R5 warm, R6/R7
+// cool). R5 warm can produce up to four tank batches (Bermuda/Zoysia ×
+// Toro/PS); R6/R7 cool produce the standard two (Toro/PS).
+function renderLiquidAltCard(data) {
+  if (!data) return '';
+  let html = `<div class="alert-box alert-info">🧪 ${data.label}</div>`;
+  if (data.note) html += `<div class="alert-box alert-warn">${data.note}</div>`;
+
+  if (data.kind === 'r5warm') {
+    if (data.missingGrassType.length) {
+      html += `<div class="alert-box alert-danger">⚠️ GRASS TYPE NOT SET for: ${
+        data.missingGrassType.map(p => p.name).join(', ')
+      }. Go back to the property list and tap 🌾 to tag Bermuda or Zoysia — excluded from the mixes below until set.</div>`;
+    }
+    html += renderMixCard(data.mixes.bermuda_toro, 'Toro Mix — Bermuda', '🚜', null);
+    html += renderMixCard(data.mixes.bermuda_ps,   'Power Spray Mix — Bermuda', '💧', null);
+    html += renderMixCard(data.mixes.zoysia_toro,  'Toro Mix — Zoysia', '🚜', null);
+    html += renderMixCard(data.mixes.zoysia_ps,    'Power Spray Mix — Zoysia', '💧', null);
+    if (!data.mixes.bermuda_toro && !data.mixes.bermuda_ps && !data.mixes.zoysia_toro && !data.mixes.zoysia_ps) {
+      html += `<div class="alert-box alert-info">No properties with grass type set yet — nothing to mix.</div>`;
+    }
+  } else {
+    html += renderMixCard(data.toroMix, 'Toro SprayMaster Mix', '🚜', null);
+    html += renderMixCard(data.psMix,   'Power Spray Rig Mix',  '💧', null);
+  }
+  return html;
+}
+
+// Round-level granular↔liquid toggle button. Single tap flips the whole
+// route's handling of this round — daily manual choice, resets to granular
+// by default every time a new route is loaded (see toggleFeedMode()).
+function renderFeedToggle(routeType, roundNum, mode) {
+  const isLiquid = mode === 'liquid';
+  return `<button class="feed-toggle-btn ${isLiquid ? 'feed-liquid' : ''}" onclick="toggleFeedMode('${routeType}',${roundNum})" title="${
+    isLiquid ? 'Using liquid Terra Ally override — tap to switch back to granular' : 'Using granular — tap to switch to liquid Terra Ally override'
+  }">${isLiquid ? '🧪 Liquid (Terra Ally)' : '🌾 Granular'}</button>`;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1893,7 +2075,7 @@ function renderStep1() {
   </div>`;
 }
 
-function selectRoute(type) { state.routeType=type; navigateTo('step2'); }
+function selectRoute(type) { state.routeType=type; state.feedMode={}; navigateTo('step2'); }
 function selectFly() { state.flyMode='round'; navigateTo('fly'); }
 function selectReservice() { state.rsTurfType=null; state.rsSelectedWeeds=[]; state.rsWeedSearch=''; navigateTo('reservice'); }
 function selectOrderPlanner() { state.opRound=null; state.opRouteType=null; state.opSqftWarm=0; state.opSqftCool=0; state.opLoading=false; state.opError=null; state.opFRData=null; navigateTo('orderplanner'); }
@@ -2056,6 +2238,17 @@ function renderStep3() {
           ? `<span class="equip-badge" style="background:rgba(100,180,255,0.10);color:#64b4ff;border-color:rgba(100,180,255,0.25);font-size:10px">🪨 +BEDS</span>`
           : '';
         const rockToggle = `<button class="rock-toggle-btn ${p.isRockYard?'rock-active':''}" data-rock-idx="${i}" title="${p.isRockYard?'Remove rock yard flag':'Mark as rock yard'}">🪨</button>`;
+        // Bermuda/Zoysia tag — warm routes only. Feeds R5's liquid-alt override,
+        // which needs to know grass type to build the right tank recipe (each
+        // grass gets a different Terra Ally rate). Never guessed/defaulted —
+        // cycles unset → Bermuda → Zoysia → unset on tap.
+        const grassToggle = (state.routeType === 'warm' && !p.isRockYard)
+          ? `<button class="grass-toggle-btn ${
+              p.grassType === 'bermuda' ? 'grass-bermuda' : p.grassType === 'zoysia' ? 'grass-zoysia' : 'grass-unset'
+            }" onclick="cycleGrassType(${i})" title="Tap to cycle Bermuda → Zoysia → unset">${
+              p.grassType === 'bermuda' ? '🌾 BERMUDA' : p.grassType === 'zoysia' ? '🌾 ZOYSIA' : '⚠️ SET GRASS'
+            }</button>`
+          : '';
         return `
         <div class="property-row">
           <div class="prop-name">${p.name}</div>
@@ -2063,6 +2256,7 @@ function renderStep3() {
           ${roundBadge}
           ${equipBadge}
           ${rockBedsBadge}
+          ${grassToggle}
           ${equipToggle}
           ${rockToggle}
           <button class="prop-delete" data-del="${i}">×</button>
@@ -2147,7 +2341,7 @@ function renderResults() {
     return `<div class="empty-state">No data to display. <button class="btn btn-secondary" id="restart-btn" style="margin-top:16px;width:auto;padding:10px 20px">Start Over</button></div>`;
   }
 
-  const sections = calcAllResults(state.routeType, state.properties);
+  const sections = calcAllResults(state.routeType, state.properties, state.feedMode);
   const routeLabel = state.routeType==='warm' ? '🔥 Warm Season' : '❄️ Cool Season';
   const totalSqft = state.properties.reduce((s,p)=>s+p.sqft,0);
   let content = '';
@@ -2155,34 +2349,45 @@ function renderResults() {
   for (const sec of sections) {
     if (sec.type === 'round') {
       const rd = sec.rd;
+      const hasFeedToggle = !!rd.liquidAlt;
       content += `
       <div style="margin-bottom:6px;margin-top:20px">
-        <div style="font-family:var(--font-display);font-weight:900;font-size:20px;letter-spacing:0.5px">
-          ${rd.icon} ${sec.key} — ${rd.name}
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div style="font-family:var(--font-display);font-weight:900;font-size:20px;letter-spacing:0.5px">
+            ${rd.icon} ${sec.key} — ${rd.name}
+          </div>
+          ${hasFeedToggle ? renderFeedToggle(state.routeType, sec.roundNum, sec.mode) : ''}
         </div>
         <div style="font-size:12px;font-family:var(--font-mono);color:var(--text2);margin-top:2px">
           ${sec.props.length} properties &nbsp;·&nbsp; ${sec.sqft.toLocaleString()} sqft &nbsp;·&nbsp; ${rd.dates}
         </div>
       </div>`;
       content += renderAlerts(rd.alerts);
-      if (rd.liquid?.tankNote) content += `<div class="alert-box alert-warn">${rd.liquid.tankNote}</div>`;
-      content += renderMixCard(sec.toroMix, 'Toro SprayMaster Mix', '🚜', rd.liquid?.mixOrder);
-      content += renderMixCard(sec.psMix,   'Power Spray Rig Mix',  '💧', rd.liquid?.mixOrder);
-      if (rd.liquid?.note) content += `<div class="alert-box alert-info">${rd.liquid.note}</div>`;
-      if (sec.fungSepMix) {
-        const fs = sec.fungSepMix.config;
-        content += `<div class="mix-card" style="border-color:rgba(0,255,71,0.35)">
-          <div class="mix-card-header" style="background:rgba(0,255,71,0.08)">
-            <span class="mix-card-icon">🍄</span>
-            <span class="mix-card-title">${fs.label}</span>
-          </div>
-          <div class="mix-card-body">
-            <div class="alert-box alert-info" style="margin-bottom:12px">${fs.note}</div>
-            ${sec.fungSepMix.toro ? renderMixCard(sec.fungSepMix.toro,'Toro Fungicide Pass','🚜',null) : ''}
-            ${sec.fungSepMix.ps   ? renderMixCard(sec.fungSepMix.ps,  'PS Fungicide Pass',  '💧',null) : ''}
-          </div></div>`;
+
+      if (sec.mode === 'liquid' && sec.liquidAltData) {
+        // Liquid-alt override active — N delivery comes from Terra Ally, not
+        // the granular product coded for this round.
+        content += renderLiquidAltCard(sec.liquidAltData);
+      } else {
+        if (rd.liquid?.tankNote) content += `<div class="alert-box alert-warn">${rd.liquid.tankNote}</div>`;
+        content += renderMixCard(sec.toroMix, 'Toro SprayMaster Mix', '🚜', rd.liquid?.mixOrder);
+        content += renderMixCard(sec.psMix,   'Power Spray Rig Mix',  '💧', rd.liquid?.mixOrder);
+        if (rd.liquid?.note) content += `<div class="alert-box alert-info">${rd.liquid.note}</div>`;
+        if (sec.fungSepMix) {
+          const fs = sec.fungSepMix.config;
+          content += `<div class="mix-card" style="border-color:rgba(0,255,71,0.35)">
+            <div class="mix-card-header" style="background:rgba(0,255,71,0.08)">
+              <span class="mix-card-icon">🍄</span>
+              <span class="mix-card-title">${fs.label}</span>
+            </div>
+            <div class="mix-card-body">
+              <div class="alert-box alert-info" style="margin-bottom:12px">${fs.note}</div>
+              ${sec.fungSepMix.toro ? renderMixCard(sec.fungSepMix.toro,'Toro Fungicide Pass','🚜',null) : ''}
+              ${sec.fungSepMix.ps   ? renderMixCard(sec.fungSepMix.ps,  'PS Fungicide Pass',  '💧',null) : ''}
+            </div></div>`;
+        }
+        content += renderGranCard(sec.granData);
       }
-      content += renderGranCard(sec.granData);
       content += renderBGCard(rd.bg, 'Sedge + Grassy Weeds — 1 Gallon', '🧪', '1-GAL METAL B&G', '#aaa');
       content += renderBGCard(rd.bgSpecialSauce, 'Special Sauce — 1 Gallon', '🧪', '1-GAL METAL B&G — SEPARATE BOTTLE', '#aaa');
       content += renderDallisgrassCard(rd.bg2);
@@ -2489,6 +2694,7 @@ function attachEvents() {
       if (!props.length) throw new Error('No properties found. Make sure sqft data is visible in your screenshots.');
       state.properties = props;
       state.round = detectRound();
+      state.feedMode = {};
       state.screen = 'step3';
     } catch(err) {
       state.parseError = err.message;
@@ -2496,7 +2702,7 @@ function attachEvents() {
     render();
   });
   document.getElementById('skip-to-manual')?.addEventListener('click', () => {
-    state.screen='step3'; state.round=detectRound(); render();
+    state.screen='step3'; state.round=detectRound(); state.feedMode={}; render();
   });
   // Step 3
   document.getElementById('back-to-2')?.addEventListener('click', () => { navigateTo('step2'); });
@@ -2546,9 +2752,28 @@ function attachEvents() {
   document.getElementById('back-to-3')?.addEventListener('click', () => { navigateTo('step3'); });
   document.getElementById('restart-btn')?.addEventListener('click', () => {
     state.screen='step1'; state.routeType=null; state.properties=[];
-    state.images=[]; state.round=null; state.parseError=null;
+    state.images=[]; state.round=null; state.parseError=null; state.feedMode={};
     render();
   });
+}
+
+// Cycles a property's grass-type tag: unset → Bermuda → Zoysia → unset.
+// Used by R5 warm's liquid-alt override to split a Toro/PS section into the
+// correct per-grass tank recipe — never defaults, so a property with no tag
+// stays excluded from liquid mixes until someone sets it.
+function cycleGrassType(idx) {
+  const p = state.properties[idx];
+  if (!p) return;
+  p.grassType = p.grassType === 'bermuda' ? 'zoysia' : p.grassType === 'zoysia' ? null : 'bermuda';
+  render();
+}
+
+// Per-round granular↔liquid override (R5 warm, R6/R7 cool — wherever
+// rd.liquidAlt exists). Daily manual toggle, whole-route scope, not persisted.
+function toggleFeedMode(routeType, roundNum) {
+  const key = `${routeType}_${roundNum}`;
+  state.feedMode[key] = (state.feedMode[key] === 'liquid') ? 'granular' : 'liquid';
+  render();
 }
 
 function addProp() {
@@ -2559,7 +2784,7 @@ function addProp() {
   const sqft  = parseInt(sqftEl?.value) || 0;
   const round = roundEl?.value || null;
   if (name) {
-    state.properties.push({name, sqft, round, isRockYard:false, hasRockBeds:false, isHoseDrag:false, liquidEquipOverride:null});
+    state.properties.push({name, sqft, round, isRockYard:false, hasRockBeds:false, isHoseDrag:false, liquidEquipOverride:null, grassType:null});
     state.newPropName=''; state.newPropSqft='';
     if (nameEl) nameEl.value='';
     if (sqftEl) sqftEl.value='';
@@ -2610,6 +2835,7 @@ document.getElementById('restart-header-btn')?.addEventListener('click', () => {
   state.images=[]; state.round=null; state.parseError=null; state.parseProgress=0;
   state.flyType=null; state.flyRound=null; state.flySqft=0;
   state.flyMode='round'; state.rsTurfType=null; state.rsSelectedWeeds=[]; state.rsWeedSearch='';
+  state.feedMode={};
   render();
 });
 
