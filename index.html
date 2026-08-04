@@ -592,6 +592,8 @@ header h1 {
     <h3>⚙ About</h3>
     <p>Flex Mix Calculator</p>
     <p style="color:var(--text2);font-size:13px">Version <span id="about-version">—</span></p>
+    <p style="color:var(--text2);font-size:13px">Build <span id="about-build">—</span></p>
+    <p style="color:var(--text2);font-size:13px">Feed toggle: <span id="about-feedcheck">—</span></p>
     <div class="btn-row" style="margin-top:20px">
       <button class="btn btn-secondary" onclick="document.getElementById('settings-modal').classList.add('hidden')">Close</button>
     </div>
@@ -2843,6 +2845,13 @@ document.getElementById('settings-btn')?.addEventListener('click', () => {
   document.getElementById('settings-modal')?.classList.remove('hidden');
   const versionEl = document.getElementById('about-version');
   if (versionEl) versionEl.textContent = localStorage.getItem('flex_app_version') || '—';
+  const buildEl = document.getElementById('about-build');
+  if (buildEl) buildEl.textContent = localStorage.getItem('flex_app_commit') || '—';
+  const feedCheckEl = document.getElementById('about-feedcheck');
+  if (feedCheckEl) {
+    const feedToggleOk = typeof renderFeedToggle === 'function' && typeof toggleFeedMode === 'function';
+    feedCheckEl.textContent = feedToggleOk ? 'found' : 'missing';
+  }
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -2953,10 +2962,11 @@ async function checkVersion() {
   try {
     const res = await fetch('/version.json?t=' + Date.now(), {cache:'no-store'});
     if (!res.ok) return;
-    const {v} = await res.json();
+    const {v, commit} = await res.json();
     const stored = localStorage.getItem('flex_app_version');
     if (stored && stored !== String(v)) {
       localStorage.setItem('flex_app_version', String(v));
+      if (commit) localStorage.setItem('flex_app_commit', String(commit));
       if ('caches' in window) {
         const keys = await caches.keys();
         await Promise.all(keys.map(k => caches.delete(k)));
@@ -2964,6 +2974,7 @@ async function checkVersion() {
       window.location.reload();
     } else {
       localStorage.setItem('flex_app_version', String(v));
+      if (commit) localStorage.setItem('flex_app_commit', String(commit));
     }
   } catch(e) {}
 }
