@@ -646,7 +646,7 @@ const REORDER_THRESHOLDS = {
   'Simazine':2.5, 'Atrazine':2.5, 'Prodiamine 65 WDG':2,
   'Triad Select':2.5, 'Quin-Way 1.5L':2.5, 'MSO':2.5,
   'LESCO 24-0-11 w/ 2% Fe + PolyPlus':1, 'Terra Ally TA 22-0-0':2.5,
-  'Artavia SC (Azoxystrobin)':1, 'Celsius WG':10, 'Ambition':8,
+  'Artavia SC (Azoxystrobin)':1,
   'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe':1, 'Propiconazole 14.3':1,
   'LESCO 5-0-25 w/ 10% Fe':1, 'Specticle FLO':10,
   'LESCO 18-0-9 w/ 2% Fe':1, 'Ranger Pro 41% Glyphosate':2.5,
@@ -982,14 +982,11 @@ const ROUNDS = {
     },
     4: {
       name:'Early Summer Health — Fungicide Only', icon:'☀️', dates:'May 31 – Jul 11',
-      liquid:{
-        products:[
-          {name:'Artavia SC (Azoxy) — FRAC 11', rate:2.21, unit:'fl oz'},
-          {name:'90/10 NIS',                    rate:0.82, unit:'oz'},
-        ],
-        note:'Fungicide protection pass ONLY. No nitrogen on fescue in summer.',
-      },
+      liquid:null,
       granular:null,
+      truckStock:[
+        {name:'Artavia SC (Azoxystrobin)', note:'Reactive fungicide — brown patch / pythium. B&G only on flagged properties.'},
+      ],
       bg:[
         {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
         {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.09 oz', note:'Sedge + kyllinga — if visible (0.5-gal plastic B&G rate)'},
@@ -1002,15 +999,12 @@ const ROUNDS = {
     },
     5: {
       name:'Mid-Summer Protection', icon:'🔥', dates:'Jul 12 – Aug 22',
-      liquid:{
-        products:[
-          {name:'Artavia SC (Azoxy) — FRAC 11', rate:2.26, unit:'fl oz'},
-          {name:'Propiconazole 14.3 — FRAC 3',  rate:2.94, unit:'fl oz'},
-        ],
-        mixOrder:'NO 90/10 in this tank. Artavia SC first, then Propiconazole 14.3. Agitate 60 sec.',
-        note:'Dual fungicide — FRAC rotation prevents resistance. NO granular for fescue this round.',
-      },
+      liquid:null,
       granular:null, bg:null,
+      truckStock:[
+        {name:'Artavia SC (Azoxystrobin)', note:'Reactive fungicide — brown patch / pythium. B&G only on flagged properties. FRAC 11 — if treating, rotate with Propiconazole 14.3, do not reuse back-to-back.'},
+        {name:'Propiconazole 14.3',        note:'Reactive fungicide — rotate with Artavia. B&G only on flagged properties. FRAC 3.'},
+      ],
       alerts:[
         {type:'danger', msg:'NO 90/10 NIS in dual fungicide tank. NO granular fertilizer on fescue in R5 — nitrogen resumes in Round 6.'},
         {type:'info',   msg:'FRAC rotation non-negotiable. Do NOT re-use FRAC 11 back-to-back.'},
