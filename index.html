@@ -500,24 +500,6 @@ header h1 {
   opacity: 1; background: rgba(100,180,255,0.15);
   border-color: #64b4ff; box-shadow: 0 0 6px rgba(100,180,255,0.3);
 }
-/* Per-property Bermuda/Zoysia tag — warm routes only, needed to split R5's
-   liquid-alt override into the correct tank recipe per grass type. */
-.grass-toggle-btn {
-  background: none; border: 1px solid rgba(255,255,255,0.1); border-radius: 5px;
-  font-family: var(--font-mono); font-weight: 700; font-size: 10px; letter-spacing: 0.5px;
-  cursor: pointer; padding: 3px 7px; opacity: 0.6; white-space: nowrap;
-  transition: all 0.15s ease; flex-shrink: 0;
-}
-.grass-toggle-btn:hover { opacity: 0.9; }
-.grass-toggle-btn.grass-bermuda {
-  opacity: 1; background: rgba(0,255,71,0.12); color: var(--green); border-color: var(--green-border);
-}
-.grass-toggle-btn.grass-zoysia {
-  opacity: 1; background: rgba(100,180,255,0.12); color: #64b4ff; border-color: rgba(100,180,255,0.25);
-}
-.grass-toggle-btn.grass-unset {
-  opacity: 1; background: rgba(255,140,0,0.12); color: var(--warn); border-color: rgba(255,140,0,0.3);
-}
 /* Per-round granular↔liquid override — resets to granular on every new route load. */
 .feed-toggle-btn {
   background: none; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px;
@@ -861,7 +843,7 @@ const ROUNDS = {
       liquidAlt: {
         label: 'Liquid Alt — Terra Ally TA 22-0-0 (override granular)',
         note: 'Heat-safe reduced rate — do NOT scale up to full granular N target in this round.',
-        bermuda: {
+        products: {
           toro: [
             {name:'Terra Ally TA 22-0-0', rate: 111.2, unit:'fl oz'},
             {name:'90/10 NIS',            rate: 2.1,   unit:'oz'},
@@ -869,16 +851,6 @@ const ROUNDS = {
           ps: [
             {name:'Terra Ally TA 22-0-0', rate: 33.2,  unit:'fl oz'},
             {name:'90/10 NIS',            rate: 0.6,   unit:'oz'},
-          ],
-        },
-        zoysia: {
-          toro: [
-            {name:'Terra Ally TA 22-0-0', rate: 85.6,  unit:'fl oz'},
-            {name:'90/10 NIS',            rate: 1.6,   unit:'oz'},
-          ],
-          ps: [
-            {name:'Terra Ally TA 22-0-0', rate: 25.5,  unit:'fl oz'},
-            {name:'90/10 NIS',            rate: 0.5,   unit:'oz'},
           ],
         },
       },
@@ -1277,37 +1249,13 @@ function psRates(products) {
   return products.map(p => ({...p, rate: p.psRate !== undefined ? p.psRate : p.rate * ratio}));
 }
 
-// R5 warm's liquid-alt override needs a different Terra Ally rate per grass
-// type (Bermuda vs Zoysia), so — unlike every other liquid round — it can't
-// just split a Toro/PS section into one tank. It splits into up to FOUR:
-// Bermuda-Toro, Bermuda-PS, Zoysia-Toro, Zoysia-PS. Properties with no
-// grassType tag are excluded (and reported) rather than guessed into either
-// bucket — see cycleGrassType().
-function calcLiquidAltR5Warm(rd, props) {
-  const la = rd.liquidAlt;
-  const missingGrassType = [];
-  const buckets = {bermuda:{toro:[],ps:[]}, zoysia:{toro:[],ps:[]}};
-  for (const p of props) {
-    if (p.isRockYard) continue;
-    if (p.grassType !== 'bermuda' && p.grassType !== 'zoysia') { missingGrassType.push(p); continue; }
-    buckets[p.grassType][resolveLiquidEquip(p)].push(p);
-  }
-  const mixes = {};
-  for (const gt of ['bermuda','zoysia']) {
-    for (const equip of ['toro','ps']) {
-      const sqft = buckets[gt][equip].reduce((s,p) => s+p.sqft, 0);
-      if (sqft > 0) mixes[`${gt}_${equip}`] = calcLiqMix(sqft, equip, la[gt][equip], equip==='toro');
-    }
-  }
-  return {kind:'r5warm', label:la.label, note:la.note, missingGrassType, mixes};
-}
-
-// R6/R7 cool's liquid-alt override is a single turf type (fescue), so it's a
-// plain Toro/PS split on the standard gate — same shape as rd.liquid rounds.
-// IMPORTANT: R7's ps rate is a deliberately different N target from its toro
-// rate (PS reaches full parity; Toro is capped at a max-strength compromise —
-// see rd.liquidAlt.note). Pull both straight from data — never run them
-// through psRates(), which assumes a shared ratio that doesn't hold here.
+// Every liquidAlt round (R5 warm, R6/R7 cool) is a single-rate override —
+// a plain Toro/PS split on the standard gate, same shape as rd.liquid rounds.
+// IMPORTANT: R7 cool's ps rate is a deliberately different N target from its
+// toro rate (PS reaches full parity; Toro is capped at a max-strength
+// compromise — see rd.liquidAlt.note). Pull both straight from data — never
+// run them through psRates(), which assumes a shared ratio that doesn't hold
+// there.
 function calcLiquidAltStandard(rd, props) {
   const la = rd.liquidAlt;
   const toroProps = props.filter(p => !p.isRockYard && resolveLiquidEquip(p) === 'toro');
@@ -1315,7 +1263,7 @@ function calcLiquidAltStandard(rd, props) {
   const toroSqft  = toroProps.reduce((s,p) => s+p.sqft, 0);
   const psSqft    = psProps.reduce((s,p) => s+p.sqft, 0);
   return {
-    kind:'standard', label:la.label, note:la.note,
+    label:la.label, note:la.note,
     toroMix: toroSqft > 0 ? calcLiqMix(toroSqft, 'toro', la.products.toro, true) : null,
     psMix:   psSqft > 0   ? calcLiqMix(psSqft,   'ps',   la.products.ps,   false) : null,
   };
@@ -1366,9 +1314,7 @@ function calcRoundSection(routeType, roundNum, props, feedMode) {
   // Granular — warm uses 10K gate, cool always Push Spreader.
   // Skipped entirely when the liquid-alt override is toggled on for this round.
   if (useLiquidAlt) {
-    liquidAltData = (routeType === 'warm' && roundNum === 5)
-      ? calcLiquidAltR5Warm(rd, props)
-      : calcLiquidAltStandard(rd, props);
+    liquidAltData = calcLiquidAltStandard(rd, props);
   } else if (rd.granular) {
     if (routeType === 'warm') {
       const toroProps = props.filter(p => p.sqft >= GATE);
@@ -1499,7 +1445,6 @@ async function parseImages(images) {
           hasRockBeds: !!p.hasRockBeds,
           isHoseDrag: !!p.isHoseDrag,
           liquidEquipOverride: null,
-          grassType: null,   // 'bermuda' | 'zoysia' | null — set manually, never guessed
         });
       }
     } catch(err) {
@@ -1750,31 +1695,13 @@ function renderGranCard(granData) {
   </div>`;
 }
 
-// Renders the mix card(s) for a round's liquid-alt override (R5 warm, R6/R7
-// cool). R5 warm can produce up to four tank batches (Bermuda/Zoysia ×
-// Toro/PS); R6/R7 cool produce the standard two (Toro/PS).
+// Renders the mix card(s) for a round's liquid-alt override (R5 warm, R6/R7 cool).
 function renderLiquidAltCard(data) {
   if (!data) return '';
   let html = `<div class="alert-box alert-info">🧪 ${data.label}</div>`;
   if (data.note) html += `<div class="alert-box alert-warn">${data.note}</div>`;
-
-  if (data.kind === 'r5warm') {
-    if (data.missingGrassType.length) {
-      html += `<div class="alert-box alert-danger">⚠️ GRASS TYPE NOT SET for: ${
-        data.missingGrassType.map(p => p.name).join(', ')
-      }. Go back to the property list and tap 🌾 to tag Bermuda or Zoysia — excluded from the mixes below until set.</div>`;
-    }
-    html += renderMixCard(data.mixes.bermuda_toro, 'Toro Mix — Bermuda', '🚜', null);
-    html += renderMixCard(data.mixes.bermuda_ps,   'Power Spray Mix — Bermuda', '💧', null);
-    html += renderMixCard(data.mixes.zoysia_toro,  'Toro Mix — Zoysia', '🚜', null);
-    html += renderMixCard(data.mixes.zoysia_ps,    'Power Spray Mix — Zoysia', '💧', null);
-    if (!data.mixes.bermuda_toro && !data.mixes.bermuda_ps && !data.mixes.zoysia_toro && !data.mixes.zoysia_ps) {
-      html += `<div class="alert-box alert-info">No properties with grass type set yet — nothing to mix.</div>`;
-    }
-  } else {
-    html += renderMixCard(data.toroMix, 'Toro SprayMaster Mix', '🚜', null);
-    html += renderMixCard(data.psMix,   'Power Spray Rig Mix',  '💧', null);
-  }
+  html += renderMixCard(data.toroMix, 'Toro SprayMaster Mix', '🚜', null);
+  html += renderMixCard(data.psMix,   'Power Spray Rig Mix',  '💧', null);
   return html;
 }
 
@@ -1888,7 +1815,7 @@ function renderReserviceScreen() {
 
   if (!turfType) {
     return `
-    <button class="back-nav" onclick="state.flyMode='round';state.rsTurfType=null;state.rsSelectedWeeds=[];state.rsWeedSearch='';render()">← Back</button>
+    <button class="back-nav" onclick="state.rsTurfType=null;state.rsSelectedWeeds=[];state.rsWeedSearch='';navigateTo('step1')">← Back</button>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
       <span style="font-size:24px">🔄</span>
       <div>
@@ -2084,16 +2011,27 @@ function renderFly() {
 
   const hasInput = state.flyType && state.flyRound && state.flySqft > 0;
 
+  // Inventory badge + feed toggle, shown as soon as a round is picked (before
+  // sqft is even entered) — this flow's whole purpose is "ran out of
+  // chemical," so the stock check and the switch-to-liquid option belong up
+  // front, not gated behind Calculate.
+  const flyInventoryHTML = (state.flyType && state.flyRound)
+    ? renderRoundInventoryBanner(state.flyType, state.flyRound, `R${state.flyRound} — SELECTED ROUND`)
+    : '';
+
   let resultHTML = '';
   if (hasInput) {
     const props = [{name:'Fly Mix', sqft: state.flySqft, round: `R${state.flyRound}`, isRockYard:false, hasRockBeds:false, isHoseDrag:false}];
-    const section = calcRoundSection(state.flyType, state.flyRound, props);
+    const section = calcRoundSection(state.flyType, state.flyRound, props, state.feedMode);
     if (section) {
-      const {rd, toroMix, psMix, fungSepMix, granData} = section;
+      const {rd, toroMix, psMix, fungSepMix, granData, liquidAltData, mode} = section;
+      const isLiquidAltMode = mode === 'liquid' && !!liquidAltData;
 
       // Mix on the Fly: never use PS rig (can't mix on-site).
       // Use Toro rates throughout; if total liquid ≤ 4 gal → FlowZone backpack, else Toro.
-      const flyMix = toroMix || psMix; // prefer toro calc; fall back to ps if toro absent
+      const flyMix = isLiquidAltMode
+        ? (liquidAltData.toroMix || liquidAltData.psMix)
+        : (toroMix || psMix); // prefer toro calc; fall back to ps if toro absent
       const flyGal = flyMix ? flyMix.gal : 0;
       const useFlowZone = flyMix && flyGal <= 4;
       const flyEquipLabel = useFlowZone ? '🎒 FlowZone Backpack' : '🚜 Toro SprayMaster';
@@ -2108,25 +2046,32 @@ function renderFly() {
             <span style="font-size:12px;font-family:var(--font-mono);color:var(--text2);font-weight:400;margin-left:8px">${state.flySqft.toLocaleString()} sqft</span>
           </div>
           ${renderAlerts(rd.alerts)}
-          ${rd.liquid?.tankNote ? `<div class="alert-box alert-warn">${rd.liquid.tankNote}</div>` : ''}
-          ${flyEquipNote}
-          ${flyMix ? renderMixCard(flyMix, flyEquipLabel, useFlowZone ? '🎒' : '🚜', rd.liquid?.mixOrder) : ''}
-          ${rd.liquid?.note ? `<div class="alert-box alert-info">${rd.liquid.note}</div>` : ''}
-          ${fungSepMix ? `<div class="mix-card" style="border-color:rgba(0,255,71,0.35)">
-            <div class="mix-card-header" style="background:rgba(0,255,71,0.08)">
-              <span class="mix-card-icon">🍄</span>
-              <span class="mix-card-title">${fungSepMix.config.label}</span>
-            </div>
-            <div class="mix-card-body">
-              <div class="alert-box alert-info" style="margin-bottom:12px">${fungSepMix.config.note}</div>
-              ${fungSepMix.toro ? renderMixCard(fungSepMix.toro, fungSepMix.toro.gal <= 4 ? '🎒 FlowZone Backpack' : '🚜 Toro Fungicide Pass', fungSepMix.toro.gal <= 4 ? '🎒' : '🚜', null) : ''}
-            </div></div>` : ''}
-          ${renderGranCard(granData)}
+          ${isLiquidAltMode ? `
+            <div class="alert-box alert-info">🧪 ${liquidAltData.label}</div>
+            ${liquidAltData.note ? `<div class="alert-box alert-warn">${liquidAltData.note}</div>` : ''}
+            ${flyEquipNote}
+            ${flyMix ? renderMixCard(flyMix, flyEquipLabel, useFlowZone ? '🎒' : '🚜', null) : ''}
+          ` : `
+            ${rd.liquid?.tankNote ? `<div class="alert-box alert-warn">${rd.liquid.tankNote}</div>` : ''}
+            ${flyEquipNote}
+            ${flyMix ? renderMixCard(flyMix, flyEquipLabel, useFlowZone ? '🎒' : '🚜', rd.liquid?.mixOrder) : ''}
+            ${rd.liquid?.note ? `<div class="alert-box alert-info">${rd.liquid.note}</div>` : ''}
+            ${fungSepMix ? `<div class="mix-card" style="border-color:rgba(0,255,71,0.35)">
+              <div class="mix-card-header" style="background:rgba(0,255,71,0.08)">
+                <span class="mix-card-icon">🍄</span>
+                <span class="mix-card-title">${fungSepMix.config.label}</span>
+              </div>
+              <div class="mix-card-body">
+                <div class="alert-box alert-info" style="margin-bottom:12px">${fungSepMix.config.note}</div>
+                ${fungSepMix.toro ? renderMixCard(fungSepMix.toro, fungSepMix.toro.gal <= 4 ? '🎒 FlowZone Backpack' : '🚜 Toro Fungicide Pass', fungSepMix.toro.gal <= 4 ? '🎒' : '🚜', null) : ''}
+              </div></div>` : ''}
+            ${renderGranCard(granData)}
+          `}
           ${renderBGCard(rd.bg, 'Sedge + Grassy Weeds — 1 Gallon', '🧪', '1-GAL METAL B&G', '#aaa')}
           ${renderBGCard(rd.bgSpecialSauce, 'Special Sauce — 1 Gallon', '🧪', '1-GAL METAL B&G — SEPARATE BOTTLE', '#aaa')}
           ${renderDallisgrassCard(rd.bg2)}
           ${renderTruckStockCard(rd.truckStock)}
-          ${!rd.liquid && !rd.granular && !rd.bg && !rd.bgSpecialSauce && !rd.bg2 ? `<div class="alert-box alert-info">No mix required for this round.</div>` : ''}
+          ${!isLiquidAltMode && !rd.liquid && !rd.granular && !rd.bg && !rd.bgSpecialSauce && !rd.bg2 ? `<div class="alert-box alert-info">No mix required for this round.</div>` : ''}
         </div>`;
     }
   }
@@ -2147,6 +2092,8 @@ function renderFly() {
     <optgroup label="🔥 Warm Season (Bermuda / Zoysia)">${warmRoundOpts}</optgroup>
     <optgroup label="❄️ Cool Season (Tall Fescue)">${coolRoundOpts}</optgroup>
   </select>
+
+  ${flyInventoryHTML}
 
   <div class="section-header">Square Footage</div>
   <input type="number" class="prop-input" id="fly-sqft" placeholder="e.g. 8500"
@@ -2229,17 +2176,6 @@ function renderStep3() {
           ? `<span class="equip-badge" style="background:rgba(100,180,255,0.10);color:#64b4ff;border-color:rgba(100,180,255,0.25);font-size:10px">🪨 +BEDS</span>`
           : '';
         const rockToggle = `<button class="rock-toggle-btn ${p.isRockYard?'rock-active':''}" data-rock-idx="${i}" title="${p.isRockYard?'Remove rock yard flag':'Mark as rock yard'}">🪨</button>`;
-        // Bermuda/Zoysia tag — warm routes only. Feeds R5's liquid-alt override,
-        // which needs to know grass type to build the right tank recipe (each
-        // grass gets a different Terra Ally rate). Never guessed/defaulted —
-        // cycles unset → Bermuda → Zoysia → unset on tap.
-        const grassToggle = (state.routeType === 'warm' && !p.isRockYard)
-          ? `<button class="grass-toggle-btn ${
-              p.grassType === 'bermuda' ? 'grass-bermuda' : p.grassType === 'zoysia' ? 'grass-zoysia' : 'grass-unset'
-            }" onclick="cycleGrassType(${i})" title="Tap to cycle Bermuda → Zoysia → unset">${
-              p.grassType === 'bermuda' ? '🌾 BERMUDA' : p.grassType === 'zoysia' ? '🌾 ZOYSIA' : '⚠️ SET GRASS'
-            }</button>`
-          : '';
         return `
         <div class="property-row">
           <div class="prop-name">${p.name}</div>
@@ -2247,7 +2183,6 @@ function renderStep3() {
           ${roundBadge}
           ${equipBadge}
           ${rockBedsBadge}
-          ${grassToggle}
           ${equipToggle}
           ${rockToggle}
           <button class="prop-delete" data-del="${i}">×</button>
@@ -2325,6 +2260,60 @@ function renderStep3() {
       Calculate Mix →
     </button>
   </div>`;
+}
+
+// Computes and renders the OUT/LOW/✓ inventory badge for a single round's
+// products, with the feed toggle alongside it when rd.liquidAlt exists.
+// Shared by Route Results' "CURRENT ROUND" banner and Mix on the Fly, so
+// both surfaces show identical stock signals for the same round.
+function renderRoundInventoryBanner(routeType, roundNum, label) {
+  if (!_invReady) {
+    return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;font-family:var(--font-mono);color:var(--text3)">⏳ Loading inventory...</div>`;
+  }
+  const rd = (routeType && roundNum) ? ROUNDS[routeType]?.[roundNum] : null;
+  if (!rd) return '';
+
+  const toggleHTML = rd.liquidAlt
+    ? renderFeedToggle(routeType, roundNum, state.feedMode[`${routeType}_${roundNum}`] || 'granular')
+    : '';
+
+  const products = getProductsForRound(routeType, roundNum);
+  const outList = [], lowList = [];
+  for (const [name, item] of Object.entries(_invData)) {
+    const cleanName = name.replace(/\s*⚠️.*$/, '').trim();
+    if (!products.has(cleanName)) continue;
+    const qty = Number(item.quantity);
+    const t = REORDER_THRESHOLDS[cleanName];
+    if (qty === 0) outList.push(cleanName);
+    else if (t !== undefined && qty <= t) lowList.push({name: cleanName, qty, unit: item.unit});
+  }
+
+  if (!outList.length && !lowList.length) {
+    return `<div style="background:rgba(0,255,71,0.06);border:1px solid rgba(0,255,71,0.2);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;font-family:var(--font-mono);color:var(--green);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+      <span>✓ ALL PRODUCTS IN STOCK FOR THIS ROUND</span>
+      ${toggleHTML}
+    </div>`;
+  }
+
+  const rows = outList.map(name =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #ff3b3015">
+      <span style="font-size:13px;color:var(--text)">${name}</span>
+      <span style="font-size:11px;font-family:var(--font-mono);color:#ff3b30;font-weight:700;white-space:nowrap;margin-left:8px">🚨 OUT</span>
+    </div>`).join('') +
+    lowList.map(({name, qty, unit}) =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #ff3b3015">
+      <span style="font-size:13px;color:var(--text)">${name}</span>
+      <span style="font-size:11px;font-family:var(--font-mono);color:#ff8c00;font-weight:700;white-space:nowrap;margin-left:8px">⚠️ ${qty} ${unit}</span>
+    </div>`).join('');
+
+  return `
+    <div style="background:rgba(255,59,48,0.07);border:1px solid rgba(255,59,48,0.25);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <div style="font-size:10px;font-family:var(--font-mono);color:#ff3b30;letter-spacing:1px;font-weight:700">${label}</div>
+        ${toggleHTML}
+      </div>
+      ${rows}
+    </div>`;
 }
 
 function renderResults() {
@@ -2454,89 +2443,43 @@ function renderResults() {
   let invBanner = '';
   if (_invReady) {
     const currentRound = detectRound();
-    // Feed toggle lives here (next to the inventory badge that tells you you're
-    // out) rather than scrolled down in the round section header — that's the
-    // exact moment/place a tech decides to switch to the liquid override.
-    const currentRoundHasLiquidAlt = currentRound && !!(ROUNDS[state.routeType]?.[currentRound]?.liquidAlt);
-    const currentRoundToggleHTML = currentRoundHasLiquidAlt
-      ? renderFeedToggle(state.routeType, currentRound, state.feedMode[`${state.routeType}_${currentRound}`] || 'granular')
-      : '';
+    const currentLabel = currentRound ? `R${currentRound} — CURRENT ROUND` : 'CURRENT ROUND';
+    invBanner = renderRoundInventoryBanner(state.routeType, currentRound, currentLabel);
+
     const nextRound = currentRound ? getNextRoundNum(currentRound) : null;
     const daysToNext = currentRound ? daysUntilNextRound(currentRound) : null;
     const showNextRound = daysToNext !== null && daysToNext <= 15;
-
-    // Get products relevant to current round (both route types if mixed, else just state.routeType)
-    const currentProducts = currentRound
-      ? getProductsForRound(state.routeType, currentRound)
-      : new Set();
     const nextProducts = (showNextRound && nextRound)
       ? getProductsForRound(state.routeType, nextRound)
       : new Set();
 
-    const currentOut = [], currentLow = [];
     const nextOut = [], nextLow = [];
-
     for (const [name, item] of Object.entries(_invData)) {
       const cleanName = name.replace(/\s*⚠️.*$/, '').trim();
+      if (!showNextRound || !nextProducts.has(cleanName)) continue;
       const qty = Number(item.quantity);
       const t = REORDER_THRESHOLDS[cleanName];
-
-      if (currentProducts.has(cleanName)) {
-        if (qty === 0) currentOut.push(cleanName);
-        else if (t !== undefined && qty <= t) currentLow.push({name: cleanName, qty, unit: item.unit});
-      } else if (showNextRound && nextProducts.has(cleanName)) {
-        if (qty === 0) nextOut.push(cleanName);
-        else if (t !== undefined && qty <= t) nextLow.push({name: cleanName, qty, unit: item.unit});
-      }
+      if (qty === 0) nextOut.push(cleanName);
+      else if (t !== undefined && qty <= t) nextLow.push({name: cleanName, qty, unit: item.unit});
     }
 
-    const hasCurrentIssues = currentOut.length || currentLow.length;
-    const hasNextIssues = nextOut.length || nextLow.length;
-
-    if (!hasCurrentIssues && !hasNextIssues) {
-      invBanner = `<div style="background:rgba(0,255,71,0.06);border:1px solid rgba(0,255,71,0.2);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;font-family:var(--font-mono);color:var(--green);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-        <span>✓ ALL PRODUCTS IN STOCK FOR THIS ROUND</span>
-        ${currentRoundToggleHTML}
-      </div>`;
-    } else {
-      const makeRows = (outList, lowList, borderColor) => {
-        const outRows = outList.map(name =>
-          `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid ${borderColor}15">
-            <span style="font-size:13px;color:var(--text)">${name}</span>
-            <span style="font-size:11px;font-family:var(--font-mono);color:#ff3b30;font-weight:700;white-space:nowrap;margin-left:8px">🚨 OUT</span>
-          </div>`).join('');
-        const lowRows = lowList.map(({name, qty, unit}) =>
-          `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid ${borderColor}15">
-            <span style="font-size:13px;color:var(--text)">${name}</span>
-            <span style="font-size:11px;font-family:var(--font-mono);color:#ff8c00;font-weight:700;white-space:nowrap;margin-left:8px">⚠️ ${qty} ${unit}</span>
-          </div>`).join('');
-        return outRows + lowRows;
-      };
-
-      let bannerHTML = '';
-
-      if (hasCurrentIssues) {
-        const label = currentRound ? `R${currentRound} — CURRENT ROUND` : 'CURRENT ROUND';
-        bannerHTML += `
-          <div style="background:rgba(255,59,48,0.07);border:1px solid rgba(255,59,48,0.25);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-              <div style="font-size:10px;font-family:var(--font-mono);color:#ff3b30;letter-spacing:1px;font-weight:700">${label}</div>
-              ${currentRoundToggleHTML}
-            </div>
-            ${makeRows(currentOut, currentLow, '#ff3b30')}
-          </div>`;
-      }
-
-      if (hasNextIssues) {
-        const label = `R${nextRound} STARTS IN ${daysToNext} DAYS — ORDER NOW`;
-        bannerHTML += `
-          <div style="background:rgba(255,140,0,0.07);border:1px solid rgba(255,140,0,0.25);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px">
-            <div style="font-size:10px;font-family:var(--font-mono);color:#ff8c00;letter-spacing:1px;font-weight:700;margin-bottom:8px">${label}</div>
-            ${makeRows(nextOut, nextLow, '#ff8c00')}
-          </div>`;
-      }
-
-      invBanner = bannerHTML;
+    if (nextOut.length || nextLow.length) {
+      const outRows = nextOut.map(name =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #ff8c0015">
+          <span style="font-size:13px;color:var(--text)">${name}</span>
+          <span style="font-size:11px;font-family:var(--font-mono);color:#ff3b30;font-weight:700;white-space:nowrap;margin-left:8px">🚨 OUT</span>
+        </div>`).join('');
+      const lowRows = nextLow.map(({name, qty, unit}) =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #ff8c0015">
+          <span style="font-size:13px;color:var(--text)">${name}</span>
+          <span style="font-size:11px;font-family:var(--font-mono);color:#ff8c00;font-weight:700;white-space:nowrap;margin-left:8px">⚠️ ${qty} ${unit}</span>
+        </div>`).join('');
+      const label = `R${nextRound} STARTS IN ${daysToNext} DAYS — ORDER NOW`;
+      invBanner += `
+        <div style="background:rgba(255,140,0,0.07);border:1px solid rgba(255,140,0,0.25);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px">
+          <div style="font-size:10px;font-family:var(--font-mono);color:#ff8c00;letter-spacing:1px;font-weight:700;margin-bottom:8px">${label}</div>
+          ${outRows}${lowRows}
+        </div>`;
     }
   } else {
     invBanner = `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;font-family:var(--font-mono);color:var(--text3)">⏳ Loading inventory...</div>`;
@@ -2761,17 +2704,6 @@ function attachEvents() {
   });
 }
 
-// Cycles a property's grass-type tag: unset → Bermuda → Zoysia → unset.
-// Used by R5 warm's liquid-alt override to split a Toro/PS section into the
-// correct per-grass tank recipe — never defaults, so a property with no tag
-// stays excluded from liquid mixes until someone sets it.
-function cycleGrassType(idx) {
-  const p = state.properties[idx];
-  if (!p) return;
-  p.grassType = p.grassType === 'bermuda' ? 'zoysia' : p.grassType === 'zoysia' ? null : 'bermuda';
-  render();
-}
-
 // Per-round granular↔liquid override (R5 warm, R6/R7 cool — wherever
 // rd.liquidAlt exists). Daily manual toggle, whole-route scope, not persisted.
 function toggleFeedMode(routeType, roundNum) {
@@ -2788,7 +2720,7 @@ function addProp() {
   const sqft  = parseInt(sqftEl?.value) || 0;
   const round = roundEl?.value || null;
   if (name) {
-    state.properties.push({name, sqft, round, isRockYard:false, hasRockBeds:false, isHoseDrag:false, liquidEquipOverride:null, grassType:null});
+    state.properties.push({name, sqft, round, isRockYard:false, hasRockBeds:false, isHoseDrag:false, liquidEquipOverride:null});
     state.newPropName=''; state.newPropSqft='';
     if (nameEl) nameEl.value='';
     if (sqftEl) sqftEl.value='';
