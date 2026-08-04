@@ -2460,6 +2460,13 @@ function renderResults() {
   let invBanner = '';
   if (_invReady) {
     const currentRound = detectRound();
+    // Feed toggle lives here (next to the inventory badge that tells you you're
+    // out) rather than scrolled down in the round section header — that's the
+    // exact moment/place a tech decides to switch to the liquid override.
+    const currentRoundHasLiquidAlt = currentRound && !!(ROUNDS[state.routeType]?.[currentRound]?.liquidAlt);
+    const currentRoundToggleHTML = currentRoundHasLiquidAlt
+      ? renderFeedToggle(state.routeType, currentRound, state.feedMode[`${state.routeType}_${currentRound}`] || 'granular')
+      : '';
     const nextRound = currentRound ? getNextRoundNum(currentRound) : null;
     const daysToNext = currentRound ? daysUntilNextRound(currentRound) : null;
     const showNextRound = daysToNext !== null && daysToNext <= 15;
@@ -2493,7 +2500,10 @@ function renderResults() {
     const hasNextIssues = nextOut.length || nextLow.length;
 
     if (!hasCurrentIssues && !hasNextIssues) {
-      invBanner = `<div style="background:rgba(0,255,71,0.06);border:1px solid rgba(0,255,71,0.2);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;font-family:var(--font-mono);color:var(--green)">✓ ALL PRODUCTS IN STOCK FOR THIS ROUND</div>`;
+      invBanner = `<div style="background:rgba(0,255,71,0.06);border:1px solid rgba(0,255,71,0.2);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;font-family:var(--font-mono);color:var(--green);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <span>✓ ALL PRODUCTS IN STOCK FOR THIS ROUND</span>
+        ${currentRoundToggleHTML}
+      </div>`;
     } else {
       const makeRows = (outList, lowList, borderColor) => {
         const outRows = outList.map(name =>
@@ -2515,7 +2525,10 @@ function renderResults() {
         const label = currentRound ? `R${currentRound} — CURRENT ROUND` : 'CURRENT ROUND';
         bannerHTML += `
           <div style="background:rgba(255,59,48,0.07);border:1px solid rgba(255,59,48,0.25);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px">
-            <div style="font-size:10px;font-family:var(--font-mono);color:#ff3b30;letter-spacing:1px;font-weight:700;margin-bottom:8px">${label}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+              <div style="font-size:10px;font-family:var(--font-mono);color:#ff3b30;letter-spacing:1px;font-weight:700">${label}</div>
+              ${currentRoundToggleHTML}
+            </div>
             ${makeRows(currentOut, currentLow, '#ff3b30')}
           </div>`;
       }
