@@ -695,7 +695,7 @@ function invBadge(productName) {
   return `<span style="font-size:10px;font-family:var(--font-mono);color:${color};margin-left:8px;white-space:nowrap">${label}</span>`;
 }
 
-function getProductsForRound(routeType, roundNum) {
+function getProductsForRound(routeType, roundNum, mode) {
   const rd = ROUNDS[routeType] && ROUNDS[routeType][roundNum];
   if (!rd) return new Set();
   const names = new Set();
@@ -719,8 +719,13 @@ function getProductsForRound(routeType, roundNum) {
   if (rd.bg2) {
     rd.bg2.forEach(p => { if (p.name) names.add(p.name.replace(/\s*⚠️.*$/, '').trim()); });
   }
-  // Granular
-  if (rd.granular && rd.granular.product) names.add(rd.granular.product);
+  // Granular — swapped for the liquid-alt N source when liquid mode is active
+  // for this round, since the two are mutually exclusive overrides.
+  if (mode === 'liquid' && rd.liquidAlt) {
+    names.add(rd.liquidAlt.products.toro[0].name.replace(/\s*⚠️.*$/, '').trim());
+  } else if (rd.granular && rd.granular.product) {
+    names.add(rd.granular.product);
+  }
   return names;
 }
 
@@ -2286,11 +2291,10 @@ function renderRoundInventoryBanner(routeType, roundNum, label) {
   const rd = (routeType && roundNum) ? ROUNDS[routeType]?.[roundNum] : null;
   if (!rd) return '';
 
-  const toggleHTML = rd.liquidAlt
-    ? renderFeedToggle(routeType, roundNum, state.feedMode[`${routeType}_${roundNum}`] || 'granular')
-    : '';
+  const mode = state.feedMode[`${routeType}_${roundNum}`] || 'granular';
+  const toggleHTML = rd.liquidAlt ? renderFeedToggle(routeType, roundNum, mode) : '';
 
-  const products = getProductsForRound(routeType, roundNum);
+  const products = getProductsForRound(routeType, roundNum, mode);
   const outList = [], lowList = [];
   for (const [name, item] of Object.entries(_invData)) {
     const cleanName = name.replace(/\s*⚠️.*$/, '').trim();
