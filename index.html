@@ -500,17 +500,22 @@ header h1 {
   opacity: 1; background: rgba(100,180,255,0.15);
   border-color: #64b4ff; box-shadow: 0 0 6px rgba(100,180,255,0.3);
 }
-/* Per-round granular↔liquid override — resets to granular on every new route load. */
+/* Per-round granular↔liquid override — resets to granular on every new route load.
+   Solid fill, not an outline — this needs to read as "tap this" next to a red
+   OUT badge, not blend in as a passive label. Granular = brand green (same as
+   the in-stock ✓ color); liquid = blue, so the active mode is obvious at a
+   glance from color alone, not just the text. */
 .feed-toggle-btn {
-  background: none; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px;
-  font-family: var(--font-mono); font-weight: 700; font-size: 12px; letter-spacing: 0.3px;
-  cursor: pointer; padding: 5px 10px; opacity: 0.65; color: var(--text2);
+  background: var(--green); border: 1px solid var(--green); border-radius: 8px;
+  font-family: var(--font-mono); font-weight: 900; font-size: 14px; letter-spacing: 0.3px;
+  cursor: pointer; padding: 9px 16px; color: #06210f;
   transition: all 0.15s ease; flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(0,255,71,0.4);
 }
-.feed-toggle-btn:hover { opacity: 0.9; border-color: #64b4ff; }
+.feed-toggle-btn:hover { filter: brightness(1.12); }
 .feed-toggle-btn.feed-liquid {
-  opacity: 1; background: rgba(100,180,255,0.15);
-  border-color: #64b4ff; color: #64b4ff; box-shadow: 0 0 6px rgba(100,180,255,0.3);
+  background: #64b4ff; border-color: #64b4ff; color: #06182b;
+  box-shadow: 0 0 12px rgba(100,180,255,0.5);
 }
 .round-mini-select {
   background: var(--bg3); border: 1px solid rgba(0,255,71,0.25);
@@ -842,6 +847,10 @@ const ROUNDS = {
       },
       liquidAlt: {
         label: 'Liquid Alt — Terra Ally TA 22-0-0 (override granular)',
+        // Same authoritative Terra Ally heat rule as R4 — do not reword. R5 is
+        // peak heat (Jul 12–Aug 22), so this is more load-bearing here than
+        // anywhere else Terra Ally gets used.
+        hazard: 'HEAT RULE: 90°F+ → complete ALL blanket spray before 9:30 AM. Terra Ally foliar — water lawn 24 hrs after.',
         note: 'Heat-safe reduced rate — do NOT scale up to full granular N target in this round.',
         products: {
           toro: [
@@ -1263,7 +1272,7 @@ function calcLiquidAltStandard(rd, props) {
   const toroSqft  = toroProps.reduce((s,p) => s+p.sqft, 0);
   const psSqft    = psProps.reduce((s,p) => s+p.sqft, 0);
   return {
-    label:la.label, note:la.note,
+    label:la.label, note:la.note, hazard:la.hazard,
     toroMix: toroSqft > 0 ? calcLiqMix(toroSqft, 'toro', la.products.toro, true) : null,
     psMix:   psSqft > 0   ? calcLiqMix(psSqft,   'ps',   la.products.ps,   false) : null,
   };
@@ -1698,7 +1707,11 @@ function renderGranCard(granData) {
 // Renders the mix card(s) for a round's liquid-alt override (R5 warm, R6/R7 cool).
 function renderLiquidAltCard(data) {
   if (!data) return '';
-  let html = `<div class="alert-box alert-info">🧪 ${data.label}</div>`;
+  // Hazard (e.g. R5's Terra Ally heat rule) is top priority — render before
+  // the identifying label, same danger tier as the app's other hard-stop
+  // alerts, only ever present when this round's liquidAlt actually carries one.
+  let html = data.hazard ? `<div class="alert-box alert-danger">🚨 ${data.hazard}</div>` : '';
+  html += `<div class="alert-box alert-info">🧪 ${data.label}</div>`;
   if (data.note) html += `<div class="alert-box alert-warn">${data.note}</div>`;
   html += renderMixCard(data.toroMix, 'Toro SprayMaster Mix', '🚜', null);
   html += renderMixCard(data.psMix,   'Power Spray Rig Mix',  '💧', null);
