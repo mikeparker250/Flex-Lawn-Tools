@@ -679,7 +679,7 @@ async function loadInventory() {
     _invReady = true;
     console.log('Inventory loaded:', Object.keys(map).length, 'products');
     // Re-render results screen to show badges
-    if (typeof state !== 'undefined' && state.screen === 'results') render();
+    if (typeof state !== 'undefined' && (state.screen === 'results' || state.screen === 'orderplanner')) render();
   } catch(e) {
     console.warn('Inventory load failed:', e);
     _invReady = true; // mark ready even on error so we don't show spinner forever
