@@ -3146,8 +3146,8 @@ async function opSaveSqft() {
   if (!sqft || sqft <= 0) return;
   const key = `${rt}_${rn}`;
   state.opSavedSqft[key] = sqft;
-  await saveSqftToFirestore(key, sqft);
   render();
+  saveSqftToFirestore(key, sqft);
 }
 
 function renderOrderPlanner() {

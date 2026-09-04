@@ -1,4 +1,4 @@
-const CACHE = 'flex-mix-v65';
+const CACHE = 'flex-mix-v66';
 const STATIC = [
   '/icon-512.png',
   '/manifest.json',
