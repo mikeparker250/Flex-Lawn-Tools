@@ -521,6 +521,34 @@ header h1 {
   background: #64b4ff; border-color: #64b4ff; color: #06182b;
   box-shadow: 0 0 12px rgba(100,180,255,0.5);
 }
+
+/* Leftover tank credit (preview) */
+.leftover-panel {
+  background: var(--bg2); border: 1px solid rgba(255,200,0,0.22);
+  border-radius: var(--radius); padding: 14px; margin: 16px 0 4px;
+}
+.leftover-toggle-row {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  font-family: var(--font-display); font-weight: 700; font-size: 14px;
+  letter-spacing: 0.4px; user-select: none;
+}
+.leftover-toggle-row input { width: 18px; height: 18px; accent-color: var(--green); cursor: pointer; }
+.leftover-body { margin-top: 12px; }
+.leftover-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;
+}
+@media (max-width: 520px) { .leftover-grid { grid-template-columns: 1fr; } }
+.leftover-field label {
+  display: block; font-size: 10px; font-family: var(--font-mono);
+  color: var(--text3); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;
+}
+.leftover-meta {
+  display: flex; gap: 14px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.mix-meta-value.credit { color: #ffc800; }
+.mix-meta-value.mixnew { color: var(--green); }
+.mix-meta-value.need { color: var(--text); }
+
 .round-mini-select {
   background: var(--bg3); border: 1px solid rgba(0,255,71,0.25);
   border-radius: 5px; color: var(--green); padding: 3px 6px;
@@ -1108,6 +1136,13 @@ const state = {
   // Per-round granular↔liquid override, keyed '${routeType}_${roundNum}' (e.g. 'warm_5').
   // Daily manual choice, NOT persisted — reset to granular default on every new route load.
   feedMode: {},
+  // Leftover tank credit (preview) — additive only; blank/off = identical calc.
+  leftoverEnabled: false,
+  leftoverToroGal: '',
+  leftoverPsGal: '',
+  leftoverFromRouteType: null, // warm|cool — what the leftover was mixed for
+  leftoverFromRound: null,     // 1-7
+  leftoverFromPass: 'liquid',  // liquid | liquidAlt | fungSep
 };
 
 function detectRound() {
@@ -1283,6 +1318,240 @@ function calcLiqMix(sqft, equipment, products, applyBuffer) {
     products: products.map(p => ({...p, amt: gal * p.rate})),
   };
 }
+
+// ── Leftover tank credit (preview) ─────────────────────────
+// Additive layer on top of calcLiqMix results. Blank/off leftovers
+// return the original mix unchanged (regression-safe). Never mutates
+// ROUNDS rate tables. Does not touch B&G / Special Sauce / rock mixes.
+function parseLeftoverGal(raw) {
+  if (raw === '' || raw === null || raw === undefined) return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return n;
+}
+
+function describeLeftoverPass(pass) {
+  if (pass === 'liquidAlt') return 'liquid Terra Ally (override)';
+  if (pass === 'fungSep') return 'fungicide separate pass';
+  return 'herbicide/broadcast liquid';
+}
+
+function leftoverSourceFingerprint() {
+  return {
+    routeType: state.leftoverFromRouteType,
+    round: state.leftoverFromRound != null ? Number(state.leftoverFromRound) : null,
+    pass: state.leftoverFromPass || 'liquid',
+  };
+}
+
+function leftoverMismatchReasons(target) {
+  const src = leftoverSourceFingerprint();
+  const reasons = [];
+  if (!src.routeType || !src.round) {
+    reasons.push('Set leftover season + round so recipe match can be verified.');
+    return reasons;
+  }
+  if (src.routeType !== target.routeType) {
+    const srcLabel = src.routeType === 'warm' ? 'warm' : 'cool';
+    const tgtLabel = target.routeType === 'warm' ? 'warm' : 'cool';
+    reasons.push(`Season mismatch: leftover is ${srcLabel}-season; this mix is ${tgtLabel}-season.`);
+  }
+  if (Number(src.round) !== Number(target.round)) {
+    reasons.push(`Round mismatch: leftover is R${src.round}; this mix is R${target.round}.`);
+  }
+  const srcPass = src.pass || 'liquid';
+  const tgtPass = target.pass || 'liquid';
+  if (srcPass !== tgtPass) {
+    // Explicit R7 herbicide ≠ fungicide callout when that's the case
+    if ((srcPass === 'liquid' || srcPass === 'fungSep') && (tgtPass === 'liquid' || tgtPass === 'fungSep')
+        && srcPass !== tgtPass && Number(target.round) === 7) {
+      reasons.push(`R7 pass mismatch: leftover is ${describeLeftoverPass(srcPass)}; this mix is ${describeLeftoverPass(tgtPass)}.`);
+    } else {
+      reasons.push(`Recipe mismatch: leftover is ${describeLeftoverPass(srcPass)}; this mix is ${describeLeftoverPass(tgtPass)}.`);
+    }
+  }
+  return reasons;
+}
+
+// Apply leftover credit to one equipment bucket's liquid mix.
+// equipment: 'toro' | 'ps'. target: {routeType, round, pass}.
+// When leftover toggle is off OR that equipment's gal field is blank →
+// returns the same mix object unchanged (identical to pre-feature calc).
+function applyLeftoverCredit(mix, equipment, target) {
+  if (!mix) return null;
+  if (!state.leftoverEnabled) return mix;
+
+  const raw = equipment === 'toro' ? state.leftoverToroGal : state.leftoverPsGal;
+  const leftoverGal = parseLeftoverGal(raw);
+  if (leftoverGal === null) return mix; // blank = no credit, identical
+
+  const need = mix.gal;
+  const reasons = leftoverMismatchReasons(target);
+  if (reasons.length) {
+    return {
+      ...mix,
+      leftover: {
+        refused: true,
+        reasons,
+        need,
+        credit: 0,
+        mixNew: need,
+        leftoverEntered: leftoverGal,
+        equipment,
+      },
+    };
+  }
+
+  const mixNew = Math.max(0, need - leftoverGal);
+  const scale = need > 0 ? mixNew / need : 0;
+  return {
+    ...mix,
+    gal: mixNew,
+    products: mix.products.map(p => ({...p, amt: p.amt * scale})),
+    leftover: {
+      refused: false,
+      need,
+      credit: leftoverGal,
+      mixNew,
+      softWarn: leftoverGal >= need && need > 0,
+      equipment,
+    },
+  };
+}
+
+function withLeftover(mix, equipment, routeType, roundNum, pass) {
+  return applyLeftoverCredit(mix, equipment, {
+    routeType,
+    round: roundNum,
+    pass: pass || 'liquid',
+  });
+}
+
+function leftoverPassOptions(routeType, roundNum) {
+  const rd = (routeType && roundNum) ? ROUNDS[routeType]?.[roundNum] : null;
+  const opts = [{value:'liquid', label:'Herbicide / broadcast liquid'}];
+  if (rd?.liquidAlt) opts.push({value:'liquidAlt', label:'Liquid Terra Ally (override)'});
+  if (rd?.liquid?.fungSep) opts.push({value:'fungSep', label:'Fungicide separate pass'});
+  return opts;
+}
+
+function resetLeftoverState() {
+  state.leftoverEnabled = false;
+  state.leftoverToroGal = '';
+  state.leftoverPsGal = '';
+  state.leftoverFromRouteType = null;
+  state.leftoverFromRound = null;
+  state.leftoverFromPass = 'liquid';
+}
+
+function ensureLeftoverDefaults(routeType, roundNum) {
+  if (!state.leftoverFromRouteType) state.leftoverFromRouteType = routeType || state.routeType || 'warm';
+  if (!state.leftoverFromRound) state.leftoverFromRound = roundNum || state.round || detectRound() || 1;
+  const opts = leftoverPassOptions(state.leftoverFromRouteType, state.leftoverFromRound);
+  if (!opts.some(o => o.value === state.leftoverFromPass)) state.leftoverFromPass = 'liquid';
+}
+
+function renderLeftoverPanel(ctxRouteType, ctxRound) {
+  ensureLeftoverDefaults(ctxRouteType, ctxRound);
+  const fromType = state.leftoverFromRouteType || ctxRouteType || 'warm';
+  const fromRound = state.leftoverFromRound || ctxRound || 1;
+  const passOpts = leftoverPassOptions(fromType, fromRound);
+  const typeOpts = [
+    {value:'warm', label:'🔥 Warm'},
+    {value:'cool', label:'❄️ Cool'},
+  ].map(o => `<option value="${o.value}" ${fromType===o.value?'selected':''}>${o.label}</option>`).join('');
+  const roundOpts = [1,2,3,4,5,6,7].map(n =>
+    `<option value="${n}" ${Number(fromRound)===n?'selected':''}>R${n}</option>`
+  ).join('');
+  const passSelect = passOpts.map(o =>
+    `<option value="${o.value}" ${state.leftoverFromPass===o.value?'selected':''}>${o.label}</option>`
+  ).join('');
+
+  return `
+  <div class="leftover-panel">
+    <label class="leftover-toggle-row">
+      <input type="checkbox" id="leftover-toggle" ${state.leftoverEnabled?'checked':''} />
+      I have leftover
+    </label>
+    ${state.leftoverEnabled ? `
+    <div class="leftover-body">
+      <div class="info-row" style="margin-bottom:10px;font-size:12px;color:var(--text2)">
+        Credits apply per equipment bucket only when leftover season, round, and recipe match that mix card. Blank gal = no credit (same as today). Hard-refuses warm≠cool, different round, liquidAlt mismatch, and R7 herbicide≠fungicide.
+      </div>
+      <div class="leftover-grid">
+        <div class="leftover-field">
+          <label>Leftover from season</label>
+          <select class="prop-input" id="leftover-from-type">${typeOpts}</select>
+        </div>
+        <div class="leftover-field">
+          <label>Leftover from round</label>
+          <select class="prop-input" id="leftover-from-round">${roundOpts}</select>
+        </div>
+        <div class="leftover-field" style="grid-column:1 / -1">
+          <label>Leftover recipe / pass</label>
+          <select class="prop-input" id="leftover-from-pass">${passSelect}</select>
+        </div>
+        <div class="leftover-field">
+          <label>Leftover Toro (gal)</label>
+          <input type="number" class="prop-input" id="leftover-toro-gal" min="0" step="0.01" placeholder="optional" value="${state.leftoverToroGal}" />
+        </div>
+        <div class="leftover-field">
+          <label>Leftover Power Spray (gal)</label>
+          <input type="number" class="prop-input" id="leftover-ps-gal" min="0" step="0.01" placeholder="optional" value="${state.leftoverPsGal}" />
+        </div>
+      </div>
+    </div>` : ''}
+  </div>`;
+}
+
+function bindLeftoverPanelListeners() {
+  const toggle = document.getElementById('leftover-toggle');
+  if (toggle) {
+    toggle.addEventListener('change', () => {
+      state.leftoverEnabled = toggle.checked;
+      if (state.leftoverEnabled) {
+        ensureLeftoverDefaults(
+          state.screen === 'fly' ? state.flyType : state.routeType,
+          state.screen === 'fly' ? state.flyRound : (state.round || detectRound())
+        );
+      }
+      render();
+    });
+  }
+  const fromType = document.getElementById('leftover-from-type');
+  if (fromType) fromType.addEventListener('change', (e) => {
+    state.leftoverFromRouteType = e.target.value;
+    const opts = leftoverPassOptions(state.leftoverFromRouteType, state.leftoverFromRound);
+    if (!opts.some(o => o.value === state.leftoverFromPass)) state.leftoverFromPass = 'liquid';
+    render();
+  });
+  const fromRound = document.getElementById('leftover-from-round');
+  if (fromRound) fromRound.addEventListener('change', (e) => {
+    state.leftoverFromRound = parseInt(e.target.value, 10);
+    const opts = leftoverPassOptions(state.leftoverFromRouteType, state.leftoverFromRound);
+    if (!opts.some(o => o.value === state.leftoverFromPass)) state.leftoverFromPass = 'liquid';
+    render();
+  });
+  const fromPass = document.getElementById('leftover-from-pass');
+  if (fromPass) fromPass.addEventListener('change', (e) => {
+    state.leftoverFromPass = e.target.value;
+    render();
+  });
+  const toroGal = document.getElementById('leftover-toro-gal');
+  if (toroGal) toroGal.addEventListener('input', (e) => {
+    state.leftoverToroGal = e.target.value;
+  });
+  const psGal = document.getElementById('leftover-ps-gal');
+  if (psGal) psGal.addEventListener('input', (e) => {
+    state.leftoverPsGal = e.target.value;
+  });
+  // Re-render results/fly when leaving gal fields so credit updates
+  [toroGal, psGal].forEach(el => {
+    if (!el) return;
+    el.addEventListener('change', () => render());
+  });
+}
+
 
 function psRates(products) {
   // PS rates derived from Toro rates by output ratio
@@ -1572,14 +1841,50 @@ function renderMixCard(mix, title, icon, extraNote) {
           <div class="mix-meta-label">Effective sqft</div>
           <div class="mix-meta-value">${mix.eff.toLocaleString()}${bufNote}</div>
         </div>
+        ${mix.leftover ? `
+        <div class="mix-meta-item">
+          <div class="mix-meta-label">Need</div>
+          <div class="mix-meta-value need">${fmtGal(mix.leftover.need)} <span class="mix-meta-unit">water</span></div>
+        </div>
+        <div class="mix-meta-item">
+          <div class="mix-meta-label">Leftover credit</div>
+          <div class="mix-meta-value credit">${mix.leftover.refused ? '—' : fmtGal(mix.leftover.credit)} <span class="mix-meta-unit">${mix.leftover.refused ? 'refused' : 'gal'}</span></div>
+        </div>
+        <div class="mix-meta-item">
+          <div class="mix-meta-label">Mix new</div>
+          <div class="mix-meta-value mixnew">${fmtGal(mix.leftover.mixNew)} <span class="mix-meta-unit">water</span></div>
+        </div>
+        ` : `
         <div class="mix-meta-item">
           <div class="mix-meta-label">Water needed</div>
           <div class="mix-meta-value">${fmtGal(mix.gal)} <span class="mix-meta-unit">water</span></div>
         </div>
+        `}
       </div>
-      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">ADD PER BATCH →</div>
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">${mix.leftover && !mix.leftover.refused ? 'ADD PER BATCH (MIX NEW) →' : 'ADD PER BATCH →'}</div>
       ${renderProductRows(mix.products)}
     `;
+
+  const leftoverBanner = mix.leftover?.refused
+    ? `<div class="alert-box alert-danger">🚫 Leftover credit refused — ${mix.leftover.reasons.join(' ')}</div>`
+    : (mix.leftover && !mix.leftover.refused && mix.leftover.softWarn
+      ? `<div class="alert-box alert-warn">⚠️ Leftover (${fmtGal(mix.leftover.credit)}) ≥ need (${fmtGal(mix.leftover.need)}) — mix new is 0; no fresh product needed for this bucket.</div>`
+      : '');
+  const leftoverMeta = mix.leftover ? `
+      <div class="mix-meta leftover-meta">
+        <div class="mix-meta-item">
+          <div class="mix-meta-label">Need</div>
+          <div class="mix-meta-value need">${fmtGal(mix.leftover.need)}</div>
+        </div>
+        <div class="mix-meta-item">
+          <div class="mix-meta-label">Leftover credit</div>
+          <div class="mix-meta-value credit">${mix.leftover.refused ? '—' : fmtGal(mix.leftover.credit)}</div>
+        </div>
+        <div class="mix-meta-item">
+          <div class="mix-meta-label">Mix new</div>
+          <div class="mix-meta-value mixnew">${fmtGal(mix.leftover.mixNew)}</div>
+        </div>
+      </div>` : '';
 
   return `
   <div class="mix-card">
@@ -1589,6 +1894,8 @@ function renderMixCard(mix, title, icon, extraNote) {
       <span style="font-size:10px;font-family:var(--font-mono);color:${equipColor};letter-spacing:1px">${equipLabel}</span>
     </div>
     <div class="mix-card-body">
+      ${leftoverBanner}
+      ${tankBatches ? leftoverMeta : ''}
       ${bodyHTML}
       ${extraNote ? `<div class="mix-order">${extraNote}</div>` : ''}
     </div>
@@ -1731,7 +2038,7 @@ function renderGranCard(granData) {
 }
 
 // Renders the mix card(s) for a round's liquid-alt override (R5 warm, R6/R7 cool).
-function renderLiquidAltCard(data) {
+function renderLiquidAltCard(data, routeType, roundNum) {
   if (!data) return '';
   // Hazard (e.g. R5's Terra Ally heat rule) is top priority — render before
   // the identifying label, same danger tier as the app's other hard-stop
@@ -1739,8 +2046,8 @@ function renderLiquidAltCard(data) {
   let html = data.hazard ? `<div class="alert-box alert-danger">🚨 ${data.hazard}</div>` : '';
   html += `<div class="alert-box alert-info">🧪 ${data.label}</div>`;
   if (data.note) html += `<div class="alert-box alert-warn">${data.note}</div>`;
-  html += renderMixCard(data.toroMix, 'Toro SprayMaster Mix', '🚜', null);
-  html += renderMixCard(data.psMix,   'Power Spray Rig Mix',  '💧', null);
+  html += renderMixCard(withLeftover(data.toroMix, 'toro', routeType, roundNum, 'liquidAlt'), 'Toro SprayMaster Mix', '🚜', null);
+  html += renderMixCard(withLeftover(data.psMix,   'ps',   routeType, roundNum, 'liquidAlt'), 'Power Spray Rig Mix',  '💧', null);
   return html;
 }
 
@@ -2032,7 +2339,7 @@ function renderStep1() {
   </div>`;
 }
 
-function selectRoute(type) { state.routeType=type; state.feedMode={}; navigateTo('step2'); }
+function selectRoute(type) { state.routeType=type; state.feedMode={}; resetLeftoverState(); navigateTo('step2'); }
 function selectFly() { state.flyMode='round'; navigateTo('fly'); }
 function selectReservice() { state.rsTurfType=null; state.rsSelectedWeeds=[]; state.rsWeedSearch=''; navigateTo('reservice'); }
 function selectOrderPlanner() { state.opRound=null; state.opRouteType=null; state.opSqftWarm=0; state.opSqftCool=0; state.opLoading=false; state.opError=null; state.opFRData=null; navigateTo('orderplanner'); }
@@ -2068,15 +2375,25 @@ function renderFly() {
 
       // Mix on the Fly: never use PS rig (can't mix on-site).
       // Use Toro rates throughout; if total liquid ≤ 4 gal → FlowZone backpack, else Toro.
-      const flyMix = isLiquidAltMode
+      const flyBaseMix = isLiquidAltMode
         ? (liquidAltData.toroMix || liquidAltData.psMix)
         : (toroMix || psMix); // prefer toro calc; fall back to ps if toro absent
-      const flyGal = flyMix ? flyMix.gal : 0;
-      const useFlowZone = flyMix && flyGal <= 4;
+      const flyEquipKey = flyBaseMix
+        ? (flyBaseMix.equipment === 'ps' ? 'ps' : 'toro')
+        : 'toro';
+      const flyPass = isLiquidAltMode ? 'liquidAlt' : 'liquid';
+      const flyMix = withLeftover(flyBaseMix, flyEquipKey, state.flyType, state.flyRound, flyPass);
+      // FlowZone decision uses need (pre-credit) so leftover doesn't flip equipment mid-job
+      const flyNeedGal = flyMix?.leftover ? flyMix.leftover.need : (flyMix ? flyMix.gal : 0);
+      const useFlowZone = flyMix && flyNeedGal <= 4;
       const flyEquipLabel = useFlowZone ? '🎒 FlowZone Backpack' : '🚜 Toro SprayMaster';
       const flyEquipNote = useFlowZone
         ? `<div class="alert-box alert-info">≤ 4 gal needed — use FlowZone backpack. Max capacity 4 gal.</div>`
         : '';
+      const fungToroCredited = fungSepMix?.toro
+        ? withLeftover(fungSepMix.toro, 'toro', state.flyType, state.flyRound, 'fungSep')
+        : null;
+      const fungNeedGal = fungToroCredited?.leftover ? fungToroCredited.leftover.need : (fungToroCredited ? fungToroCredited.gal : 0);
 
       resultHTML = `
         <div style="margin-top:20px">
@@ -2102,7 +2419,7 @@ function renderFly() {
               </div>
               <div class="mix-card-body">
                 <div class="alert-box alert-info" style="margin-bottom:12px">${fungSepMix.config.note}</div>
-                ${fungSepMix.toro ? renderMixCard(fungSepMix.toro, fungSepMix.toro.gal <= 4 ? '🎒 FlowZone Backpack' : '🚜 Toro Fungicide Pass', fungSepMix.toro.gal <= 4 ? '🎒' : '🚜', null) : ''}
+                ${fungToroCredited ? renderMixCard(fungToroCredited, fungNeedGal <= 4 ? '🎒 FlowZone Backpack' : '🚜 Toro Fungicide Pass', fungNeedGal <= 4 ? '🎒' : '🚜', null) : ''}
               </div></div>` : ''}
             ${renderGranCard(granData)}
           `}
@@ -2133,6 +2450,8 @@ function renderFly() {
   </select>
 
   ${flyInventoryHTML}
+
+  ${renderLeftoverPanel(state.flyType, state.flyRound || detectRound())}
 
   <div class="section-header">Square Footage</div>
   <input type="number" class="prop-input" id="fly-sqft" placeholder="e.g. 8500"
@@ -2296,6 +2615,8 @@ function renderStep3() {
 
   ${state.properties.length > 0 ? totalsBar : ''}
 
+  ${hasProps ? renderLeftoverPanel(state.routeType, state.round || detectRound()) : ''}
+
   <div class="btn-row" style="margin-top:20px">
     <button class="btn btn-primary" id="calc-btn" ${!hasProps?'disabled':''}>
       Calculate Mix →
@@ -2387,11 +2708,11 @@ function renderResults() {
       if (sec.mode === 'liquid' && sec.liquidAltData) {
         // Liquid-alt override active — N delivery comes from Terra Ally, not
         // the granular product coded for this round.
-        content += renderLiquidAltCard(sec.liquidAltData);
+        content += renderLiquidAltCard(sec.liquidAltData, state.routeType, sec.roundNum);
       } else {
         if (rd.liquid?.tankNote) content += `<div class="alert-box alert-warn">${rd.liquid.tankNote}</div>`;
-        content += renderMixCard(sec.toroMix, 'Toro SprayMaster Mix', '🚜', rd.liquid?.mixOrder);
-        content += renderMixCard(sec.psMix,   'Power Spray Rig Mix',  '💧', rd.liquid?.mixOrder);
+        content += renderMixCard(withLeftover(sec.toroMix, 'toro', state.routeType, sec.roundNum, 'liquid'), 'Toro SprayMaster Mix', '🚜', rd.liquid?.mixOrder);
+        content += renderMixCard(withLeftover(sec.psMix,   'ps',   state.routeType, sec.roundNum, 'liquid'), 'Power Spray Rig Mix',  '💧', rd.liquid?.mixOrder);
         if (rd.liquid?.note) content += `<div class="alert-box alert-info">${rd.liquid.note}</div>`;
         if (sec.fungSepMix) {
           const fs = sec.fungSepMix.config;
@@ -2402,8 +2723,8 @@ function renderResults() {
             </div>
             <div class="mix-card-body">
               <div class="alert-box alert-info" style="margin-bottom:12px">${fs.note}</div>
-              ${sec.fungSepMix.toro ? renderMixCard(sec.fungSepMix.toro,'Toro Fungicide Pass','🚜',null) : ''}
-              ${sec.fungSepMix.ps   ? renderMixCard(sec.fungSepMix.ps,  'PS Fungicide Pass',  '💧',null) : ''}
+              ${sec.fungSepMix.toro ? renderMixCard(withLeftover(sec.fungSepMix.toro,'toro',state.routeType,sec.roundNum,'fungSep'),'Toro Fungicide Pass','🚜',null) : ''}
+              ${sec.fungSepMix.ps   ? renderMixCard(withLeftover(sec.fungSepMix.ps,  'ps',  state.routeType,sec.roundNum,'fungSep'),'PS Fungicide Pass',  '💧',null) : ''}
             </div></div>`;
         }
         content += renderGranCard(sec.granData);
@@ -2548,6 +2869,7 @@ function renderResults() {
       <div class="mix-meta-value">${sections.filter(s=>s.type==='round'||s.type==='reservice').length}</div>
     </div>
   </div>
+  ${renderLeftoverPanel(state.routeType, state.round || detectRound())}
   ${invBanner}
   ${content}
   <div class="btn-row" style="margin-top:16px">
@@ -2682,6 +3004,7 @@ function attachEvents() {
       state.properties = props;
       state.round = detectRound();
       state.feedMode = {};
+      resetLeftoverState();
       state.screen = 'step3';
     } catch(err) {
       state.parseError = err.message;
@@ -2739,8 +3062,11 @@ function attachEvents() {
   document.getElementById('restart-btn')?.addEventListener('click', () => {
     state.screen='step1'; state.routeType=null; state.properties=[];
     state.images=[]; state.round=null; state.parseError=null; state.feedMode={};
+    resetLeftoverState();
     render();
   });
+
+  bindLeftoverPanelListeners();
 }
 
 // Per-round granular↔liquid override (R5 warm, R6/R7 cool — wherever
@@ -2811,6 +3137,7 @@ document.getElementById('restart-header-btn')?.addEventListener('click', () => {
   state.flyType=null; state.flyRound=null; state.flySqft=0;
   state.flyMode='round'; state.rsTurfType=null; state.rsSelectedWeeds=[]; state.rsWeedSearch='';
   state.feedMode={};
+  resetLeftoverState();
   render();
 });
 
