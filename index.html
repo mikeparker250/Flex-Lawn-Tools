@@ -1142,7 +1142,7 @@ const state = {
   leftoverPsGal: '',
   leftoverFromRouteType: null, // warm|cool — what the leftover was mixed for
   leftoverFromRound: null,     // 1-7
-  leftoverFromPass: 'liquid',  // liquid | liquidAlt | fungSep
+  leftoverFromPass: null,  // liquid | liquidAlt | fungSep | null
 };
 
 function detectRound() {
@@ -1333,7 +1333,8 @@ function parseLeftoverGal(raw) {
 function describeLeftoverPass(pass) {
   if (pass === 'liquidAlt') return 'liquid Terra Ally (override)';
   if (pass === 'fungSep') return 'fungicide separate pass';
-  return 'herbicide/broadcast liquid';
+  // Primary liquid (incl. R4 Terra Ally broadcast) — keep short.
+  return 'broadcast liquid';
 }
 
 function leftoverSourceFingerprint() {
@@ -1429,10 +1430,30 @@ function withLeftover(mix, equipment, routeType, roundNum, pass) {
 
 function leftoverPassOptions(routeType, roundNum) {
   const rd = (routeType && roundNum) ? ROUNDS[routeType]?.[roundNum] : null;
-  const opts = [{value:'liquid', label:'Herbicide / broadcast liquid'}];
+  const opts = [];
+  // Only offer broadcast liquid when this round actually has a liquid.products tank.
+  // R5 warm (and cool liquidAlt-only rounds) have liquid:null — do not prepend a fake herbicide card.
+  if (rd?.liquid?.products) {
+    const hasTerraAlly = rd.liquid.products.some(p => (p.name || '').includes('Terra Ally'));
+    let label = 'Broadcast liquid';
+    if (hasTerraAlly) label = 'Terra Ally / broadcast liquid';
+    else if (Number(roundNum) === 7) label = 'Herbicide broadcast';
+    opts.push({value:'liquid', label});
+  }
   if (rd?.liquidAlt) opts.push({value:'liquidAlt', label:'Liquid Terra Ally (override)'});
   if (rd?.liquid?.fungSep) opts.push({value:'fungSep', label:'Fungicide separate pass'});
   return opts;
+}
+
+function leftoverSmartDefaultPass(routeType, roundNum) {
+  const rd = (routeType && roundNum) ? ROUNDS[routeType]?.[roundNum] : null;
+  if (!rd) return null;
+  const mode = state.feedMode[`${routeType}_${roundNum}`];
+  if (mode === 'liquid' && rd.liquidAlt) return 'liquidAlt';
+  if (rd.liquid?.products) return 'liquid';
+  if (rd.liquidAlt) return 'liquidAlt';
+  if (rd.liquid?.fungSep) return 'fungSep';
+  return null;
 }
 
 function resetLeftoverState() {
@@ -1441,14 +1462,18 @@ function resetLeftoverState() {
   state.leftoverPsGal = '';
   state.leftoverFromRouteType = null;
   state.leftoverFromRound = null;
-  state.leftoverFromPass = 'liquid';
+  state.leftoverFromPass = null;
 }
 
 function ensureLeftoverDefaults(routeType, roundNum) {
   if (!state.leftoverFromRouteType) state.leftoverFromRouteType = routeType || state.routeType || 'warm';
   if (!state.leftoverFromRound) state.leftoverFromRound = roundNum || state.round || detectRound() || 1;
   const opts = leftoverPassOptions(state.leftoverFromRouteType, state.leftoverFromRound);
-  if (!opts.some(o => o.value === state.leftoverFromPass)) state.leftoverFromPass = 'liquid';
+  const inOpts = opts.some(o => o.value === state.leftoverFromPass);
+  const liquidMissing = state.leftoverFromPass === 'liquid' && !opts.some(o => o.value === 'liquid');
+  if (!inOpts || liquidMissing) {
+    state.leftoverFromPass = leftoverSmartDefaultPass(state.leftoverFromRouteType, state.leftoverFromRound);
+  }
 }
 
 function renderLeftoverPanel(ctxRouteType, ctxRound) {
@@ -1466,6 +1491,14 @@ function renderLeftoverPanel(ctxRouteType, ctxRound) {
   const passSelect = passOpts.map(o =>
     `<option value="${o.value}" ${state.leftoverFromPass===o.value?'selected':''}>${o.label}</option>`
   ).join('');
+  const passField = passOpts.length === 0
+    ? `<div class="leftover-field" style="grid-column:1 / -1">
+          <div class="alert-box alert-info" style="margin:0">This round has no broadcast liquid tank leftover credit (granular/B&amp;G only — out of v1).</div>
+        </div>`
+    : `<div class="leftover-field" style="grid-column:1 / -1">
+          <label>Leftover recipe / pass</label>
+          <select class="prop-input" id="leftover-from-pass">${passSelect}</select>
+        </div>`;
 
   return `
   <div class="leftover-panel">
@@ -1487,10 +1520,7 @@ function renderLeftoverPanel(ctxRouteType, ctxRound) {
           <label>Leftover from round</label>
           <select class="prop-input" id="leftover-from-round">${roundOpts}</select>
         </div>
-        <div class="leftover-field" style="grid-column:1 / -1">
-          <label>Leftover recipe / pass</label>
-          <select class="prop-input" id="leftover-from-pass">${passSelect}</select>
-        </div>
+        ${passField}
         <div class="leftover-field">
           <label>Leftover Toro (gal)</label>
           <input type="number" class="prop-input" id="leftover-toro-gal" min="0" step="0.01" placeholder="optional" value="${state.leftoverToroGal}" />
@@ -1510,10 +1540,13 @@ function bindLeftoverPanelListeners() {
     toggle.addEventListener('change', () => {
       state.leftoverEnabled = toggle.checked;
       if (state.leftoverEnabled) {
-        ensureLeftoverDefaults(
-          state.screen === 'fly' ? state.flyType : state.routeType,
-          state.screen === 'fly' ? state.flyRound : (state.round || detectRound())
-        );
+        // Always overwrite season/round from current context so a stale R4
+        // leftover source does not stick when enabling on an R5 route.
+        const ctxType = state.screen === 'fly' ? state.flyType : state.routeType;
+        const ctxRound = state.screen === 'fly' ? state.flyRound : (state.round || detectRound());
+        state.leftoverFromRouteType = ctxType;
+        state.leftoverFromRound = ctxRound;
+        state.leftoverFromPass = leftoverSmartDefaultPass(ctxType, ctxRound);
       }
       render();
     });
@@ -1522,14 +1555,18 @@ function bindLeftoverPanelListeners() {
   if (fromType) fromType.addEventListener('change', (e) => {
     state.leftoverFromRouteType = e.target.value;
     const opts = leftoverPassOptions(state.leftoverFromRouteType, state.leftoverFromRound);
-    if (!opts.some(o => o.value === state.leftoverFromPass)) state.leftoverFromPass = 'liquid';
+    if (!opts.some(o => o.value === state.leftoverFromPass)) {
+      state.leftoverFromPass = leftoverSmartDefaultPass(state.leftoverFromRouteType, state.leftoverFromRound);
+    }
     render();
   });
   const fromRound = document.getElementById('leftover-from-round');
   if (fromRound) fromRound.addEventListener('change', (e) => {
     state.leftoverFromRound = parseInt(e.target.value, 10);
     const opts = leftoverPassOptions(state.leftoverFromRouteType, state.leftoverFromRound);
-    if (!opts.some(o => o.value === state.leftoverFromPass)) state.leftoverFromPass = 'liquid';
+    if (!opts.some(o => o.value === state.leftoverFromPass)) {
+      state.leftoverFromPass = leftoverSmartDefaultPass(state.leftoverFromRouteType, state.leftoverFromRound);
+    }
     render();
   });
   const fromPass = document.getElementById('leftover-from-pass');
