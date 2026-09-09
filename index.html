@@ -1509,6 +1509,19 @@ function renderLeftoverPanel(ctxRouteType, ctxRound) {
     ? `<select class="prop-input" id="leftover-from-pass">${passSelect}</select>`
     : `<div class="info-row" id="leftover-from-pass-empty" style="font-size:12px;color:var(--text2);padding:8px 0">This round has no broadcast liquid leftover credit (B&G/spot out of v1).</div>`;
 
+  // Kalin hint: liquidAlt-only leftover sources (warm R5 + cool R6/R7) credit
+  // Terra Ally override only — never granular. Exact warm-R5 copy agreed with Ops/Ship.
+  const fromRd = ROUNDS[fromType]?.[Number(fromRound)];
+  const liquidAltOnly = !!(fromRd?.liquidAlt) && !(fromRd?.liquid?.products?.length);
+  const isWarmR5 = fromType === 'warm' && Number(fromRound) === 5;
+  const showKalinHint = isWarmR5 || liquidAltOnly;
+  const kalinHintText = isWarmR5
+    ? 'R5 leftover credits Terra Ally liquid override only — not granular.'
+    : `R${Number(fromRound)} leftover credits Terra Ally liquid override only — not granular.`;
+  const kalinHintHtml = showKalinHint
+    ? `<div class="info-row" id="leftover-kalin-hint" style="font-size:12px;color:var(--text2);padding:6px 0 0">${kalinHintText}</div>`
+    : '';
+
   return `
   <div class="leftover-panel">
     <label class="leftover-toggle-row">
@@ -1532,6 +1545,7 @@ function renderLeftoverPanel(ctxRouteType, ctxRound) {
         <div class="leftover-field" style="grid-column:1 / -1">
           <label>Leftover recipe / pass</label>
           ${passField}
+          ${kalinHintHtml}
         </div>
         <div class="leftover-field">
           <label>Leftover Toro (gal)</label>
