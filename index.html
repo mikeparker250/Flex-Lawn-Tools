@@ -548,6 +548,27 @@ header h1 {
 .mix-meta-value.credit { color: #ffc800; }
 .mix-meta-value.mixnew { color: var(--green); }
 .mix-meta-value.need { color: var(--text); }
+.leftover-reform-box {
+  background: rgba(255,200,0,0.06); border: 1px solid rgba(255,200,0,0.28);
+  border-radius: 8px; padding: 10px 12px; margin: 8px 0 12px;
+  font-size: 13px; line-height: 1.45;
+}
+.leftover-reform-box .reform-title {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px;
+  color: #ffc800; margin-bottom: 6px; text-transform: uppercase;
+}
+.leftover-reform-box ul { margin: 6px 0 0; padding-left: 18px; }
+.leftover-reform-box li { margin: 2px 0; }
+.leftover-confirm-row {
+  display: flex; align-items: flex-start; gap: 10px; margin-top: 12px;
+  font-size: 13px; line-height: 1.35; cursor: pointer; user-select: none;
+}
+.leftover-confirm-row input { width: 18px; height: 18px; margin-top: 1px; accent-color: var(--green); cursor: pointer; flex-shrink: 0; }
+.leftover-gate-box {
+  background: var(--danger-bg); border: 1px solid var(--danger);
+  border-radius: 8px; padding: 10px 12px; margin: 8px 0 12px;
+  color: #ffaaaa; font-size: 13px; line-height: 1.45;
+}
 
 .round-mini-select {
   background: var(--bg3); border: 1px solid rgba(0,255,71,0.25);
@@ -1143,6 +1164,8 @@ const state = {
   leftoverFromRouteType: null, // warm|cool — what the leftover was mixed for
   leftoverFromRound: null,     // 1-7
   leftoverFromPass: null,  // liquid | liquidAlt | fungSep | null
+  // v2 reform confirm — required before allowlist spike/dilute credit applies
+  leftoverReformConfirmed: false,
 };
 
 function detectRound() {
@@ -1323,6 +1346,11 @@ function calcLiqMix(sqft, equipment, products, applyBuffer) {
 // Additive layer on top of calcLiqMix results. Blank/off leftovers
 // return the original mix unchanged (regression-safe). Never mutates
 // ROUNDS rate tables. Does not touch B&G / Special Sauce / rock mixes.
+//
+// v1: same-round / same-pass gal credit (unchanged).
+// v2: allowlist cross-round Terra Ally reform (spike / dilute) with confirm.
+// Non-allowlist cross-round/cross-pass → hard drain/rinse gate (no credit).
+
 function parseLeftoverGal(raw) {
   if (raw === '' || raw === null || raw === undefined) return null;
   const n = Number(raw);
@@ -1342,6 +1370,196 @@ function leftoverSourceFingerprint() {
     routeType: state.leftoverFromRouteType,
     round: state.leftoverFromRound != null ? Number(state.leftoverFromRound) : null,
     pass: state.leftoverFromPass || null,
+  };
+}
+
+function leftoverProductKey(name) {
+  return String(name || '').replace(/\s*⚠️.*$/, '').trim().toLowerCase();
+}
+
+// Resolve per-gal rates for a leftover pass + equipment bucket.
+// liquidAlt uses authoritative per-equipment tables; liquid/fungSep use
+// shared Toro rates with psRates() for PS (same as calcRoundSection).
+function leftoverPassRateTable(routeType, roundNum, pass, equipment) {
+  const rd = ROUNDS[routeType]?.[Number(roundNum)];
+  if (!rd || !pass) return null;
+  const eq = equipment === 'ps' ? 'ps' : 'toro';
+  if (pass === 'liquidAlt') {
+    const list = rd.liquidAlt?.products?.[eq];
+    return list?.length ? list.map(p => ({...p})) : null;
+  }
+  if (pass === 'fungSep') {
+    const list = rd.liquid?.fungSep?.products;
+    if (!list?.length) return null;
+    return eq === 'ps' ? psRates(list) : list.map(p => ({...p}));
+  }
+  // broadcast liquid
+  const list = rd.liquid?.products;
+  if (!list?.length) return null;
+  return eq === 'ps' ? psRates(list) : list.map(p => ({...p}));
+}
+
+// Allowlist pairs only — full product set Terra Ally TA22 + 90/10 NIS.
+// Pairs are unordered: either side may be leftover source or target mix.
+const LEFTOVER_REFORM_ALLOWLIST = [
+  {
+    routeType: 'warm',
+    a: { round: 4, pass: 'liquid' },
+    b: { round: 5, pass: 'liquidAlt' },
+    label: 'Warm R4 liquid ↔ R5 liquidAlt',
+  },
+  {
+    routeType: 'cool',
+    a: { round: 6, pass: 'liquidAlt' },
+    b: { round: 7, pass: 'liquidAlt' },
+    label: 'Cool R6 liquidAlt ↔ R7 liquidAlt',
+  },
+];
+
+function leftoverFpKey(fp) {
+  if (!fp?.routeType || fp.round == null || !fp.pass) return null;
+  return `${fp.routeType}|${Number(fp.round)}|${fp.pass}`;
+}
+
+function leftoverSameRecipe(src, tgt) {
+  return leftoverFpKey(src) && leftoverFpKey(src) === leftoverFpKey(tgt);
+}
+
+function leftoverAllowlistMatch(src, tgt) {
+  if (!src?.routeType || src.round == null || !src.pass) return null;
+  if (!tgt?.routeType || tgt.round == null || !tgt.pass) return null;
+  if (src.routeType !== tgt.routeType) return null;
+  const sk = `${Number(src.round)}|${src.pass}`;
+  const tk = `${Number(tgt.round)}|${tgt.pass}`;
+  if (sk === tk) return null;
+  for (const pair of LEFTOVER_REFORM_ALLOWLIST) {
+    if (pair.routeType !== src.routeType) continue;
+    const ak = `${pair.a.round}|${pair.a.pass}`;
+    const bk = `${pair.b.round}|${pair.b.pass}`;
+    if ((sk === ak && tk === bk) || (sk === bk && tk === ak)) return pair;
+  }
+  return null;
+}
+
+function leftoverTankCapacityGal(equipment) {
+  if (equipment === 'toro') return TORO_TANK_CAP;
+  return null; // PS has no single-tank assumption in app → soft warn only
+}
+
+const LEFTOVER_RATE_EPS = 1e-6;
+
+function leftoverRateDir(rs, rt) {
+  if (!(rs > 0) || !(rt > 0)) return 'invalid';
+  const rel = Math.abs(rt - rs) / Math.max(rs, rt);
+  if (rel < 0.005) return 'same'; // within 0.5%
+  if (rt > rs) return 'concentrate';
+  return 'dilute';
+}
+
+// Lawn Ops reform formulas (per Toro/PS bucket independently).
+// Returns a plan: {ok, mode, refused, reasons, warnings, adds[], addWater, V, Vfinal, ...}
+function computeLeftoverReform(V, srcProducts, tgtProducts, equipment) {
+  const reasons = [];
+  const warnings = [];
+  if (!(V > 0) || !Number.isFinite(V)) {
+    return { ok: false, refused: true, reasons: ['Leftover gallons must be > 0 to reform.'], warnings, adds: [], addWater: 0, V, Vfinal: V };
+  }
+  if (!srcProducts?.length || !tgtProducts?.length) {
+    return { ok: false, refused: true, reasons: ['Could not resolve source/target product rates for reform.'], warnings, adds: [], addWater: 0, V, Vfinal: V };
+  }
+
+  const srcMap = new Map(srcProducts.map(p => [leftoverProductKey(p.name), p]));
+  const tgtMap = new Map(tgtProducts.map(p => [leftoverProductKey(p.name), p]));
+  const keys = [...new Set([...srcMap.keys(), ...tgtMap.keys()])];
+  const paired = [];
+  for (const k of keys) {
+    const s = srcMap.get(k);
+    const t = tgtMap.get(k);
+    if (!s || !t) {
+      reasons.push(`Product set mismatch for reform (${s?.name || t?.name || k}).`);
+      continue;
+    }
+    paired.push({ key: k, name: t.name || s.name, unit: t.unit || s.unit || 'oz', rs: Number(s.rate), rt: Number(t.rate) });
+  }
+  if (reasons.length || !paired.length) {
+    return { ok: false, refused: true, reasons: reasons.length ? reasons : ['No matching products to reform.'], warnings, adds: [], addWater: 0, V, Vfinal: V };
+  }
+
+  const dirs = paired.map(p => leftoverRateDir(p.rs, p.rt));
+  if (dirs.includes('invalid')) {
+    return { ok: false, refused: true, reasons: ['Invalid source/target rate for reform.'], warnings, adds: [], addWater: 0, V, Vfinal: V };
+  }
+  const hasConc = dirs.includes('concentrate');
+  const hasDil = dirs.includes('dilute');
+  if (hasConc && hasDil) {
+    return {
+      ok: false, refused: true, mode: 'mixed',
+      reasons: ['Mixed concentrate + dilute directions — refuse reform. Drain / rinse / remix.'],
+      warnings, adds: [], addWater: 0, V, Vfinal: V,
+    };
+  }
+
+  // Already at target strength → credit V as-is (trivial reform).
+  if (!hasConc && !hasDil) {
+    return {
+      ok: true, refused: false, mode: 'same',
+      reasons: [], warnings: ['Source and target rates match — credit leftover volume as-is.'],
+      adds: paired.map(p => ({ name: p.name, unit: p.unit, deltaOz: 0, rs: p.rs, rt: p.rt })),
+      addWater: 0, V, Vfinal: V,
+    };
+  }
+
+  if (hasConc) {
+    const adds = paired.map(p => ({
+      name: p.name,
+      unit: p.unit,
+      deltaOz: V * (p.rt - p.rs),
+      rs: p.rs,
+      rt: p.rt,
+    }));
+    const sumDeltaOz = adds.reduce((s, a) => s + Math.max(0, a.deltaOz), 0);
+    const Vfinal = V + sumDeltaOz / 128;
+    const cap = leftoverTankCapacityGal(equipment);
+    if (cap != null && Vfinal > cap) {
+      warnings.push(`Headspace warn: reformed volume ${fmt(Vfinal, 2)} gal exceeds ${cap}-gal ${equipment === 'toro' ? 'Toro' : ''} tank capacity — check headspace before spiking.`);
+    } else if (cap != null && Vfinal > cap * 0.95) {
+      warnings.push(`Headspace warn: reformed volume ${fmt(Vfinal, 2)} gal is near ${cap}-gal tank capacity.`);
+    } else if (cap == null && Vfinal > V * 1.05) {
+      warnings.push(`Headspace warn: reformed volume ≈ ${fmt(Vfinal, 2)} gal — confirm tank has room for spike.`);
+    }
+    return {
+      ok: true, refused: false, mode: 'concentrate',
+      reasons: [], warnings, adds, addWater: 0, V, Vfinal, sumDeltaOz,
+    };
+  }
+
+  // All dilute — V' = V * (r_s / r_t) using consistent primary (Terra Ally) ratio.
+  const primary = paired.find(p => /terra ally/i.test(p.name)) || paired[0];
+  const ratio = primary.rs / primary.rt;
+  // Soft-check consistency of other products' ratios
+  for (const p of paired) {
+    if (p === primary) continue;
+    const r = p.rs / p.rt;
+    if (Math.abs(r - ratio) / ratio > 0.08) {
+      warnings.push(`Dilution ratio for ${p.name} (${fmt(r, 3)}) differs from ${primary.name} (${fmt(ratio, 3)}) — using ${primary.name} volume ratio.`);
+    }
+  }
+  const Vfinal = V * ratio;
+  const addWater = Vfinal - V;
+  const cap = leftoverTankCapacityGal(equipment);
+  if (cap != null && Vfinal > cap) {
+    return {
+      ok: false, refused: true, mode: 'dilute',
+      reasons: [`Diluted volume ${fmt(Vfinal, 2)} gal exceeds ${cap}-gal tank capacity — refuse. Spray out / drain before remixing.`],
+      warnings, adds: [], addWater, V, Vfinal, ratio, primary: primary.name,
+    };
+  }
+  if (cap == null) {
+    warnings.push(`No PS tank capacity in app — soft warn: diluted volume ≈ ${fmt(Vfinal, 2)} gal. Confirm tank can hold added water.`);
+  }
+  return {
+    ok: true, refused: false, mode: 'dilute',
+    reasons: [], warnings, adds: [], addWater, V, Vfinal, ratio, primary: primary.name,
   };
 }
 
@@ -1376,6 +1594,12 @@ function leftoverMismatchReasons(target) {
   return reasons;
 }
 
+function leftoverHardGateMessage(src, tgt) {
+  const srcLabel = `R${src.round} ${describeLeftoverPass(src.pass)}`;
+  const tgtLabel = `R${tgt.round} ${describeLeftoverPass(tgt.pass || 'liquid')}`;
+  return `Different chemicals (${srcLabel} → ${tgtLabel}). Must spray out / drain / rinse / clean before next round — NO credit, NO spike/dilute.`;
+}
+
 // Apply leftover credit to one equipment bucket's liquid mix.
 // equipment: 'toro' | 'ps'. target: {routeType, round, pass}.
 // When leftover toggle is off OR that equipment's gal field is blank →
@@ -1389,8 +1613,16 @@ function applyLeftoverCredit(mix, equipment, target) {
   if (leftoverGal === null) return mix; // blank = no credit, identical
 
   const need = mix.gal;
-  const reasons = leftoverMismatchReasons(target);
-  if (reasons.length) {
+  const src = leftoverSourceFingerprint();
+  const tgt = {
+    routeType: target.routeType,
+    round: Number(target.round),
+    pass: target.pass || 'liquid',
+  };
+
+  // Incomplete source fingerprint → refuse (same as v1)
+  if (!src.routeType || src.round == null || !src.pass) {
+    const reasons = leftoverMismatchReasons(tgt);
     return {
       ...mix,
       leftover: {
@@ -1401,22 +1633,105 @@ function applyLeftoverCredit(mix, equipment, target) {
         mixNew: need,
         leftoverEntered: leftoverGal,
         equipment,
+        kind: 'incomplete',
       },
     };
   }
 
-  const mixNew = Math.max(0, need - leftoverGal);
-  const scale = need > 0 ? mixNew / need : 0;
+  // ── v1: same-round / same-pass matching leftover ───────────
+  if (leftoverSameRecipe(src, tgt)) {
+    const mixNew = Math.max(0, need - leftoverGal);
+    const scale = need > 0 ? mixNew / need : 0;
+    return {
+      ...mix,
+      gal: mixNew,
+      products: mix.products.map(p => ({...p, amt: p.amt * scale})),
+      leftover: {
+        refused: false,
+        kind: 'same',
+        need,
+        credit: leftoverGal,
+        mixNew,
+        softWarn: leftoverGal >= need && need > 0,
+        equipment,
+      },
+    };
+  }
+
+  // ── v2: allowlist reform pair ──────────────────────────────
+  const pair = leftoverAllowlistMatch(src, tgt);
+  if (pair) {
+    const srcRates = leftoverPassRateTable(src.routeType, src.round, src.pass, equipment);
+    const tgtRates = leftoverPassRateTable(tgt.routeType, tgt.round, tgt.pass, equipment);
+    const plan = computeLeftoverReform(leftoverGal, srcRates, tgtRates, equipment);
+    if (!plan.ok || plan.refused) {
+      return {
+        ...mix,
+        leftover: {
+          refused: true,
+          kind: 'reform',
+          reasons: plan.reasons?.length ? plan.reasons : ['Reform refused.'],
+          need,
+          credit: 0,
+          mixNew: need,
+          leftoverEntered: leftoverGal,
+          equipment,
+          reform: plan,
+          pairLabel: pair.label,
+        },
+      };
+    }
+    if (!state.leftoverReformConfirmed) {
+      // Show plan but do not credit until tech confirms.
+      return {
+        ...mix,
+        leftover: {
+          refused: false,
+          pendingConfirm: true,
+          kind: 'reform',
+          need,
+          credit: 0,
+          mixNew: need,
+          leftoverEntered: leftoverGal,
+          equipment,
+          reform: plan,
+          pairLabel: pair.label,
+        },
+      };
+    }
+    const Vfinal = plan.Vfinal;
+    const mixNew = Math.max(0, need - Vfinal);
+    const scale = need > 0 ? mixNew / need : 0;
+    return {
+      ...mix,
+      gal: mixNew,
+      products: mix.products.map(p => ({...p, amt: p.amt * scale})),
+      leftover: {
+        refused: false,
+        pendingConfirm: false,
+        kind: 'reform',
+        need,
+        credit: Vfinal,
+        mixNew,
+        softWarn: Vfinal >= need && need > 0,
+        equipment,
+        reform: plan,
+        pairLabel: pair.label,
+      },
+    };
+  }
+
+  // ── Non-allowlist cross-round / cross-pass → hard gate ─────
   return {
     ...mix,
-    gal: mixNew,
-    products: mix.products.map(p => ({...p, amt: p.amt * scale})),
     leftover: {
-      refused: false,
+      refused: true,
+      kind: 'hardgate',
+      reasons: [leftoverHardGateMessage(src, tgt)],
       need,
-      credit: leftoverGal,
-      mixNew,
-      softWarn: leftoverGal >= need && need > 0,
+      credit: 0,
+      mixNew: need,
+      leftoverEntered: leftoverGal,
       equipment,
     },
   };
@@ -1479,6 +1794,11 @@ function resetLeftoverState() {
   state.leftoverFromRouteType = null;
   state.leftoverFromRound = null;
   state.leftoverFromPass = null;
+  state.leftoverReformConfirmed = false;
+}
+
+function clearLeftoverReformConfirm() {
+  state.leftoverReformConfirmed = false;
 }
 
 function ensureLeftoverDefaults(routeType, roundNum) {
@@ -1488,6 +1808,73 @@ function ensureLeftoverDefaults(routeType, roundNum) {
   if (!opts.some(o => o.value === state.leftoverFromPass)) {
     state.leftoverFromPass = smartLeftoverFromPass(state.leftoverFromRouteType, state.leftoverFromRound);
   }
+}
+
+function leftoverSourceOnAllowlist(src) {
+  if (!src?.routeType || src.round == null || !src.pass) return false;
+  const sk = `${Number(src.round)}|${src.pass}`;
+  return LEFTOVER_REFORM_ALLOWLIST.some(pair => {
+    if (pair.routeType !== src.routeType) return false;
+    const ak = `${pair.a.round}|${pair.a.pass}`;
+    const bk = `${pair.b.round}|${pair.b.pass}`;
+    return sk === ak || sk === bk;
+  });
+}
+
+function leftoverContextNeedsReformConfirm(ctxRouteType, ctxRound) {
+  // Show confirm when leftover source can reform against the current view
+  // (allowlist partner). Same-round v1 credit does not need confirm.
+  const src = leftoverSourceFingerprint();
+  if (!state.leftoverEnabled) return false;
+  const hasGal = parseLeftoverGal(state.leftoverToroGal) != null || parseLeftoverGal(state.leftoverPsGal) != null;
+  if (!hasGal) return false;
+  if (!src.routeType || src.round == null || !src.pass) return false;
+  const round = Number(ctxRound || src.round);
+  const type = ctxRouteType || src.routeType;
+  const opts = leftoverPassOptions(type, round);
+  // Prefer explicit passes available on the viewed round
+  for (const o of opts) {
+    if (leftoverAllowlistMatch(src, { routeType: type, round, pass: o.value })) return true;
+  }
+  // Fly / single-round: also check smart pass for feedMode liquidAlt
+  const smart = smartLeftoverFromPass(type, round);
+  if (smart && leftoverAllowlistMatch(src, { routeType: type, round, pass: smart })) return true;
+  // Results pages can show multiple rounds — if source is on allowlist, show
+  // confirm so a partner section on the same page can credit after check.
+  if (leftoverSourceOnAllowlist(src) && (type !== src.routeType || Number(round) !== Number(src.round))) {
+    return true;
+  }
+  return false;
+}
+
+function renderLeftoverReformPlanHtml(lo) {
+  if (!lo?.reform || lo.kind !== 'reform') return '';
+  const plan = lo.reform;
+  if (plan.refused) return '';
+  const lines = [];
+  if (plan.mode === 'concentrate') {
+    lines.push(`<div class="reform-title">♻ Reform — concentrate spike (${lo.pairLabel || 'allowlist'})</div>`);
+    lines.push(`<div>Start V: <b>${fmtGal(plan.V)}</b> → Final V ≈ <b>${fmtGal(plan.Vfinal)}</b></div>`);
+    if (plan.adds?.length) {
+      lines.push('<ul>' + plan.adds.filter(a => a.deltaOz > LEFTOVER_RATE_EPS).map(a =>
+        `<li>Add <b>${fmtOz(a.deltaOz, a.unit)}</b> ${a.name}</li>`
+      ).join('') + '</ul>');
+    }
+  } else if (plan.mode === 'dilute') {
+    lines.push(`<div class="reform-title">♻ Reform — dilute with water (${lo.pairLabel || 'allowlist'})</div>`);
+    lines.push(`<div>Start V: <b>${fmtGal(plan.V)}</b> → Final V′ = <b>${fmtGal(plan.Vfinal)}</b></div>`);
+    lines.push(`<div>Add water: <b>${fmtGal(plan.addWater)}</b>${plan.primary ? ` <span style="color:var(--text3)">(ratio from ${plan.primary})</span>` : ''}</div>`);
+  } else if (plan.mode === 'same') {
+    lines.push(`<div class="reform-title">♻ Reform — rates already match</div>`);
+    lines.push(`<div>Credit volume: <b>${fmtGal(plan.Vfinal)}</b></div>`);
+  }
+  if (plan.warnings?.length) {
+    lines.push(plan.warnings.map(w => `<div style="color:var(--warn);margin-top:4px">⚠️ ${w}</div>`).join(''));
+  }
+  if (lo.pendingConfirm) {
+    lines.push(`<div style="color:var(--text2);margin-top:6px;font-size:12px">Confirm reform in the leftover panel to apply credit (mix new stays full need until confirmed).</div>`);
+  }
+  return `<div class="leftover-reform-box">${lines.join('')}</div>`;
 }
 
 function renderLeftoverPanel(ctxRouteType, ctxRound) {
@@ -1522,6 +1909,16 @@ function renderLeftoverPanel(ctxRouteType, ctxRound) {
     ? `<div class="info-row" id="leftover-kalin-hint" style="font-size:12px;color:var(--text2);padding:6px 0 0">${kalinHintText}</div>`
     : '';
 
+  const showReformConfirm = leftoverContextNeedsReformConfirm(ctxRouteType, ctxRound);
+  const reformConfirmHtml = showReformConfirm ? `
+      <label class="leftover-confirm-row">
+        <input type="checkbox" id="leftover-reform-confirm" ${state.leftoverReformConfirmed?'checked':''} />
+        <span>I will spike / dilute this leftover tank per the reform plan on the mix card, then credit the reformed volume against today's need.</span>
+      </label>
+      <div class="info-row" style="font-size:11px;color:var(--text3);padding-top:6px">
+        Allowlist only: Warm R4 liquid ↔ R5 liquidAlt · Cool R6 liquidAlt ↔ R7 liquidAlt (same equipment bucket). Other cross-round leftovers hard-gate: spray out / drain / rinse / clean — no credit.
+      </div>` : '';
+
   return `
   <div class="leftover-panel">
     <label class="leftover-toggle-row">
@@ -1531,7 +1928,7 @@ function renderLeftoverPanel(ctxRouteType, ctxRound) {
     ${state.leftoverEnabled ? `
     <div class="leftover-body">
       <div class="info-row" style="margin-bottom:10px;font-size:12px;color:var(--text2)">
-        Credits apply per equipment bucket only when leftover season, round, and recipe match that mix card. Blank gal = no credit (same as today). Hard-refuses warm≠cool, different round, liquidAlt mismatch, and R7 herbicide≠fungicide.
+        <b>v1</b> same-round / same-recipe → gal credit. <b>v2</b> allowlist Terra Ally pairs → spike/dilute + confirm, then credit reformed V. Other cross-round → hard drain/rinse gate (no credit). Blank gal = no credit.
       </div>
       <div class="leftover-grid">
         <div class="leftover-field">
@@ -1556,6 +1953,7 @@ function renderLeftoverPanel(ctxRouteType, ctxRound) {
           <input type="number" class="prop-input" id="leftover-ps-gal" min="0" step="0.01" placeholder="optional" value="${state.leftoverPsGal}" />
         </div>
       </div>
+      ${reformConfirmHtml}
     </div>` : ''}
   </div>`;
 }
@@ -1565,6 +1963,7 @@ function bindLeftoverPanelListeners() {
   if (toggle) {
     toggle.addEventListener('change', () => {
       state.leftoverEnabled = toggle.checked;
+      clearLeftoverReformConfirm();
       if (state.leftoverEnabled) {
         // Sync leftover source to current route context on enable so a stale
         // prior round (e.g. leftover still on R1 while viewing R5) does not
@@ -1581,6 +1980,7 @@ function bindLeftoverPanelListeners() {
   const fromType = document.getElementById('leftover-from-type');
   if (fromType) fromType.addEventListener('change', (e) => {
     state.leftoverFromRouteType = e.target.value;
+    clearLeftoverReformConfirm();
     const opts = leftoverPassOptions(state.leftoverFromRouteType, state.leftoverFromRound);
     if (!opts.some(o => o.value === state.leftoverFromPass)) {
       state.leftoverFromPass = smartLeftoverFromPass(state.leftoverFromRouteType, state.leftoverFromRound);
@@ -1590,6 +1990,7 @@ function bindLeftoverPanelListeners() {
   const fromRound = document.getElementById('leftover-from-round');
   if (fromRound) fromRound.addEventListener('change', (e) => {
     state.leftoverFromRound = parseInt(e.target.value, 10);
+    clearLeftoverReformConfirm();
     const opts = leftoverPassOptions(state.leftoverFromRouteType, state.leftoverFromRound);
     if (!opts.some(o => o.value === state.leftoverFromPass)) {
       state.leftoverFromPass = smartLeftoverFromPass(state.leftoverFromRouteType, state.leftoverFromRound);
@@ -1599,6 +2000,7 @@ function bindLeftoverPanelListeners() {
   const fromPass = document.getElementById('leftover-from-pass');
   if (fromPass) fromPass.addEventListener('change', (e) => {
     state.leftoverFromPass = e.target.value;
+    clearLeftoverReformConfirm();
     render();
   });
   const toroGal = document.getElementById('leftover-toro-gal');
@@ -1612,10 +2014,19 @@ function bindLeftoverPanelListeners() {
   // Re-render results/fly when leaving gal fields so credit updates
   [toroGal, psGal].forEach(el => {
     if (!el) return;
-    el.addEventListener('change', () => render());
+    el.addEventListener('change', () => {
+      clearLeftoverReformConfirm();
+      render();
+    });
   });
+  const reformConfirm = document.getElementById('leftover-reform-confirm');
+  if (reformConfirm) {
+    reformConfirm.addEventListener('change', () => {
+      state.leftoverReformConfirmed = reformConfirm.checked;
+      render();
+    });
+  }
 }
-
 
 function psRates(products) {
   // PS rates derived from Toro rates by output ratio
@@ -1911,8 +2322,8 @@ function renderMixCard(mix, title, icon, extraNote) {
           <div class="mix-meta-value need">${fmtGal(mix.leftover.need)} <span class="mix-meta-unit">water</span></div>
         </div>
         <div class="mix-meta-item">
-          <div class="mix-meta-label">Leftover credit</div>
-          <div class="mix-meta-value credit">${mix.leftover.refused ? '—' : fmtGal(mix.leftover.credit)} <span class="mix-meta-unit">${mix.leftover.refused ? 'refused' : 'gal'}</span></div>
+          <div class="mix-meta-label">${mix.leftover.kind === 'reform' ? 'Reformed credit' : 'Leftover credit'}</div>
+          <div class="mix-meta-value credit">${mix.leftover.refused || mix.leftover.pendingConfirm ? '—' : fmtGal(mix.leftover.credit)} <span class="mix-meta-unit">${mix.leftover.refused ? 'refused' : (mix.leftover.pendingConfirm ? 'confirm' : 'gal')}</span></div>
         </div>
         <div class="mix-meta-item">
           <div class="mix-meta-label">Mix new</div>
@@ -1929,11 +2340,21 @@ function renderMixCard(mix, title, icon, extraNote) {
       ${renderProductRows(mix.products)}
     `;
 
-  const leftoverBanner = mix.leftover?.refused
-    ? `<div class="alert-box alert-danger">🚫 Leftover credit refused — ${mix.leftover.reasons.join(' ')}</div>`
-    : (mix.leftover && !mix.leftover.refused && mix.leftover.softWarn
-      ? `<div class="alert-box alert-warn">⚠️ Leftover (${fmtGal(mix.leftover.credit)}) ≥ need (${fmtGal(mix.leftover.need)}) — mix new is 0; no fresh product needed for this bucket.</div>`
-      : '');
+  let leftoverBanner = '';
+  if (mix.leftover?.kind === 'hardgate') {
+    leftoverBanner = `<div class="leftover-gate-box">🚫 HARD GATE — ${mix.leftover.reasons.join(' ')}</div>`;
+  } else if (mix.leftover?.refused && mix.leftover.kind === 'reform') {
+    leftoverBanner = `<div class="alert-box alert-danger">🚫 Leftover reform refused — ${mix.leftover.reasons.join(' ')}</div>`;
+  } else if (mix.leftover?.refused) {
+    leftoverBanner = `<div class="alert-box alert-danger">🚫 Leftover credit refused — ${mix.leftover.reasons.join(' ')}</div>`;
+  } else if (mix.leftover?.kind === 'reform') {
+    leftoverBanner = renderLeftoverReformPlanHtml(mix.leftover);
+    if (!mix.leftover.pendingConfirm && mix.leftover.softWarn) {
+      leftoverBanner += `<div class="alert-box alert-warn">⚠️ Reformed leftover (${fmtGal(mix.leftover.credit)}) ≥ need (${fmtGal(mix.leftover.need)}) — mix new is 0; no fresh product needed for this bucket.</div>`;
+    }
+  } else if (mix.leftover && !mix.leftover.refused && mix.leftover.softWarn) {
+    leftoverBanner = `<div class="alert-box alert-warn">⚠️ Leftover (${fmtGal(mix.leftover.credit)}) ≥ need (${fmtGal(mix.leftover.need)}) — mix new is 0; no fresh product needed for this bucket.</div>`;
+  }
   const leftoverMeta = mix.leftover ? `
       <div class="mix-meta leftover-meta">
         <div class="mix-meta-item">
@@ -1941,8 +2362,8 @@ function renderMixCard(mix, title, icon, extraNote) {
           <div class="mix-meta-value need">${fmtGal(mix.leftover.need)}</div>
         </div>
         <div class="mix-meta-item">
-          <div class="mix-meta-label">Leftover credit</div>
-          <div class="mix-meta-value credit">${mix.leftover.refused ? '—' : fmtGal(mix.leftover.credit)}</div>
+          <div class="mix-meta-label">${mix.leftover.kind === 'reform' ? 'Reformed credit' : 'Leftover credit'}</div>
+          <div class="mix-meta-value credit">${mix.leftover.refused || mix.leftover.pendingConfirm ? '—' : fmtGal(mix.leftover.credit)}</div>
         </div>
         <div class="mix-meta-item">
           <div class="mix-meta-label">Mix new</div>
