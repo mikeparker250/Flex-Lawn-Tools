@@ -1403,10 +1403,13 @@ function leftoverPassRateTable(routeType, roundNum, pass, equipment) {
 // Pairs are unordered: either side may be leftover source or target mix.
 const LEFTOVER_REFORM_ALLOWLIST = [
   {
+    // Held until Mike/Lawn Ops gates a Sensai-backed R5 override rate — do NOT offer spike/dilute.
     routeType: 'warm',
     a: { round: 4, pass: 'liquid' },
     b: { round: 5, pass: 'liquidAlt' },
     label: 'Warm R4 liquid ↔ R5 liquidAlt',
+    disabled: true,
+    disabledReason: 'R5 Terra Ally override rate held — burn flag; default granular. Mike/Lawn Ops gate before reform.',
   },
   {
     routeType: 'cool',
@@ -1425,7 +1428,7 @@ function leftoverSameRecipe(src, tgt) {
   return leftoverFpKey(src) && leftoverFpKey(src) === leftoverFpKey(tgt);
 }
 
-function leftoverAllowlistMatch(src, tgt) {
+function leftoverFindAllowlistPair(src, tgt, { includeDisabled = false } = {}) {
   if (!src?.routeType || src.round == null || !src.pass) return null;
   if (!tgt?.routeType || tgt.round == null || !tgt.pass) return null;
   if (src.routeType !== tgt.routeType) return null;
@@ -1434,11 +1437,21 @@ function leftoverAllowlistMatch(src, tgt) {
   if (sk === tk) return null;
   for (const pair of LEFTOVER_REFORM_ALLOWLIST) {
     if (pair.routeType !== src.routeType) continue;
+    if (pair.disabled && !includeDisabled) continue;
     const ak = `${pair.a.round}|${pair.a.pass}`;
     const bk = `${pair.b.round}|${pair.b.pass}`;
     if ((sk === ak && tk === bk) || (sk === bk && tk === ak)) return pair;
   }
   return null;
+}
+
+function leftoverAllowlistMatch(src, tgt) {
+  return leftoverFindAllowlistPair(src, tgt, { includeDisabled: false });
+}
+
+function leftoverDisabledAllowlistMatch(src, tgt) {
+  const pair = leftoverFindAllowlistPair(src, tgt, { includeDisabled: true });
+  return pair?.disabled ? pair : null;
 }
 
 function leftoverTankCapacityGal(equipment) {
@@ -1520,9 +1533,15 @@ function computeLeftoverReform(V, srcProducts, tgtProducts, equipment) {
     const sumDeltaOz = adds.reduce((s, a) => s + Math.max(0, a.deltaOz), 0);
     const Vfinal = V + sumDeltaOz / 128;
     const cap = leftoverTankCapacityGal(equipment);
+    // Toro: over-cap concentrate is HARD-REFUSE (dump-first) — same policy as dilute over-cap.
     if (cap != null && Vfinal > cap) {
-      warnings.push(`Headspace warn: reformed volume ${fmt(Vfinal, 2)} gal exceeds ${cap}-gal ${equipment === 'toro' ? 'Toro' : ''} tank capacity — check headspace before spiking.`);
-    } else if (cap != null && Vfinal > cap * 0.95) {
+      return {
+        ok: false, refused: true, mode: 'concentrate',
+        reasons: [`Concentrated volume ${fmt(Vfinal, 2)} gal exceeds ${cap}-gal tank capacity — refuse. Spray out / drain before spiking (dump-first).`],
+        warnings, adds, addWater: 0, V, Vfinal, sumDeltaOz,
+      };
+    }
+    if (cap != null && Vfinal > cap * 0.95) {
       warnings.push(`Headspace warn: reformed volume ${fmt(Vfinal, 2)} gal is near ${cap}-gal tank capacity.`);
     } else if (cap == null && Vfinal > V * 1.05) {
       warnings.push(`Headspace warn: reformed volume ≈ ${fmt(Vfinal, 2)} gal — confirm tank has room for spike.`);
@@ -1540,8 +1559,13 @@ function computeLeftoverReform(V, srcProducts, tgtProducts, equipment) {
   for (const p of paired) {
     if (p === primary) continue;
     const r = p.rs / p.rt;
-    if (Math.abs(r - ratio) / ratio > 0.08) {
-      warnings.push(`Dilution ratio for ${p.name} (${fmt(r, 3)}) differs from ${primary.name} (${fmt(ratio, 3)}) — using ${primary.name} volume ratio.`);
+    const drift = Math.abs(r - ratio) / ratio;
+    if (drift > 0.08) {
+      if (/nis/i.test(p.name)) {
+        warnings.push(`NIS dilute ~${fmt(drift * 100, 0)}% drift vs ${primary.name} (${fmt(r, 3)} vs ${fmt(ratio, 3)}) — using ${primary.name} volume ratio (no NIS auto-adjust).`);
+      } else {
+        warnings.push(`Dilution ratio for ${p.name} (${fmt(r, 3)}) differs from ${primary.name} (${fmt(ratio, 3)}) — using ${primary.name} volume ratio.`);
+      }
     }
   }
   const Vfinal = V * ratio;
@@ -1654,6 +1678,28 @@ function applyLeftoverCredit(mix, equipment, target) {
         mixNew,
         softWarn: leftoverGal >= need && need > 0,
         equipment,
+      },
+    };
+  }
+
+  // ── Held allowlist pair (e.g. warm R4↔R5) → hard gate, no spike/dilute ──
+  const heldPair = leftoverDisabledAllowlistMatch(src, tgt);
+  if (heldPair) {
+    return {
+      ...mix,
+      leftover: {
+        refused: true,
+        kind: 'hardgate',
+        reasons: [
+          heldPair.disabledReason
+            || leftoverHardGateMessage(src, tgt),
+        ],
+        need,
+        credit: 0,
+        mixNew: need,
+        leftoverEntered: leftoverGal,
+        equipment,
+        pairLabel: heldPair.label,
       },
     };
   }
@@ -1814,6 +1860,7 @@ function leftoverSourceOnAllowlist(src) {
   if (!src?.routeType || src.round == null || !src.pass) return false;
   const sk = `${Number(src.round)}|${src.pass}`;
   return LEFTOVER_REFORM_ALLOWLIST.some(pair => {
+    if (pair.disabled) return false;
     if (pair.routeType !== src.routeType) return false;
     const ak = `${pair.a.round}|${pair.a.pass}`;
     const bk = `${pair.b.round}|${pair.b.pass}`;
@@ -1916,7 +1963,7 @@ function renderLeftoverPanel(ctxRouteType, ctxRound) {
         <span>I will spike / dilute this leftover tank per the reform plan on the mix card, then credit the reformed volume against today's need.</span>
       </label>
       <div class="info-row" style="font-size:11px;color:var(--text3);padding-top:6px">
-        Allowlist only: Warm R4 liquid ↔ R5 liquidAlt · Cool R6 liquidAlt ↔ R7 liquidAlt (same equipment bucket). Other cross-round leftovers hard-gate: spray out / drain / rinse / clean — no credit.
+        Active allowlist: Cool R6 liquidAlt ↔ R7 liquidAlt (same equipment bucket). Warm R4↔R5 held (R5 override rate — Mike/Lawn Ops gate). Other cross-round leftovers hard-gate: spray out / drain / rinse / clean — no credit.
       </div>` : '';
 
   return `
