@@ -904,20 +904,24 @@ const ROUNDS = {
         note:'Water-in within 24 hrs.',
       },
       liquidAlt: {
-        label: 'Liquid Alt — Terra Ally TA 22-0-0 (override granular)',
+        // Ultra-safe leftover-jug override (Mike gate 2026-09-11 / Lawn Ops CLEAR).
+        // Half of Sensai R4 liquid (44.12 / 13.16) → ≈0.125 lb N/1K @ dens 9.86.
+        // NOT a Sensai doctrine rewrite — default R5 stays granular + dual fung.
+        // OLD Alt 111.2 Toro / 33.2 PS is BURN / over-label — DO NOT restore.
+        label: 'Liquid Alt — Terra Ally TA 22-0-0 (leftover-jug override)',
         // Same authoritative Terra Ally heat rule as R4 — do not reword. R5 is
         // peak heat (Jul 12–Aug 22), so this is more load-bearing here than
         // anywhere else Terra Ally gets used.
-        hazard: 'HEAT RULE: 90°F+ → complete ALL blanket spray before 9:30 AM. Terra Ally foliar — water lawn 24 hrs after.',
-        note: 'Heat-safe reduced rate — do NOT scale up to full granular N target in this round.',
+        hazard: 'HEAT RULE: 90°F+ → complete ALL blanket spray before 9:30 AM. Terra Ally foliar — water lawn 24 hrs after. 🚫 NEVER use old Alt rates 111.2 (Toro) / 33.2 (PS) — burn / over-label.',
+        note: 'Ultra-safe spoon-feed (~half R4) to burn leftover TA22 jugs ONLY — under-fertilize preferred. Do NOT scale up. Default this round = granular + fungicide; liquid OR granular same visit, not both.',
         products: {
           toro: [
-            {name:'Terra Ally TA 22-0-0', rate: 111.2, unit:'fl oz'},
-            {name:'90/10 NIS',            rate: 2.1,   unit:'oz'},
+            {name:'Terra Ally TA 22-0-0', rate: 22.06, unit:'fl oz'},
+            {name:'90/10 NIS',            rate: 0.82,  unit:'oz'},
           ],
           ps: [
-            {name:'Terra Ally TA 22-0-0', rate: 33.2,  unit:'fl oz'},
-            {name:'90/10 NIS',            rate: 0.6,   unit:'oz'},
+            {name:'Terra Ally TA 22-0-0', rate: 6.58,  unit:'fl oz'},
+            {name:'90/10 NIS',            rate: 0.25,  unit:'oz'},
           ],
         },
       },
@@ -1409,7 +1413,7 @@ const LEFTOVER_REFORM_ALLOWLIST = [
     b: { round: 5, pass: 'liquidAlt' },
     label: 'Warm R4 liquid ↔ R5 liquidAlt',
     disabled: true,
-    disabledReason: 'R5 Terra Ally override rate held — burn flag; default granular. Mike/Lawn Ops gate before reform.',
+    disabledReason: 'Warm R4↔R5 reform held until re-math on new ultra-safe R5 Alt (22.06/6.58). Default R5 = granular. No spike/dilute yet.',
   },
   {
     routeType: 'cool',
@@ -1963,7 +1967,7 @@ function renderLeftoverPanel(ctxRouteType, ctxRound) {
         <span>I will spike / dilute this leftover tank per the reform plan on the mix card, then credit the reformed volume against today's need.</span>
       </label>
       <div class="info-row" style="font-size:11px;color:var(--text3);padding-top:6px">
-        Active allowlist: Cool R6 liquidAlt ↔ R7 liquidAlt (same equipment bucket). Warm R4↔R5 held (R5 override rate — Mike/Lawn Ops gate). Other cross-round leftovers hard-gate: spray out / drain / rinse / clean — no credit.
+        Active allowlist: Cool R6 liquidAlt ↔ R7 liquidAlt (same equipment bucket). Warm R4↔R5 reform still held (re-math after ultra-safe R5 Alt 22.06/6.58). Other cross-round leftovers hard-gate: spray out / drain / rinse / clean — no credit.
       </div>` : '';
 
   return `
