@@ -1,0 +1,13 @@
+{
+  "name": "flex-lawn-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Flex Lawn Care daily tank mix calculator (PWA) with a Vercel serverless AI-parse proxy.",
+  "scripts": {
+    "dev": "node scripts/dev-server.js",
+    "start": "node scripts/dev-server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
