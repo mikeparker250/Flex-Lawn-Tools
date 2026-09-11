@@ -885,7 +885,7 @@ const ROUNDS = {
       ],
       bg2:null,
       alerts:[
-        {type:'warn',   msg:'HEAT RULE: Celsius WG — not over 90°F air. Terra Ally foliar — water lawn 24 hrs after.'},
+        {type:'warn',   msg:'HEAT RULE: 90°F+ or heat-stressed turf — do not blanket spray. Terra Ally foliar — water lawn 24 hrs after.'},
       ],
     },
     5: {
@@ -912,7 +912,7 @@ const ROUNDS = {
         // Sensai heat rule is temperature-only (no 9:30 AM clock cutoff):
         // Celsius WG — not over 90°F air; Terra Ally foliar — water 24 hrs later.
         // Keep old-Alt burn warning. R5 is peak heat (Jul 12–Aug 22).
-        hazard: 'HEAT RULE: Celsius WG — not over 90°F air. Terra Ally foliar — water lawn 24 hrs after. 🚫 NEVER use old Alt rates 111.2 (Toro) / 33.2 (PS) — burn / over-label.',
+        hazard: 'HEAT RULE: 90°F+ or heat-stressed turf — do not blanket spray. Terra Ally foliar — water lawn 24 hrs after. Never use old Alt 111.2 / 33.2.',
         note: 'Ultra-safe spoon-feed (~half R4) to burn leftover TA22 jugs ONLY — under-fertilize preferred. Do NOT scale up. Default this round = granular + fungicide; liquid OR granular same visit, not both.',
         products: {
           toro: [
@@ -1982,7 +1982,7 @@ function renderLeftoverPanel(ctxRouteType, ctxRound) {
         <span>I will spike / dilute this leftover tank per the reform plan on the mix card, then credit the reformed volume against today's need.</span>
       </label>
       <div class="info-row" style="font-size:11px;color:var(--text3);padding-top:6px">
-        Active allowlist: Cool R6 liquidAlt ↔ R7 liquidAlt (same equipment bucket). Warm R4↔R5 reform still held (re-math after ultra-safe R5 Alt 22.06/6.58). Other cross-round leftovers hard-gate: spray out / drain / rinse / clean — no credit.
+        Same product only. If it doesn’t match, spray out / rinse — no credit.
       </div>` : '';
 
   return `
