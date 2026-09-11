@@ -2408,8 +2408,14 @@ function renderMixCard(mix, title, icon, extraNote) {
         </div>
         `}
       </div>
-      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">${mix.leftover && !mix.leftover.refused ? 'ADD PER BATCH (MIX NEW) →' : 'ADD PER BATCH →'}</div>
-      ${renderProductRows(mix.products)}
+      ${(() => {
+        const sprayLeftoverOnly = !!(mix.leftover && !mix.leftover.refused && !mix.leftover.pendingConfirm && Number(mix.leftover.mixNew) === 0 && Number(mix.leftover.credit) > 0);
+        if (sprayLeftoverOnly) {
+          return `<div class="alert-box alert-warn" style="margin-top:4px"><strong>Spray leftover tank — already mixed (no fresh product).</strong></div>`;
+        }
+        return `<div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">${mix.leftover && !mix.leftover.refused ? 'ADD PER BATCH (MIX NEW) →' : 'ADD PER BATCH →'}</div>
+      ${renderProductRows(mix.products)}`;
+      })()}
     `;
 
   let leftoverBanner = '';
@@ -2422,10 +2428,10 @@ function renderMixCard(mix, title, icon, extraNote) {
   } else if (mix.leftover?.kind === 'reform') {
     leftoverBanner = renderLeftoverReformPlanHtml(mix.leftover);
     if (!mix.leftover.pendingConfirm && mix.leftover.softWarn) {
-      leftoverBanner += `<div class="alert-box alert-warn">⚠️ Reformed leftover (${fmtGal(mix.leftover.credit)}) ≥ need (${fmtGal(mix.leftover.need)}) — mix new is 0; no fresh product needed for this bucket.</div>`;
+      leftoverBanner += `<div class="alert-box alert-warn">⚠️ Mix new = 0 because credit covers today\'s need.</div>`;
     }
   } else if (mix.leftover && !mix.leftover.refused && mix.leftover.softWarn) {
-    leftoverBanner = `<div class="alert-box alert-warn">⚠️ Leftover (${fmtGal(mix.leftover.credit)}) ≥ need (${fmtGal(mix.leftover.need)}) — mix new is 0; no fresh product needed for this bucket.</div>`;
+    leftoverBanner = `<div class="alert-box alert-warn">⚠️ Mix new = 0 because credit covers today's need.</div>`;
   }
   const leftoverMeta = mix.leftover ? `
       <div class="mix-meta leftover-meta">
