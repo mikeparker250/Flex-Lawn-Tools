@@ -885,7 +885,7 @@ const ROUNDS = {
       ],
       bg2:null,
       alerts:[
-        {type:'warn',   msg:'HEAT RULE: 90°F+ → complete ALL blanket spray before 9:30 AM. Terra Ally foliar — water lawn 24 hrs after.'},
+        {type:'warn',   msg:'HEAT RULE: Celsius WG — not over 90°F air. Terra Ally foliar — water lawn 24 hrs after.'},
       ],
     },
     5: {
@@ -909,10 +909,10 @@ const ROUNDS = {
         // NOT a Sensai doctrine rewrite — default R5 stays granular + dual fung.
         // OLD Alt 111.2 Toro / 33.2 PS is BURN / over-label — DO NOT restore.
         label: 'Liquid Alt — Terra Ally TA 22-0-0 (leftover-jug override)',
-        // Same authoritative Terra Ally heat rule as R4 — do not reword. R5 is
-        // peak heat (Jul 12–Aug 22), so this is more load-bearing here than
-        // anywhere else Terra Ally gets used.
-        hazard: 'HEAT RULE: 90°F+ → complete ALL blanket spray before 9:30 AM. Terra Ally foliar — water lawn 24 hrs after. 🚫 NEVER use old Alt rates 111.2 (Toro) / 33.2 (PS) — burn / over-label.',
+        // Sensai heat rule is temperature-only (no 9:30 AM clock cutoff):
+        // Celsius WG — not over 90°F air; Terra Ally foliar — water 24 hrs later.
+        // Keep old-Alt burn warning. R5 is peak heat (Jul 12–Aug 22).
+        hazard: 'HEAT RULE: Celsius WG — not over 90°F air. Terra Ally foliar — water lawn 24 hrs after. 🚫 NEVER use old Alt rates 111.2 (Toro) / 33.2 (PS) — burn / over-label.',
         note: 'Ultra-safe spoon-feed (~half R4) to burn leftover TA22 jugs ONLY — under-fertilize preferred. Do NOT scale up. Default this round = granular + fungicide; liquid OR granular same visit, not both.',
         products: {
           toro: [
@@ -1044,7 +1044,7 @@ const ROUNDS = {
       ],
       alerts:[
         {type:'danger', msg:'DO NOT apply nitrogen to fescue in summer — fungicide only this round.'},
-        {type:'warn',   msg:'HEAT RULE: 90°F+ → blanket spray before 9:30 AM. Stressed fescue → fungicide only, skip B&G.'},
+        {type:'warn',   msg:'HEAT RULE: not over 90°F air. Stressed fescue → fungicide only, skip B&G.'},
       ],
     },
     5: {
@@ -1355,11 +1355,26 @@ function calcLiqMix(sqft, equipment, products, applyBuffer) {
 // v2: allowlist cross-round Terra Ally reform (spike / dilute) with confirm.
 // Non-allowlist cross-round/cross-pass → hard drain/rinse gate (no credit).
 
-function parseLeftoverGal(raw) {
+const LEFTOVER_TORO_STEP = 0.1; // tenths of a gallon
+const LEFTOVER_PS_STEP = 1;     // whole gallons
+
+function snapLeftoverGalValue(raw, step) {
+  if (raw === '' || raw === null || raw === undefined) return '';
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return '';
+  const snapped = Math.round(n / step) * step;
+  if (step >= 1) return String(Math.round(snapped));
+  return String(Math.round(snapped * 10) / 10);
+}
+
+function parseLeftoverGal(raw, step) {
   if (raw === '' || raw === null || raw === undefined) return null;
   const n = Number(raw);
   if (!Number.isFinite(n) || n < 0) return null;
-  return n;
+  if (step == null) return n;
+  const snapped = Math.round(n / step) * step;
+  if (step >= 1) return Math.round(snapped);
+  return Math.round(snapped * 10) / 10;
 }
 
 function describeLeftoverPass(pass) {
@@ -1637,7 +1652,7 @@ function applyLeftoverCredit(mix, equipment, target) {
   if (!state.leftoverEnabled) return mix;
 
   const raw = equipment === 'toro' ? state.leftoverToroGal : state.leftoverPsGal;
-  const leftoverGal = parseLeftoverGal(raw);
+  const leftoverGal = parseLeftoverGal(raw, equipment === 'ps' ? LEFTOVER_PS_STEP : LEFTOVER_TORO_STEP);
   if (leftoverGal === null) return mix; // blank = no credit, identical
 
   const need = mix.gal;
@@ -1945,7 +1960,7 @@ function renderLeftoverPanel(ctxRouteType, ctxRound) {
   ).join('');
   const passField = passOpts.length
     ? `<select class="prop-input" id="leftover-from-pass">${passSelect}</select>`
-    : `<div class="info-row" id="leftover-from-pass-empty" style="font-size:12px;color:var(--text2);padding:8px 0">This round has no broadcast liquid leftover credit (B&G/spot out of v1).</div>`;
+    : `<div class="info-row" id="leftover-from-pass-empty" style="font-size:12px;color:var(--text2);padding:8px 0">This round has no broadcast liquid leftover credit.</div>`;
 
   // Kalin hint: liquidAlt-only leftover sources (warm R5 + cool R6/R7) credit
   // Terra Ally override only — never granular. Exact warm-R5 copy agreed with Ops/Ship.
@@ -1979,7 +1994,7 @@ function renderLeftoverPanel(ctxRouteType, ctxRound) {
     ${state.leftoverEnabled ? `
     <div class="leftover-body">
       <div class="info-row" style="margin-bottom:10px;font-size:12px;color:var(--text2)">
-        <b>v1</b> same-round / same-recipe → gal credit. <b>v2</b> allowlist Terra Ally pairs → spike/dilute + confirm, then credit reformed V. Other cross-round → hard drain/rinse gate (no credit). Blank gal = no credit.
+        Enter leftover gallons to credit against today's mix. Leave blank for no credit.
       </div>
       <div class="leftover-grid">
         <div class="leftover-field">
@@ -1997,11 +2012,11 @@ function renderLeftoverPanel(ctxRouteType, ctxRound) {
         </div>
         <div class="leftover-field">
           <label>Leftover Toro (gal)</label>
-          <input type="number" class="prop-input" id="leftover-toro-gal" min="0" step="0.01" placeholder="optional" value="${state.leftoverToroGal}" />
+          <input type="number" class="prop-input" id="leftover-toro-gal" min="0" step="${LEFTOVER_TORO_STEP}" inputmode="decimal" placeholder="optional" value="${state.leftoverToroGal}" />
         </div>
         <div class="leftover-field">
           <label>Leftover Power Spray (gal)</label>
-          <input type="number" class="prop-input" id="leftover-ps-gal" min="0" step="0.01" placeholder="optional" value="${state.leftoverPsGal}" />
+          <input type="number" class="prop-input" id="leftover-ps-gal" min="0" step="${LEFTOVER_PS_STEP}" inputmode="numeric" placeholder="optional" value="${state.leftoverPsGal}" />
         </div>
       </div>
       ${reformConfirmHtml}
@@ -2062,10 +2077,16 @@ function bindLeftoverPanelListeners() {
   if (psGal) psGal.addEventListener('input', (e) => {
     state.leftoverPsGal = e.target.value;
   });
-  // Re-render results/fly when leaving gal fields so credit updates
+  // Snap spinner / typed values to Toro tenths and PS whole gallons, then
+  // re-render results/fly so credit updates.
   [toroGal, psGal].forEach(el => {
     if (!el) return;
     el.addEventListener('change', () => {
+      if (el.id === 'leftover-toro-gal') {
+        state.leftoverToroGal = snapLeftoverGalValue(el.value, LEFTOVER_TORO_STEP);
+      } else {
+        state.leftoverPsGal = snapLeftoverGalValue(el.value, LEFTOVER_PS_STEP);
+      }
       clearLeftoverReformConfirm();
       render();
     });
@@ -2939,6 +2960,7 @@ function renderFly() {
           </div>
           ${renderAlerts(rd.alerts)}
           ${isLiquidAltMode ? `
+            ${liquidAltData.hazard ? `<div class="alert-box alert-danger">🚨 ${liquidAltData.hazard}</div>` : ''}
             <div class="alert-box alert-info">🧪 ${liquidAltData.label}</div>
             ${liquidAltData.note ? `<div class="alert-box alert-warn">${liquidAltData.note}</div>` : ''}
             ${flyEquipNote}
