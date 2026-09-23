@@ -1,0 +1,17 @@
+{
+  "name": "Flex Lawn Tools",
+  "install": "node --version",
+  "terminals": [
+    {
+      "name": "dev-server",
+      "command": "node .cursor/dev-server.js",
+      "description": "Serves the Flex Lawn Tools PWA and the /api/parse endpoint at http://localhost:3000"
+    }
+  ],
+  "ports": [
+    {
+      "name": "app",
+      "port": 3000
+    }
+  ]
+}
