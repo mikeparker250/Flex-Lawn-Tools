@@ -173,7 +173,7 @@ function hardStop(label, res, message) {
   const showsRate = /data-bag-status="ok"/.test(body) || /to load/.test(body) || /class="big"/.test(body);
   check(
     `RED: ${label}`,
-    res.status === 'red' && res.rows.length === 0 && res.reds.includes(message) && !showsRate && /Can't finish/.test(body) && /data-bag-status="red"/.test(body),
+    res.status === 'red' && res.rows.length === 0 && res.reds.includes(message) && !showsRate && /disabled[^>]*>Can't finish/.test(body) && /data-bag-status="red"/.test(body),
     `status=${res.status} reds=${res.reds.join(' | ')} showsRate=${showsRate}`
   );
 }
@@ -184,6 +184,8 @@ for (const [routeType, roundNum] of [['warm',3],['warm',5],['cool',3],['cool',6]
   hardStop(`10-10-10 on ${routeType} R${roundNum}`, custom(app, { routeType, roundNum, name:'10-10-10', n:10, p:10, k:10, labelMax:10, today:apr20 }), app.FERT_LIMITS.msgWrong);
 }
 hardStop('28-0-3 on warm R6', fromPick(app, 'LESCO Poly Plus OPTI 28-0-3', { routeType:'warm', roundNum:6, labelMax:40, today:apr20 }), app.FERT_LIMITS.msgPotash);
+hardStop('5-10-30 on warm R6', custom(app, { routeType:'warm', roundNum:6, name:'5-10-30', n:5, p:10, k:30, labelMax:10, stopSqft:14000, today:apr20 }), app.FERT_LIMITS.msgPotash);
+hardStop('0-20-20 on warm R6', custom(app, { routeType:'warm', roundNum:6, name:'0-20-20', n:0, p:20, k:20, labelMax:10, stopSqft:14000, today:apr20 }), app.FERT_LIMITS.msgPotash);
 hardStop('cool R3 after May 1', fromPick(app, 'LESCO 24-0-11 w/ 2% Fe + PolyPlus', { routeType:'cool', roundNum:3, labelMax:10, today:sep29 }), app.FERT_LIMITS.msgMay1);
 hardStop('warm R4 not a fertilizer round', custom(app, { routeType:'warm', roundNum:4, n:24, p:0, k:11, labelMax:10, today:apr20 }), app.FERT_LIMITS.msgNoFert);
 hardStop('32-0-0 cool R7 over 85°F unknown SR', custom(app, { routeType:'cool', roundNum:7, name:'32-0-0', n:32, p:0, k:0, labelMax:10, over85:true, stopSqft:14000, today:apr20 }), app.FERT_LIMITS.msgHot);
@@ -299,6 +301,8 @@ const caseRows = [
   caseLine('46-0-0 unknown SR warm R5', 'red', custom(app, { routeType:'warm', roundNum:5, name:'46-0-0 urea', n:46, p:0, k:0, labelMax:10, stopSqft:STOP, today:apr20 })),
   caseLine('10-10-10 warm R3 (N round)', 'red', custom(app, { routeType:'warm', roundNum:3, name:'10-10-10', n:10, p:10, k:10, labelMax:10, stopSqft:STOP, today:apr20 })),
   caseLine('28-0-3 warm R6', 'red', fromPick(app, 'LESCO Poly Plus OPTI 28-0-3', { routeType:'warm', roundNum:6, labelMax:40, stopSqft:STOP, today:apr20 })),
+  caseLine('5-10-30 warm R6', 'red', custom(app, { routeType:'warm', roundNum:6, name:'5-10-30', n:5, p:10, k:30, labelMax:10, stopSqft:STOP, today:apr20 })),
+  caseLine('0-20-20 warm R6', 'red', custom(app, { routeType:'warm', roundNum:6, name:'0-20-20', n:0, p:20, k:20, labelMax:10, stopSqft:STOP, today:apr20 })),
 ];
 console.log('\n## Approved-limit case results at 14,000 sq ft\n');
 console.log('| Case | Expect | Rate | Bags | Red | Yellow |');

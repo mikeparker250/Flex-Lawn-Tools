@@ -4523,6 +4523,7 @@ function bagFitReds(routeType, roundNum, product) {
     let potash = false;
     if (!(k >= FERT_LIMITS.minK2OPercent)) potash = true;
     if (n > FERT_LIMITS.maxNPercentOnKRound) potash = true;
+    if (p > FERT_LIMITS.maxPPercent) potash = true;
     if (potash) reds.push(FERT_LIMITS.msgPotash);
   }
   return reds;
