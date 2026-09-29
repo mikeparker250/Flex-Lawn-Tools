@@ -2358,8 +2358,7 @@ function coolR5SpotGallons() {
 }
 
 function fmtSpotOz(n) {
-  const rounded = Math.round(n * 100) / 100;
-  return rounded.toFixed(2).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '') + ' fl oz';
+  return (Math.round(n * 10) / 10).toFixed(1) + ' fl oz';
 }
 
 // Per-gallon backpack recipe. Gallons input scales these two amounts only.
@@ -2381,21 +2380,22 @@ function renderCoolR5SpotCard() {
   <div class="mix-card" id="cool-r5-spot-card" data-cool-r5-mode="spot">
     <div class="mix-card-header">
       <span class="mix-card-icon">🎯</span>
-      <span class="mix-card-title">Spot-treat visible brown patch only</span>
+      <span class="mix-card-title" style="text-transform:none;letter-spacing:0">Spot-treat visible brown patch only, no blanket.</span>
       <span style="font-size:10px;font-family:var(--font-mono);color:#aaa;letter-spacing:1px">BACKPACK</span>
     </div>
     <div class="mix-card-body">
       ${previewLine}
-      <div class="alert-box alert-info">Backpack sprayer. Per-gallon recipe — patch area is unknown, so this does not scale from route sq ft.</div>
-      <label for="cool-r5-spot-gal" style="display:block;font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px">Gallons to mix</label>
-      <input type="number" min="0" step="0.1" inputmode="decimal" id="cool-r5-spot-gal" class="prop-input" value="${state.coolR5SpotGal === '' || state.coolR5SpotGal == null ? 1 : state.coolR5SpotGal}" style="width:100%;font-size:16px;padding:10px;margin-bottom:12px" />
-      <div id="cool-r5-spot-gal-label" style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;letter-spacing:1px">FOR ${fmt(gal, 2)} GAL WATER →</div>
+      <div class="alert-box alert-info">Backpack sprayer only. No blanket gallons.</div>
+      <label for="cool-r5-spot-gal" style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);font-family:var(--font-mono);margin-bottom:12px">
+        Gallons in backpack
+        <input type="number" min="0" step="0.1" inputmode="decimal" id="cool-r5-spot-gal" class="prop-input" value="${state.coolR5SpotGal === '' || state.coolR5SpotGal == null ? 1 : state.coolR5SpotGal}" style="width:72px;font-size:14px;padding:6px 8px;margin:0" />
+      </label>
       <div class="product-row">
         <div class="product-name">${COOL_R5_SPOT_ARTAVIA}<span class="cond-note">0.4 fl oz per 1 gal water</span>${invBadge(COOL_R5_SPOT_ARTAVIA)}</div>
         <div class="product-amount" id="cool-r5-spot-artavia">${fmtSpotOz(artaviaOz)}</div>
       </div>
       <div class="product-row">
-        <div class="product-name">${COOL_R5_SPOT_PROPI}<span class="cond-note">Optional: 1.0 fl oz/gal if used</span>${invBadge(COOL_R5_SPOT_PROPI)}</div>
+        <div class="product-name">${COOL_R5_SPOT_PROPI}<span class="cond-note">OPTIONAL — 1.0 fl oz/gal, same backpack</span>${invBadge(COOL_R5_SPOT_PROPI)}</div>
         <div class="product-amount" id="cool-r5-spot-propi">${fmtSpotOz(propiOz)}</div>
       </div>
       <div class="mix-order">Spray the patch plus about 2 ft into healthy grass. NO surfactant.</div>
@@ -3073,7 +3073,7 @@ function renderFly() {
         <div style="margin-top:20px">
           <div style="font-family:var(--font-display);font-weight:900;font-size:18px;margin-bottom:12px">
             ${rd.icon} R${state.flyRound} — ${rd.name}
-            <span style="font-size:12px;font-family:var(--font-mono);color:var(--text2);font-weight:400;margin-left:8px">${state.flySqft.toLocaleString()} sqft</span>
+            ${coolR5Spot ? '' : `<span style="font-size:12px;font-family:var(--font-mono);color:var(--text2);font-weight:400;margin-left:8px">${state.flySqft.toLocaleString()} sqft</span>`}
           </div>
           ${renderAlerts(coolR5DisplayAlerts(rd, coolR5Spot))}
           ${coolR5Spot ? renderCoolR5SpotCard() : isLiquidAltMode ? `
@@ -3625,10 +3625,8 @@ function attachEvents() {
       const gal = coolR5SpotGallons();
       const art = document.getElementById('cool-r5-spot-artavia');
       const pro = document.getElementById('cool-r5-spot-propi');
-      const galLabel = document.getElementById('cool-r5-spot-gal-label');
       if (art) art.textContent = fmtSpotOz(gal * 0.4);
       if (pro) pro.textContent = fmtSpotOz(gal * 1.0);
-      if (galLabel) galLabel.textContent = `FOR ${fmt(gal, 2)} GAL WATER →`;
     };
     spotGal.addEventListener('input', paintSpotGal);
     spotGal.addEventListener('change', paintSpotGal);
