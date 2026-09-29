@@ -1072,20 +1072,6 @@ const ROUNDS = {
         rates:[{label:'Tall Fescue', lbs:2.8}],
         note:'Push Spreader ONLY. Fall start after summer dormancy — 0.5 lb N/1K. Water-in within 24 hrs.',
       },
-      liquidAlt: {
-        label: 'Liquid Alt — Terra Ally TA 22-0-0 (override granular)',
-        note: 'Full parity with granular 0.5 lb N/1K target — no reduction needed, cooler round.',
-        products: {
-          toro: [
-            {name:'Terra Ally TA 22-0-0', rate: 85.6, unit:'fl oz'},
-            {name:'90/10 NIS',            rate: 1.6,  unit:'oz'},
-          ],
-          ps: [
-            {name:'Terra Ally TA 22-0-0', rate: 25.5, unit:'fl oz'},
-            {name:'90/10 NIS',            rate: 0.5,  unit:'oz'},
-          ],
-        },
-      },
       bg:[
         {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
         {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga — 1-gal metal B&G rate'},
@@ -1102,23 +1088,6 @@ const ROUNDS = {
         product:'LESCO 24-0-11 w/ 2% Fe + PolyPlus',
         rates:[{label:'Tall Fescue', lbs:4.17}],
         note:'Push Spreader ONLY. Big fall feed — drives color and density into winter.',
-      },
-      liquidAlt: {
-        label: 'Liquid Alt — Terra Ally TA 22-0-0 (override granular)',
-        note: 'PS properties get full parity (1.0 lb N/1K). Toro properties (≥10K sqft) ' +
-              'CANNOT physically reach full parity — max-strength compromise (~0.71 lb N/1K) ' +
-              'is the ceiling. This is a real equipment limit, not a rate typo — do not "fix" ' +
-              'by increasing the Toro number further, it is already near 100% concentrate.',
-        products: {
-          toro: [
-            {name:'Terra Ally TA 22-0-0', rate: 121, unit:'fl oz'},
-            {name:'90/10 NIS',            rate: 2,   unit:'oz'},
-          ],
-          ps: [
-            {name:'Terra Ally TA 22-0-0', rate: 51.1, unit:'fl oz'},
-            {name:'90/10 NIS',            rate: 1.0,  unit:'oz'},
-          ],
-        },
       },
       bg:[
         {name:'Triad Select',            amount:'1.4 oz',  note:'Post-em broadleaf'},
@@ -1433,12 +1402,6 @@ const LEFTOVER_REFORM_ALLOWLIST = [
     label: 'Warm R4 liquid ↔ R5 liquidAlt',
     disabled: true,
     disabledReason: 'Warm R4↔R5 reform held until re-math on new ultra-safe R5 Alt (22.06/6.58). Default R5 = granular. No spike/dilute yet.',
-  },
-  {
-    routeType: 'cool',
-    a: { round: 6, pass: 'liquidAlt' },
-    b: { round: 7, pass: 'liquidAlt' },
-    label: 'Cool R6 liquidAlt ↔ R7 liquidAlt',
   },
 ];
 
@@ -1826,7 +1789,7 @@ function leftoverPassOptions(routeType, roundNum) {
   const rd = (routeType && roundNum) ? ROUNDS[routeType]?.[roundNum] : null;
   const opts = [];
   // Real broadcast liquid only — never invent herbicide when rd.liquid is null
-  // (e.g. warm R3/R5/R6, cool R3/R6/R7 granular-only or liquidAlt-only).
+  // (e.g. warm R3/R5/R6, cool R3/R6/R7 — granular, not a broadcast liquid tank).
   if (rd?.liquid?.products?.length) {
     opts.push({value:'liquid', label: leftoverBroadcastLiquidLabel(rd, roundNum)});
   }
@@ -1966,8 +1929,8 @@ function renderLeftoverPanel(ctxRouteType, ctxRound) {
     ? `<select class="prop-input" id="leftover-from-pass">${passSelect}</select>`
     : `<div class="info-row" id="leftover-from-pass-empty" style="font-size:12px;color:var(--text2);padding:8px 0">This round has no broadcast liquid leftover credit.</div>`;
 
-  // Kalin hint: liquidAlt-only leftover sources (warm R5 + cool R6/R7) credit
-  // Terra Ally override only — never granular. Exact warm-R5 copy agreed with Ops/Ship.
+  // Kalin hint: warm R5 is liquidAlt-only and credits Terra Ally override only —
+  // never granular. Exact warm-R5 copy agreed with Ops/Ship.
   const fromRd = ROUNDS[fromType]?.[Number(fromRound)];
   const liquidAltOnly = !!(fromRd?.liquidAlt) && !(fromRd?.liquid?.products?.length);
   const isWarmR5 = fromType === 'warm' && Number(fromRound) === 5;
@@ -2111,13 +2074,9 @@ function psRates(products) {
   return products.map(p => ({...p, rate: p.psRate !== undefined ? p.psRate : p.rate * ratio}));
 }
 
-// Every liquidAlt round (R5 warm, R6/R7 cool) is a single-rate override —
-// a plain Toro/PS split on the standard gate, same shape as rd.liquid rounds.
-// IMPORTANT: R7 cool's ps rate is a deliberately different N target from its
-// toro rate (PS reaches full parity; Toro is capped at a max-strength
-// compromise — see rd.liquidAlt.note). Pull both straight from data — never
-// run them through psRates(), which assumes a shared ratio that doesn't hold
-// there.
+// Warm R5 liquidAlt is a single-rate override — a plain Toro/PS split on the
+// standard gate, same shape as rd.liquid rounds. Its PS table is its own rate,
+// not a psRates() derivation. Pull both straight from data.
 function calcLiquidAltStandard(rd, props) {
   const la = rd.liquidAlt;
   const toroProps = props.filter(p => !p.isRockYard && resolveLiquidEquip(p) === 'toro');
@@ -2138,7 +2097,7 @@ function calcRoundSection(routeType, roundNum, props, feedMode) {
   let toroMix=null, psMix=null, fungSepMix=null, granData=null, liquidAltData=null;
 
   // Per-round granular↔liquid override — only relevant where rd.liquidAlt
-  // exists (R5 warm, R6/R7 cool). feedMode is undefined for callers (like Fly)
+  // exists (warm R5). feedMode is undefined for callers (like Fly)
   // that don't wire up the toggle, which correctly falls through to granular.
   const mode = (feedMode && feedMode[`${routeType}_${roundNum}`]) || 'granular';
   const useLiquidAlt = mode === 'liquid' && !!rd.liquidAlt;
@@ -2634,7 +2593,7 @@ function renderGranCard(granData) {
   </div>`;
 }
 
-// Renders the mix card(s) for a round's liquid-alt override (R5 warm, R6/R7 cool).
+// Renders the mix card(s) for a round's liquid-alt override (warm R5).
 function renderLiquidAltCard(data, routeType, roundNum) {
   if (!data) return '';
   // Hazard (e.g. R5's Terra Ally heat rule) is top priority — render before
@@ -3667,8 +3626,8 @@ function attachEvents() {
   bindLeftoverPanelListeners();
 }
 
-// Per-round granular↔liquid override (R5 warm, R6/R7 cool — wherever
-// rd.liquidAlt exists). Daily manual toggle, whole-route scope, not persisted.
+// Per-round granular↔liquid override (warm R5 — wherever rd.liquidAlt exists).
+// Daily manual toggle, whole-route scope, not persisted.
 function toggleFeedMode(routeType, roundNum) {
   const key = `${routeType}_${roundNum}`;
   state.feedMode[key] = (state.feedMode[key] === 'liquid') ? 'granular' : 'liquid';
