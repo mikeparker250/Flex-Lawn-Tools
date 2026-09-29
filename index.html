@@ -1153,9 +1153,55 @@ const state = {
   leftoverFromPass: null,  // liquid | liquidAlt | fungSep | null
   // v2 reform confirm — required before allowlist spike/dilute credit applies
   leftoverReformConfirmed: false,
+  // Cool R5 late-season spot-treat backpack gallons. Blank/invalid = 1 gal.
+  // Scales the per-gallon recipe only — never route sq ft.
+  coolR5SpotGal: '',
   // Bag on hand — session only. Custom last-used lives in localStorage, not here as doctrine.
   bagOnHand: {},
 };
+
+// App clock for the cool R5 recipe window only.
+// Production uses the device's local date. Override for previews/tests:
+//   ?date=YYYY-MM-DD  (local calendar date, not UTC — read once at load)
+//   window.__flexToday = new Date(year, monthIndex, day)  (tests)
+// Round detection, today(), and the Order Planner are unchanged.
+function parseFlexDateParam(search) {
+  const raw = new URLSearchParams(search || '').get('date');
+  if (!raw) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(raw).trim());
+  if (!m) return null;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  const dt = new Date(y, mo - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+  return dt;
+}
+// Captured at load, before history.replaceState can touch the query string.
+let _flexDateOverride = null;
+try { _flexDateOverride = parseFlexDateParam(window.location.search); }
+catch (e) { _flexDateOverride = null; }
+
+function appToday() {
+  if (typeof window !== 'undefined' && window.__flexToday instanceof Date && !isNaN(window.__flexToday.getTime())) {
+    return window.__flexToday;
+  }
+  return _flexDateOverride || new Date();
+}
+
+// Cool R5: blanket dual-fungicide tank through Sep 15 (and before Jul 12).
+// Sep 16–Dec 31, any year: spot-treat visible brown patch only.
+function flexDateOverrideActive() {
+  if (typeof window !== 'undefined' && window.__flexToday instanceof Date && !isNaN(window.__flexToday.getTime())) return true;
+  return _flexDateOverride instanceof Date;
+}
+
+function isCoolR5SpotTreat(date) {
+  const d = date || appToday();
+  const md = (d.getMonth() + 1) * 100 + d.getDate();
+  return md >= 916;
+}
+function coolR5SpotActive(routeType, roundNum) {
+  return routeType === 'cool' && Number(roundNum) === 5 && isCoolR5SpotTreat();
+}
 
 function detectRound() {
   const d = new Date();
@@ -2113,6 +2159,9 @@ function calcRoundSection(routeType, roundNum, props, feedMode) {
   // that don't wire up the toggle, which correctly falls through to granular.
   const mode = (feedMode && feedMode[`${routeType}_${roundNum}`]) || 'granular';
   const useLiquidAlt = mode === 'liquid' && !!rd.liquidAlt;
+  // Late-season cool R5 still stores the summer tank (so Order Planner and
+  // round snapshots match) but the card must not render those gallons.
+  const coolR5Spot = coolR5SpotActive(routeType, roundNum);
 
   // Liquid rounds split into Toro/PS mixes per-property. Equipment precedence:
   // manual property override > round's own hardcoded equipment (rd.liquid.equipment,
@@ -2159,7 +2208,7 @@ function calcRoundSection(routeType, roundNum, props, feedMode) {
     }
   }
 
-  return {rd, totalSqft, toroMix, psMix, fungSepMix, granData, liquidAltData, mode};
+  return {rd, totalSqft, toroMix, psMix, fungSepMix, granData, liquidAltData, mode, coolR5Spot};
 }
 
 function calcAllResults(routeType, properties, feedMode) {
@@ -2299,6 +2348,67 @@ function renderAlerts(alerts) {
   return alerts.map(a =>
     `<div class="alert-box alert-${a.type}">${a.msg}</div>`
   ).join('');
+}
+
+// Summer-window FRAC warning contradicts the late-season exception on this card.
+function coolR5DisplayAlerts(rd, spot) {
+  if (!spot) return rd.alerts;
+  return (rd.alerts || []).filter(a => !/back-to-back/i.test(a.msg || ''));
+}
+
+function coolR5SpotGallons() {
+  const raw = state.coolR5SpotGal;
+  if (raw === '' || raw == null) return 1;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return 1;
+  return n;
+}
+
+function fmtSpotOz(n) {
+  return (Math.round(n * 10) / 10).toFixed(1) + ' fl oz';
+}
+
+// Per-gallon backpack recipe. Gallons input scales these two amounts only.
+const COOL_R5_SPOT_ARTAVIA = 'Artavia SC (Azoxystrobin)';
+const COOL_R5_SPOT_PROPI = 'Propiconazole 14.3';
+const COOL_R5_SPOT_NOTE = 'One-time late-season exception to the FRAC 11 back-to-back rule, approved by Mike.';
+
+function renderCoolR5SpotCard() {
+  const gal = coolR5SpotGallons();
+  const artaviaOz = gal * 0.4;
+  const propiOz = gal * 1.0;
+  const preview = (typeof _flexDateOverride !== 'undefined' && _flexDateOverride)
+    || (typeof window !== 'undefined' && window.__flexToday instanceof Date);
+  const previewDate = preview ? appToday() : null;
+  const previewLine = previewDate
+    ? `<div class="info-row" id="cool-r5-preview-date">Preview date ${previewDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>`
+    : '';
+  return `
+  <div class="mix-card" id="cool-r5-spot-card" data-cool-r5-mode="spot">
+    <div class="mix-card-header">
+      <span class="mix-card-icon">🎯</span>
+      <span class="mix-card-title" style="text-transform:none;letter-spacing:0">Spot-treat visible brown patch only, no blanket.</span>
+      <span style="font-size:10px;font-family:var(--font-mono);color:#aaa;letter-spacing:1px">BACKPACK</span>
+    </div>
+    <div class="mix-card-body">
+      ${previewLine}
+      <div class="alert-box alert-info">Backpack sprayer only. No blanket gallons.</div>
+      <label for="cool-r5-spot-gal" style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);font-family:var(--font-mono);margin-bottom:12px">
+        Gallons in backpack
+        <input type="number" min="0" step="0.1" inputmode="decimal" id="cool-r5-spot-gal" class="prop-input" value="${state.coolR5SpotGal === '' || state.coolR5SpotGal == null ? 1 : state.coolR5SpotGal}" style="width:72px;font-size:14px;padding:6px 8px;margin:0" />
+      </label>
+      <div class="product-row">
+        <div class="product-name">${COOL_R5_SPOT_ARTAVIA}<span class="cond-note">0.4 fl oz per 1 gal water</span>${invBadge(COOL_R5_SPOT_ARTAVIA)}</div>
+        <div class="product-amount" id="cool-r5-spot-artavia">${fmtSpotOz(artaviaOz)}</div>
+      </div>
+      <div class="product-row">
+        <div class="product-name">${COOL_R5_SPOT_PROPI}<span class="cond-note">OPTIONAL — 1.0 fl oz/gal, same backpack</span>${invBadge(COOL_R5_SPOT_PROPI)}</div>
+        <div class="product-amount" id="cool-r5-spot-propi">${fmtSpotOz(propiOz)}</div>
+      </div>
+      <div class="mix-order">Spray the patch plus about 2 ft into healthy grass. NO surfactant.</div>
+      <div class="mix-order" id="cool-r5-frac-note">${COOL_R5_SPOT_NOTE}</div>
+    </div>
+  </div>`;
 }
 
 // Products at or under 1 gal (128 oz) display as-is with decimals.
@@ -2941,7 +3051,7 @@ function renderFly() {
     const props = [{name:'Fly Mix', sqft: state.flySqft, round: `R${state.flyRound}`, isRockYard:false, hasRockBeds:false, isHoseDrag:false}];
     const section = calcRoundSection(state.flyType, state.flyRound, props, state.feedMode);
     if (section) {
-      const {rd, toroMix, psMix, fungSepMix, granData, liquidAltData, mode} = section;
+      const {rd, toroMix, psMix, fungSepMix, granData, liquidAltData, mode, coolR5Spot} = section;
       const isLiquidAltMode = mode === 'liquid' && !!liquidAltData;
 
       // Mix on the Fly: never use PS rig (can't mix on-site).
@@ -2970,10 +3080,10 @@ function renderFly() {
         <div style="margin-top:20px">
           <div style="font-family:var(--font-display);font-weight:900;font-size:18px;margin-bottom:12px">
             ${rd.icon} R${state.flyRound} — ${rd.name}
-            <span style="font-size:12px;font-family:var(--font-mono);color:var(--text2);font-weight:400;margin-left:8px">${state.flySqft.toLocaleString()} sqft</span>
+            ${coolR5Spot ? '' : `<span style="font-size:12px;font-family:var(--font-mono);color:var(--text2);font-weight:400;margin-left:8px">${state.flySqft.toLocaleString()} sqft</span>`}
           </div>
-          ${renderAlerts(rd.alerts)}
-          ${isLiquidAltMode ? `
+          ${renderAlerts(coolR5DisplayAlerts(rd, coolR5Spot))}
+          ${coolR5Spot ? renderCoolR5SpotCard() : isLiquidAltMode ? `
             ${liquidAltData.hazard ? `<div class="alert-box alert-danger">🚨 ${liquidAltData.hazard}</div>` : ''}
             <div class="alert-box alert-info">🧪 ${liquidAltData.label}</div>
             ${liquidAltData.note ? `<div class="alert-box alert-warn">${liquidAltData.note}</div>` : ''}
@@ -3272,12 +3382,15 @@ function renderResults() {
           ${hasFeedToggle ? renderFeedToggle(state.routeType, sec.roundNum, sec.mode) : ''}
         </div>
         <div style="font-size:12px;font-family:var(--font-mono);color:var(--text2);margin-top:2px">
-          ${sec.props.length} properties &nbsp;·&nbsp; ${sec.sqft.toLocaleString()} sqft &nbsp;·&nbsp; ${rd.dates}
+          ${sec.props.length} properties &nbsp;·&nbsp; ${sec.sqft.toLocaleString()} sqft &nbsp;·&nbsp; ${rd.dates}${state.routeType==='cool' && sec.roundNum===5 && flexDateOverrideActive() ? ` &nbsp;·&nbsp; Preview date ${appToday().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}` : ''}
         </div>
       </div>`;
-      content += renderAlerts(rd.alerts);
+      const spot = !!sec.coolR5Spot;
+      content += renderAlerts(coolR5DisplayAlerts(rd, spot));
 
-      if (sec.mode === 'liquid' && sec.liquidAltData) {
+      if (spot) {
+        content += renderCoolR5SpotCard();
+      } else if (sec.mode === 'liquid' && sec.liquidAltData) {
         // Liquid-alt override active — N delivery comes from Terra Ally, not
         // the granular product coded for this round.
         content += renderLiquidAltCard(sec.liquidAltData, state.routeType, sec.roundNum);
@@ -3512,6 +3625,21 @@ function updateRsWeedList() {
 }
 
 function attachEvents() {
+  // Cool R5 spot-treat: scale the per-gallon backpack amounts in place.
+  const spotGal = document.getElementById('cool-r5-spot-gal');
+  if (spotGal) {
+    const paintSpotGal = () => {
+      state.coolR5SpotGal = spotGal.value;
+      const gal = coolR5SpotGallons();
+      const art = document.getElementById('cool-r5-spot-artavia');
+      const pro = document.getElementById('cool-r5-spot-propi');
+      if (art) art.textContent = fmtSpotOz(gal * 0.4);
+      if (pro) pro.textContent = fmtSpotOz(gal * 1.0);
+    };
+    spotGal.addEventListener('input', paintSpotGal);
+    spotGal.addEventListener('change', paintSpotGal);
+  }
+
   // Reservice weed search — partial update only, preserves keyboard focus
   document.getElementById('weed-search')?.addEventListener('input', (e) => {
     state.rsWeedSearch = e.target.value;
