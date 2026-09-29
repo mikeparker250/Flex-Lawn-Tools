@@ -688,7 +688,7 @@ const REORDER_THRESHOLDS = {
   'LESCO 24-0-11 w/ 2% Fe + PolyPlus':1, 'Terra Ally TA 22-0-0':2.5,
   'Artavia SC (Azoxystrobin)':1,
   'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe':1, 'Propiconazole 14.3':1,
-  'LESCO 5-0-25 w/ 10% Fe':1, 'Specticle FLO':10,
+  'LESCO 5-0-25 w/ 10% Fe':1, 'The Andersons 5-0-31 w/ 10% Fe':1, 'Specticle FLO':10,
   'LESCO 18-0-9 w/ 2% Fe':1, 'Ranger Pro 41% Glyphosate':2.5,
   'Albaugh Sulfentrazone 4SC Select':1, 'Revolver':1, 'Special Sauce':2.5, 'Empero (Halosulfuron)':1,
   'Eliminate D':1, 'Turflon Ester 4E':1,
@@ -936,9 +936,9 @@ const ROUNDS = {
       name:'Late Summer Root Strengthening', icon:'🍂', dates:'Aug 23 – Oct 3',
       liquid:null,
       granular:{
-        product:'LESCO 5-0-25 w/ 10% Fe',
-        rates:[{label:'Bermuda & Zoysia', lbs:4.0}],
-        note:'Zero N / high K — hardens cell walls, prep for dormancy. Water-in within 24 hrs.',
+        product:'The Andersons 5-0-31 w/ 10% Fe',
+        rates:[{label:'Bermuda & Zoysia', lbs:3.0}],
+        note:'Low N / high K: 0.15 lb N + 0.93 lb K2O per 1K. Label: above 85°F use the LOW rate, 2.0 lb/1K. Actively growing turf only. Water in 0.2 in within 24 hrs. Sweep granules off concrete; iron stains, so don\'t wash them off.',
       },
       bg:[
         {name:'Albaugh Sulfentrazone 4SC Select', amount:'0.18 oz', note:'Sedge + kyllinga + spurge'},
@@ -951,7 +951,7 @@ const ROUNDS = {
       ],
       bg2:null,
       alerts:[
-        {type:'info', msg:'Quin-Way annual cap: confirm running total stays under 2.9 oz/1K. Zero N on Bermuda/Zoysia this round is intentional — heading into dormancy.'},
+        {type:'info', msg:'Quin-Way annual cap: confirm running total stays under 2.9 oz/1K. Low N / high K: 0.15 lb N + 0.93 lb K2O per 1K. Label: above 85°F use the LOW rate, 2.0 lb/1K. Actively growing turf only. Water in 0.2 in within 24 hrs. Sweep granules off concrete; iron stains, so don\'t wash them off.'},
       ],
     },
     7: {
@@ -2558,6 +2558,15 @@ function renderTruckStockCard(items) {
   </div>`;
 }
 
+// Exact bag figure (lbs / 50) plus whole bags to load. fmtBags is the rounded-up count.
+function granBagLine(lbs) {
+  const exact = fmt(lbs / GRANULE_BAG_LBS, 2);
+  const loadCount = parseInt(fmtBags(lbs), 10);
+  const exactNoun = exact === '1' ? 'bag' : 'bags';
+  const loadNoun = loadCount === 1 ? 'bag' : 'bags';
+  return `${exact} ${exactNoun}, ${loadCount} ${loadNoun} to load`;
+}
+
 function renderGranCard(granData) {
   if (!granData) return '';
   const cfg = granData.config;
@@ -2567,11 +2576,13 @@ function renderGranCard(granData) {
   })();
 
   let rateRows = '';
+  const routeLbs = {};
   const sections = [granData.toro, granData.ps].filter(Boolean);
   for (const sec of sections) {
     if (!sec || sec.sqft <= 0) continue;
     for (const r of cfg.rates) {
       const lbs = (sec.sqft / 1000) * r.lbs;
+      routeLbs[r.label] = (routeLbs[r.label] || 0) + lbs;
       rateRows += `
         <div class="gran-rate-row">
           <div>
@@ -2581,10 +2592,28 @@ function renderGranCard(granData) {
           <div class="gran-amount">
             <div class="big">${fmtLbs(lbs)}</div>
             <div class="small">@ ${r.lbs} lbs/1K sqft</div>
+            <div class="small">${granBagLine(lbs)}</div>
           </div>
         </div>`;
     }
   }
+
+  const routeLabels = Object.keys(routeLbs);
+  const routeRows = routeLabels.map(label => {
+    const lbs = routeLbs[label];
+    const labelText = routeLabels.length > 1 ? `Route total — ${label}` : 'Route total';
+    return `
+        <div class="gran-rate-row gran-route-total">
+          <div>
+            <div class="gran-label">${labelText}</div>
+            <div class="gran-equip">All equipment on this route</div>
+          </div>
+          <div class="gran-amount">
+            <div class="big">${fmtLbs(lbs)}</div>
+            <div class="small">${granBagLine(lbs)}</div>
+          </div>
+        </div>`;
+  }).join('');
 
   return `
   <div class="mix-card">
@@ -2598,6 +2627,7 @@ function renderGranCard(granData) {
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:4px">PRODUCT</div>
       <div style="font-size:15px;font-weight:600;margin-bottom:14px">${cfg.product}</div>
       ${rateRows}
+      ${routeRows}
       ${cfg.note ? `<div class="info-row" style="margin-top:10px">ℹ️ ${cfg.note}</div>` : ''}
       ${cfg.hardStop && !isHardStop ? `<div class="info-row" style="margin-top:10px;color:var(--warn)">⚠️ MAY 1 HARD STOP: If today is after May 1 — skip granular entirely.</div>` : ''}
     </div>
