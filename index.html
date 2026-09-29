@@ -1125,6 +1125,8 @@ const state = {
   opRouteType: null,
   opSqftWarm: 0,
   opSqftCool: 0,
+  opCountWarm: 0,
+  opCountCool: 0,
   opLoading: false,
   opError: null,
   opFRData: null,         // { warmCount, coolCount, warmSqft, coolSqft, source }
@@ -2898,7 +2900,7 @@ function renderStep1() {
 function selectRoute(type) { state.routeType=type; state.feedMode={}; resetLeftoverState(); navigateTo('step2'); }
 function selectFly() { state.flyMode='round'; navigateTo('fly'); }
 function selectReservice() { state.rsTurfType=null; state.rsSelectedWeeds=[]; state.rsWeedSearch=''; navigateTo('reservice'); }
-function selectOrderPlanner() { state.opRound=null; state.opRouteType=null; state.opSqftWarm=0; state.opSqftCool=0; state.opLoading=false; state.opError=null; state.opFRData=null; navigateTo('orderplanner'); }
+function selectOrderPlanner() { state.opRound=null; state.opRouteType=null; state.opSqftWarm=0; state.opSqftCool=0; state.opCountWarm=0; state.opCountCool=0; state.opLoading=false; state.opError=null; state.opFRData=null; navigateTo('orderplanner'); }
 
 function renderFly() {
   const detectedRound = detectRound();
@@ -3897,78 +3899,113 @@ async function fetchFRLawnCareData() {
   return null; // FR pull happens server-side via MCP; browser app uses stored sqft
 }
 
-// Calculate the total chemical needed for a full round given sqft
-// Returns array of { name, totalNeeded (oz or lbs), unit, currentStock, stockUnit, toOrder }
-function calcOrderList(routeType, roundNum, totalSqftWarm, totalSqftCool) {
-  const sqft = routeType === 'warm' ? totalSqftWarm : totalSqftCool;
+function orderProductKey(name) {
+  return String(name || '').replace(/\s*⚠️.*$/, '').replace(/\s*—.*$/, '').trim();
+}
+
+// One turf section of an order. Sq ft drives liquids (existing Toro-gal estimate)
+// and granular pounds. Multiple granular turf rows use the single highest rate.
+// B&G stays the labeled 1-gallon recipe, included once when this turf has sq ft.
+function calcOrderSection(routeType, roundNum, sqft) {
   if (!sqft || sqft <= 0) return [];
   const rd = ROUNDS[routeType] && ROUNDS[routeType][roundNum];
   if (!rd) return [];
-
   const products = [];
 
-  // Helper: split sqft into toro vs PS portions for rate blending
-  const toroSqft = Math.max(0, sqft - Math.min(BUFFER, sqft * BUFFER_PCT)); // approximate — actual split varies by property
-  const psSqft = Math.min(sqft, BUFFER * 2);   // rough estimate for PS-sized properties
-  // For ordering purposes we use a conservative calculation:
-  // assume full sqft at Toro rate (over-orders slightly = safe for not running out)
+  // Same conservative liquid estimate the planner already used:
+  // full sq ft at the Toro output rate.
   const galForCalc = (sqft / 1000) * TORO_OUT;
 
   function addLiquidProducts(prodList, gal) {
     for (const p of prodList) {
-      if (!p.name || p.name.includes('⚠️')) {
-        const cleanName = p.name ? p.name.replace(/\s*⚠️.*$/, '').trim() : null;
-        if (!cleanName) continue;
-        products.push({ name: cleanName, needed: gal * p.rate, unit: p.unit || 'oz', cond: p.condNote || null });
-      } else {
-        products.push({ name: p.name, needed: gal * p.rate, unit: p.unit || 'oz', cond: null });
-      }
+      const cleanName = orderProductKey(p.name);
+      if (!cleanName) continue;
+      products.push({ name: cleanName, needed: gal * p.rate, unit: p.unit || 'oz', cond: p.condNote || null });
     }
   }
 
-  if (rd.liquid && rd.liquid.products) {
-    addLiquidProducts(rd.liquid.products, galForCalc);
-  }
+  if (rd.liquid && rd.liquid.products) addLiquidProducts(rd.liquid.products, galForCalc);
   if (rd.liquid && rd.liquid.fungSep && rd.liquid.fungSep.products) {
     addLiquidProducts(rd.liquid.fungSep.products, galForCalc);
   }
 
-  // Granular
   if (rd.granular && rd.granular.product) {
-    const rates = rd.granular.rates || [];
-    for (const r of rates) {
-      const lbs = (sqft / 1000) * r.lbs;
-      products.push({ name: rd.granular.product, needed: lbs, unit: 'lbs', cond: null });
+    const rates = (rd.granular.rates || []).filter(r => r && Number(r.lbs) > 0);
+    if (rates.length) {
+      const chosen = rates.reduce((best, r) => r.lbs > best.lbs ? r : best, rates[0]);
+      products.push({
+        name: rd.granular.product,
+        needed: (sqft / 1000) * chosen.lbs,
+        unit: 'lbs',
+        cond: rates.length > 1 ? 'highest turf rate used' : null,
+      });
     }
   }
 
-  // Deduplicate by name (same product listed multiple times → sum)
+  function addBg(items) {
+    if (!items) return;
+    for (const item of items) {
+      if (!item || item.sep || !item.name || !item.amount) continue;
+      if (!/oz/i.test(item.amount)) continue;
+      const oz = parseFloat(String(item.amount).match(/[\d.]+/));
+      if (!Number.isFinite(oz)) continue;
+      products.push({ name: orderProductKey(item.name), needed: oz, unit: 'oz', cond: '1-gal B&G' });
+    }
+  }
+  addBg(rd.bg);
+  addBg(rd.bgSpecialSauce);
+  addBg(rd.bg2);
+
+  return products;
+}
+
+// Subtract on-hand inventory once. Read-only — does not write Firestore.
+function withOrderInventory(products) {
   const merged = {};
   for (const p of products) {
-    const cleanName = p.name.replace(/\s*⚠️.*$/, '').replace(/\s*—.*$/, '').trim();
-    if (!merged[cleanName]) merged[cleanName] = { name: cleanName, needed: 0, unit: p.unit, cond: p.cond };
+    const cleanName = orderProductKey(p.name);
+    if (!cleanName) continue;
+    if (!merged[cleanName]) merged[cleanName] = { name: cleanName, needed: 0, unit: p.unit, cond: p.cond || null };
     merged[cleanName].needed += p.needed;
+    if (!merged[cleanName].cond && p.cond) merged[cleanName].cond = p.cond;
   }
-
-  // Attach inventory data
-  const result = [];
-  for (const [cleanName, item] of Object.entries(merged)) {
-    const inv = _invData[cleanName];
+  return Object.values(merged).map(item => {
+    const inv = _invData[item.name];
     const currentStock = inv ? Number(inv.quantity) : null;
     const stockUnit = inv ? inv.unit : item.unit;
     const toOrder = currentStock !== null ? Math.max(0, item.needed - currentStock) : item.needed;
-    result.push({
-      name: cleanName,
+    const row = {
+      name: item.name,
       needed: item.needed,
       unit: item.unit,
       currentStock,
       stockUnit,
       toOrder,
       cond: item.cond,
-    });
-  }
+    };
+    if (item.unit === 'lbs') {
+      row.exactBags = item.needed / GRANULE_BAG_LBS;
+      row.bagsToLoad = parseInt(fmtBags(item.needed), 10);
+    }
+    return row;
+  });
+}
 
-  return result;
+function calcOrderList(routeType, roundNum, totalSqftWarm, totalSqftCool) {
+  const sqft = routeType === 'warm' ? totalSqftWarm : totalSqftCool;
+  return withOrderInventory(calcOrderSection(routeType, roundNum, sqft));
+}
+
+// Warm and cool for the same round, plus a combined list that sums shared products
+// and subtracts warehouse stock a single time.
+function calcOrderPlan(roundNum, warmSqft, coolSqft) {
+  const warmRaw = calcOrderSection('warm', roundNum, warmSqft);
+  const coolRaw = calcOrderSection('cool', roundNum, coolSqft);
+  return {
+    warm: withOrderInventory(warmRaw),
+    cool: withOrderInventory(coolRaw),
+    combined: withOrderInventory(warmRaw.concat(coolRaw)),
+  };
 }
 
 const GRANULE_BAG_LBS = 50;
@@ -3979,70 +4016,80 @@ function fmtBags(lbs) {
 }
 
 function fmtNeeded(val, unit) {
-  if (unit === 'lbs') return val.toFixed(1) + ' lbs (' + fmtBags(val) + ')';
+  if (unit === 'lbs') return fmt(val, 1) + ' lb, ' + granBagLine(val);
   if (unit === 'fl oz' || unit === 'oz' || unit === 'oz dry') return val.toFixed(1) + ' oz';
   return val.toFixed(1) + ' ' + unit;
 }
 
-function buildShareText(routeType, roundNum, sqft, orderList) {
-  const rd = ROUNDS[routeType][roundNum];
-  const needsOrder = orderList.filter(p => p.toOrder > 0.5);
-  const stockedOk  = orderList.filter(p => p.toOrder <= 0.5);
-
+function buildPlanShareText(roundNum, warmSqft, coolSqft, warmCount, coolCount, plan) {
+  const warmName = ROUNDS.warm[roundNum].name;
+  const coolName = ROUNDS.cool[roundNum].name;
   const lines = [
     `📦 FLEX LAWN CARE — ORDER LIST`,
-    `R${roundNum}: ${rd.name}`,
-    `${routeType === 'warm' ? '🔥 Warm Season' : '❄️ Cool Season'} · ${sqft.toLocaleString()} sqft · ${today()}`,
+    `R${roundNum} · ${ROUNDS.warm[roundNum].dates} · ${today()}`,
+    `🔥 ${warmName}`,
+    `❄️ ${coolName}`,
+    `Warm ${Number(warmSqft || 0).toLocaleString()} sq ft · ${Number(warmCount || 0)} properties`,
+    `Cool ${Number(coolSqft || 0).toLocaleString()} sq ft · ${Number(coolCount || 0)} properties`,
   ];
-
-  if (needsOrder.length > 0) {
-    lines.push(``, `🛒 ORDER (${needsOrder.length} product${needsOrder.length > 1 ? 's' : ''})`);
-    for (const p of needsOrder) {
+  function addBlock(title, list) {
+    lines.push('', title);
+    if (!list.length) {
+      lines.push('No products.');
+      return;
+    }
+    for (const p of list) {
       const need = fmtNeeded(p.needed, p.unit);
       const have = p.currentStock !== null ? fmtNeeded(p.currentStock, p.stockUnit) : 'unknown';
-      const toOrder = fmtNeeded(p.toOrder, p.unit);
-      lines.push(`• ${p.name}`);
-      lines.push(`  Need ${need}  ·  Have ${have}  →  Order ${toOrder}`);
+      const toOrder = p.toOrder > 0.5 ? fmtNeeded(p.toOrder, p.unit) : 'stocked';
+      lines.push(`• ${p.name}${p.cond ? ` (${p.cond})` : ''}`);
+      lines.push(`  Need ${need}  ·  Have ${have}  →  ${toOrder}`);
     }
   }
-
-  if (stockedOk.length > 0) {
-    lines.push(``, `✅ STOCKED (${stockedOk.length} product${stockedOk.length > 1 ? 's' : ''})`);
-    for (const p of stockedOk) {
-      const have = p.currentStock !== null ? fmtNeeded(p.currentStock, p.stockUnit) : 'OK';
-      lines.push(`• ${p.name} · ${have}`);
-    }
-  }
-
-  if (needsOrder.length === 0) {
-    lines.push(``, `✅ All products fully stocked for R${roundNum} — no order needed.`);
-  }
-
-  lines.push(``, `Total sqft: ${sqft.toLocaleString()}`);
+  addBlock('🔥 WARM', plan.warm);
+  addBlock('❄️ COOL', plan.cool);
+  addBlock('🛒 COMBINED', plan.combined);
   return lines.join('\n');
 }
 
-async function opSaveSqft() {
-  const rt = state.opRouteType;
+function opSaveSqft() {
   const rn = state.opRound;
-  if (!rt || !rn) return;
-  const sqft = rt === 'warm' ? state.opSqftWarm : state.opSqftCool;
-  if (!sqft || sqft <= 0) return;
-  const key = `${rt}_${rn}`;
-  state.opSavedSqft[key] = sqft;
-  render();
-  saveSqftToFirestore(key, sqft);
+  if (!rn) return;
+  state.opSavedSqft[`warm_${rn}`] = state.opSqftWarm;
+  state.opSavedSqft[`cool_${rn}`] = state.opSqftCool;
+  saveSqftToFirestore(`warm_${rn}`, state.opSqftWarm);
+  saveSqftToFirestore(`cool_${rn}`, state.opSqftCool);
+}
+
+function renderOrderRows(list) {
+  if (!list.length) {
+    return `<div style="font-size:13px;color:var(--text3);padding:8px 0">0 sq ft — no products for this turf.</div>`;
+  }
+  return list.map(p => {
+    const needStr = fmtNeeded(p.needed, p.unit);
+    const haveStr = p.currentStock !== null ? `${p.currentStock} ${p.stockUnit || ''}`.trim() : '?';
+    const haveColor = p.currentStock === null ? 'var(--text3)' : p.currentStock === 0 ? 'var(--danger)' : p.toOrder > 0.5 ? 'var(--warn)' : 'var(--green)';
+    const orderStr = p.toOrder > 0.5 ? fmtNeeded(p.toOrder, p.unit) : '✓';
+    const orderColor = p.toOrder > 0.5 ? '#a064ff' : 'var(--green)';
+    return `
+    <div style="border-bottom:1px solid rgba(255,255,255,0.05);padding:10px 0">
+      <div style="font-size:13px;font-weight:600;margin-bottom:5px">${p.name}${p.cond ? `<span style="font-size:10px;color:var(--warn);font-family:var(--font-mono);margin-left:6px">${p.cond}</span>` : ''}</div>
+      <div style="display:flex;gap:8px;font-size:11px;font-family:var(--font-mono);flex-wrap:wrap">
+        <div style="flex:1;min-width:140px"><span style="color:var(--text3)">NEED </span><span style="color:var(--text);font-weight:700">${needStr}</span></div>
+        <div><span style="color:var(--text3)">HAVE </span><span style="color:${haveColor};font-weight:700">${haveStr}</span></div>
+        <div style="text-align:right"><span style="color:var(--text3)">ORDER </span><span style="color:${orderColor};font-weight:700">${orderStr}</span></div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderOrderPlanner() {
-  // ── ROUND PICKER SCREEN ──
-  if (!state.opRound || !state.opRouteType) {
+  if (!state.opRound) {
     const detectedRound = detectRound();
     const nextRound = detectedRound ? (detectedRound < 7 ? detectedRound + 1 : null) : null;
-
-    const rounds = [1,2,3,4,5,6,7];
-    const roundCards = (routeType) => rounds.map(n => {
-      const rd = ROUNDS[routeType][n];
+    const cards = [1,2,3,4,5,6,7].map(n => {
+      const warm = ROUNDS.warm[n];
+      const cool = ROUNDS.cool[n];
       const isNext = n === nextRound;
       const isCurrent = n === detectedRound;
       const border = isNext ? 'rgba(160,100,255,0.5)' : isCurrent ? 'var(--green-border)' : 'rgba(255,255,255,0.08)';
@@ -4050,13 +4097,13 @@ function renderOrderPlanner() {
       const tag = isNext ? `<span style="font-size:10px;font-family:var(--font-mono);color:#a064ff;background:rgba(160,100,255,0.15);border:1px solid rgba(160,100,255,0.3);border-radius:4px;padding:2px 6px;margin-left:8px">NEXT UP</span>`
         : isCurrent ? `<span style="font-size:10px;font-family:var(--font-mono);color:var(--green);background:var(--green-glow);border:1px solid var(--green-border);border-radius:4px;padding:2px 6px;margin-left:8px">CURRENT</span>`
         : '';
-      return `<div onclick="state.opRound=${n};state.opRouteType='${routeType}';opInitRound();render()" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius);background:${bg};border:1px solid ${border};cursor:pointer;margin-bottom:8px">
+      return `<div onclick="state.opRound=${n};state.opRouteType='both';state.opCountWarm=0;state.opCountCool=0;opInitRound();render()" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius);background:${bg};border:1px solid ${border};cursor:pointer;margin-bottom:8px">
         <span style="font-family:var(--font-display);font-weight:900;font-size:20px;color:#a064ff;min-width:28px">R${n}</span>
         <div style="flex:1">
-          <div style="font-size:14px;font-weight:600">${rd.name}${tag}</div>
-          <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:2px">${rd.dates}</div>
+          <div style="font-size:14px;font-weight:600">${warm.dates}${tag}</div>
+          <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:2px">🔥 ${warm.name}</div>
+          <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:1px">❄️ ${cool.name}</div>
         </div>
-        <span style="font-size:18px">${rd.icon}</span>
       </div>`;
     }).join('');
 
@@ -4066,147 +4113,94 @@ function renderOrderPlanner() {
       <span style="font-size:24px">📦</span>
       <div>
         <div style="font-family:var(--font-display);font-weight:900;font-size:22px;color:#a064ff">Order Planner</div>
-        <div style="font-size:12px;color:var(--text2)">Pick a round to see your order list</div>
+        <div style="font-size:12px;color:var(--text2)">Pick a round — warm and cool are planned together</div>
       </div>
     </div>
-
-    <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--green-border)">🔥 Warm Season Rounds</div>
-    ${roundCards('warm')}
-
-    <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;margin-top:20px;padding-bottom:6px;border-bottom:1px solid rgba(100,180,255,0.2)">❄️ Cool Season Rounds</div>
-    ${roundCards('cool')}`;
+    ${cards}`;
   }
 
-  // ── ORDER LIST SCREEN ──
-  const rt = state.opRouteType;
   const rn = state.opRound;
-  const rd = ROUNDS[rt][rn];
-  const sqftKey = `${rt}_${rn}`;
-  const savedSqft = state.opSavedSqft[sqftKey] || 0;
-  const currentSqft = rt === 'warm' ? state.opSqftWarm : state.opSqftCool;
-  const activeSqft = currentSqft > 0 ? currentSqft : savedSqft;
+  const warmRd = ROUNDS.warm[rn];
+  const coolRd = ROUNDS.cool[rn];
+  const plan = calcOrderPlan(rn, state.opSqftWarm, state.opSqftCool);
+  const hasSqft = state.opSqftWarm > 0 || state.opSqftCool > 0;
 
-  const loadingIndicator = state.opLoading ? `<div style="text-align:center;padding:16px 0;font-size:12px;font-family:var(--font-mono);color:var(--text3)"><div class="spinner" style="width:24px;height:24px;border-width:2px;margin:0 auto 8px"></div>Loading data...</div>` : '';
+  const field = (id, label, value) => `
+    <label style="display:block;font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px">${label}</label>
+    <input type="number" min="0" id="${id}" class="prop-input" value="${value || ''}" style="width:100%;font-size:16px;padding:10px;margin-bottom:10px" />`;
 
-  const sqftSection = `
+  const inputs = `
   <div style="background:var(--bg2);border:1px solid rgba(160,100,255,0.25);border-radius:var(--radius);padding:14px;margin-bottom:16px">
-    <div style="font-size:11px;font-family:var(--font-mono);color:#a064ff;letter-spacing:1px;margin-bottom:10px">TOTAL SQFT TO TREAT</div>
-    ${savedSqft > 0 && currentSqft === 0 ? `<div style="font-size:12px;color:var(--text2);font-family:var(--font-mono);margin-bottom:8px">📁 Using saved: ${savedSqft.toLocaleString()} sqft — update below to recalculate</div>` : ''}
-    <input type="number" id="op-sqft-input" class="prop-input" placeholder="e.g. 95000"
-      value="${activeSqft || ''}"
-      style="width:100%;font-size:18px;padding:12px;margin-bottom:10px" />
-    <button onclick="opUpdateSqft()" class="btn btn-primary" style="width:100%;padding:14px">Save & Calculate</button>
-    <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:8px">Enter total sqft you treat each ${rt === 'warm' ? 'warm' : 'cool'} season R${rn}. Saved to Firestore for next time.</div>
+    <div style="font-size:12px;font-weight:700;margin-bottom:8px">🔥 Warm — Bermuda & Zoysia</div>
+    ${field('op-sqft-warm', 'Sq ft', state.opSqftWarm)}
+    ${field('op-count-warm', 'Properties', state.opCountWarm)}
+    <div style="font-size:12px;font-weight:700;margin:8px 0">❄️ Cool — Tall Fescue</div>
+    ${field('op-sqft-cool', 'Sq ft', state.opSqftCool)}
+    ${field('op-count-cool', 'Properties', state.opCountCool)}
+    <button id="op-calc-btn" onclick="opUpdateSqft()" class="btn btn-primary" style="width:100%;padding:14px">Calculate</button>
+    <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:8px">Either turf can be 0. Sq ft drives the chemical totals. Property count is recorded with the order.</div>
   </div>`;
 
-  let orderHTML = '';
-  if (activeSqft > 0 && _invReady) {
-    const orderList = calcOrderList(rt, rn, rt === 'warm' ? activeSqft : 0, rt === 'cool' ? activeSqft : 0);
-
-    if (orderList.length === 0) {
-      orderHTML = `<div class="alert-box alert-info">No liquid or granular products for this round — nothing to order.</div>`;
-    } else {
-      const needsOrder = orderList.filter(p => p.toOrder > 0.5);
-      const stockedOk  = orderList.filter(p => p.toOrder <= 0.5);
-
-      const summaryBanner = needsOrder.length === 0
-        ? `<div style="background:rgba(0,255,71,0.06);border:1px solid rgba(0,255,71,0.2);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;font-size:12px;font-family:var(--font-mono);color:var(--green)">✓ ALL PRODUCTS STOCKED FOR R${rn} — NO ORDER NEEDED</div>`
-        : `<div style="background:rgba(160,100,255,0.08);border:1px solid rgba(160,100,255,0.25);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;font-size:12px;font-family:var(--font-mono);color:#a064ff">📋 ${needsOrder.length} PRODUCT${needsOrder.length>1?'S':''} TO ORDER FOR R${rn}</div>`;
-
-      const makeRow = (p, highlight) => {
-        const needStr = fmtNeeded(p.needed, p.unit);
-        const haveStr = p.currentStock !== null ? fmtNeeded(p.currentStock, p.stockUnit) : '?';
-        const haveColor = p.currentStock === null ? 'var(--text3)' : p.currentStock === 0 ? 'var(--danger)' : p.toOrder > 0.5 ? 'var(--warn)' : 'var(--green)';
-        const orderStr = p.toOrder > 0.5 ? fmtNeeded(p.toOrder, p.unit) : '✓';
-        const orderColor = p.toOrder > 0.5 ? '#a064ff' : 'var(--green)';
-        const rowBg = highlight ? 'rgba(160,100,255,0.06)' : 'transparent';
-        return `
-        <div style="background:${rowBg};border-bottom:1px solid rgba(255,255,255,0.05);padding:10px 0">
-          <div style="font-size:13px;font-weight:600;margin-bottom:5px">${p.name}${p.cond ? `<span style="font-size:10px;color:var(--warn);font-family:var(--font-mono);margin-left:6px">${p.cond}</span>` : ''}</div>
-          <div style="display:flex;gap:0;font-size:11px;font-family:var(--font-mono)">
-            <div style="flex:1"><span style="color:var(--text3)">NEED </span><span style="color:var(--text);font-weight:700">${needStr}</span></div>
-            <div style="flex:1"><span style="color:var(--text3)">HAVE </span><span style="color:${haveColor};font-weight:700">${haveStr}</span></div>
-            <div style="flex:1;text-align:right"><span style="color:var(--text3)">ORDER </span><span style="color:${orderColor};font-weight:700">${orderStr}</span></div>
-          </div>
-        </div>`;
-      };
-
-      const orderRows = needsOrder.map(p => makeRow(p, true)).join('');
-      const stockedRows = stockedOk.map(p => makeRow(p, false)).join('');
-
-      const shareBtn = `
-      <button onclick="opShareOrder()" class="btn btn-primary" style="margin-top:16px;background:rgba(160,100,255,0.9);border:none">
-        📤 Share Order List
-      </button>`;
-
-      orderHTML = `
-      ${summaryBanner}
-      <div class="mix-card">
-        <div class="mix-card-header">
-          <span class="mix-card-icon">${rd.icon}</span>
-          <span class="mix-card-title">R${rn} — ${rd.name}</span>
-          <span style="font-size:10px;font-family:var(--font-mono);color:#a064ff">${activeSqft.toLocaleString()} SQFT</span>
-        </div>
-        <div class="mix-card-body">
-          ${needsOrder.length > 0 ? `<div style="font-size:11px;font-family:var(--font-mono);color:#a064ff;letter-spacing:1px;margin-bottom:4px">ORDER THESE →</div>${orderRows}` : ''}
-          ${stockedOk.length > 0 ? `<div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;margin-top:${needsOrder.length>0?'12':'0'}px;margin-bottom:4px">FULLY STOCKED →</div>${stockedRows}` : ''}
-        </div>
+  const section = (id, title, sub, sqft, count, list) => `
+    <div id="${id}" class="mix-card" style="margin-bottom:12px">
+      <div class="mix-card-header">
+        <span class="mix-card-title">${title}</span>
+        <span style="font-size:10px;font-family:var(--font-mono);color:#a064ff">${Number(sqft || 0).toLocaleString()} SQ FT · ${Number(count || 0)} PROP</span>
       </div>
-      ${shareBtn}
-      <div id="op-share-fallback" style="display:none;margin-top:12px">
-        <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:6px">Copy the text below:</div>
-        <textarea id="op-share-text" readonly style="width:100%;height:180px;background:var(--bg3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--text2);padding:10px;font-family:var(--font-mono);font-size:11px;line-height:1.5;resize:none"></textarea>
-      </div>`;
-    }
-  } else if (activeSqft > 0 && !_invReady) {
-    orderHTML = `<div style="text-align:center;padding:16px 0;font-size:12px;font-family:var(--font-mono);color:var(--text3)"><div class="spinner" style="width:24px;height:24px;border-width:2px;margin:0 auto 8px"></div>Loading inventory...</div>`;
-  }
+      <div class="mix-card-body">
+        <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px">${sub}</div>
+        ${sqft > 0 ? renderOrderRows(list) : `<div style="font-size:13px;color:var(--text3);padding:8px 0">0 sq ft — no products for this turf.</div>`}
+      </div>
+    </div>`;
 
-  const routeLabel = rt === 'warm' ? '🔥 Warm Season' : '❄️ Cool Season';
+  const orderHTML = hasSqft ? `
+    ${section('op-warm', '🔥 Warm', warmRd.name, state.opSqftWarm, state.opCountWarm, plan.warm)}
+    ${section('op-cool', '❄️ Cool', coolRd.name, state.opSqftCool, state.opCountCool, plan.cool)}
+    ${section('op-combined', '🛒 Combined shopping list', 'Shared products are added together. Warehouse stock is subtracted once.', state.opSqftWarm + state.opSqftCool, state.opCountWarm + state.opCountCool, plan.combined)}
+    <button onclick="opShareOrder()" class="btn btn-primary" style="margin-top:4px;background:rgba(160,100,255,0.9);border:none">📤 Share Order List</button>
+    <div id="op-share-fallback" style="display:none;margin-top:12px">
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:6px">Copy the text below:</div>
+      <textarea id="op-share-text" readonly style="width:100%;height:180px;background:var(--bg3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--text2);padding:10px;font-family:var(--font-mono);font-size:11px;line-height:1.5;resize:none"></textarea>
+    </div>` : `<div class="alert-box alert-info">Enter warm and/or cool sq ft, then calculate.</div>`;
+
   return `
   <button class="back-nav" onclick="state.opRound=null;state.opRouteType=null;render()">← Back</button>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
     <span style="font-size:24px">📦</span>
     <div>
       <div style="font-family:var(--font-display);font-weight:900;font-size:22px;color:#a064ff">Order Planner</div>
-      <div style="font-size:12px;color:var(--text2)">${routeLabel} — R${rn} ${rd.name}</div>
+      <div style="font-size:12px;color:var(--text2)">R${rn} · ${warmRd.dates}</div>
     </div>
   </div>
-  ${loadingIndicator}
-  ${sqftSection}
+  ${inputs}
   ${orderHTML}`;
 }
 
 function opInitRound() {
-  // Load saved sqft from Firestore when entering an order round
   loadSavedSqft().then(saved => {
     state.opSavedSqft = saved || {};
-    const key = `${state.opRouteType}_${state.opRound}`;
-    const savedVal = saved[key] || 0;
-    if (state.opRouteType === 'warm') state.opSqftWarm = savedVal;
-    else state.opSqftCool = savedVal;
+    const rn = state.opRound;
+    if (!rn) return;
+    state.opSqftWarm = Number(saved[`warm_${rn}`]) || 0;
+    state.opSqftCool = Number(saved[`cool_${rn}`]) || 0;
     render();
   });
 }
 
 function opUpdateSqft() {
-  const val = parseInt(document.getElementById('op-sqft-input')?.value) || 0;
-  if (val > 0) {
-    if (state.opRouteType === 'warm') state.opSqftWarm = val;
-    else state.opSqftCool = val;
-    opSaveSqft();
-  } else {
-    render();
-  }
+  const num = (id) => Math.max(0, parseInt(document.getElementById(id)?.value, 10) || 0);
+  state.opSqftWarm = num('op-sqft-warm');
+  state.opSqftCool = num('op-sqft-cool');
+  state.opCountWarm = num('op-count-warm');
+  state.opCountCool = num('op-count-cool');
+  opSaveSqft();
+  render();
 }
 
 function opShareOrder() {
-  const rt = state.opRouteType;
   const rn = state.opRound;
-  const sqft = rt === 'warm' ? state.opSqftWarm : state.opSqftCool;
-  const orderList = calcOrderList(rt, rn, rt === 'warm' ? sqft : 0, rt === 'cool' ? sqft : 0);
-  const text = buildShareText(rt, rn, sqft, orderList);
-
+  const plan = calcOrderPlan(rn, state.opSqftWarm, state.opSqftCool);
+  const text = buildPlanShareText(rn, state.opSqftWarm, state.opSqftCool, state.opCountWarm, state.opCountCool, plan);
   if (navigator.share) {
     navigator.share({
       title: `Flex Lawn — R${rn} Order List`,
