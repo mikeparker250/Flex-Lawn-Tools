@@ -1049,12 +1049,16 @@ const ROUNDS = {
     },
     5: {
       name:'Mid-Summer Protection', icon:'🔥', dates:'Jul 12 – Aug 22',
-      liquid:null,
+      liquid:{
+        products:[
+          {name:'Artavia SC (Azoxystrobin)', rate:2.26, unit:'fl oz', psRate:0.68},
+          {name:'Propiconazole 14.3',        rate:2.94, unit:'fl oz', psRate:0.88},
+        ],
+        equipment:'ps',
+        mixOrder:'Artavia SC first, then Propiconazole 14.3. Agitate 60 sec. NO 90/10 / surfactant (phyto risk).',
+        note:'Scheduled dual-fungicide pass. No N, no granular, no B&G.',
+      },
       granular:null, bg:null,
-      truckStock:[
-        {name:'Artavia SC (Azoxystrobin)', note:'Reactive fungicide — brown patch / pythium. B&G only on flagged properties. FRAC 11 — if treating, rotate with Propiconazole 14.3, do not reuse back-to-back.'},
-        {name:'Propiconazole 14.3',        note:'Reactive fungicide — rotate with Artavia. B&G only on flagged properties. FRAC 3.'},
-      ],
       alerts:[
         {type:'danger', msg:'NO 90/10 NIS in dual fungicide tank. NO granular fertilizer on fescue in R5 — nitrogen resumes in Round 6.'},
         {type:'info',   msg:'FRAC rotation non-negotiable. Do NOT re-use FRAC 11 back-to-back.'},
@@ -1822,7 +1826,7 @@ function leftoverPassOptions(routeType, roundNum) {
   const rd = (routeType && roundNum) ? ROUNDS[routeType]?.[roundNum] : null;
   const opts = [];
   // Real broadcast liquid only — never invent herbicide when rd.liquid is null
-  // (e.g. warm R3/R5/R6, cool R3/R5/R6/R7 granular-only or liquidAlt-only).
+  // (e.g. warm R3/R5/R6, cool R3/R6/R7 granular-only or liquidAlt-only).
   if (rd?.liquid?.products?.length) {
     opts.push({value:'liquid', label: leftoverBroadcastLiquidLabel(rd, roundNum)});
   }
