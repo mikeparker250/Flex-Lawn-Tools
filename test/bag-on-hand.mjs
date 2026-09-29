@@ -186,7 +186,6 @@ for (const [routeType, roundNum] of [['warm',3],['warm',5],['cool',3],['cool',6]
 hardStop('28-0-3 on warm R6', fromPick(app, 'LESCO Poly Plus OPTI 28-0-3', { routeType:'warm', roundNum:6, labelMax:40, today:apr20 }), app.FERT_LIMITS.msgPotash);
 hardStop('cool R3 after May 1', fromPick(app, 'LESCO 24-0-11 w/ 2% Fe + PolyPlus', { routeType:'cool', roundNum:3, labelMax:10, today:sep29 }), app.FERT_LIMITS.msgMay1);
 hardStop('warm R4 not a fertilizer round', custom(app, { routeType:'warm', roundNum:4, n:24, p:0, k:11, labelMax:10, today:apr20 }), app.FERT_LIMITS.msgNoFert);
-hardStop('rotary-only label on a drop spreader', fromPick(app, 'LESCO Poly Plus OPTI 28-0-3', { routeType:'cool', roundNum:6, labelMax:10, yourSpreader:'drop', today:apr20 }), app.FERT_LIMITS.msgDrop);
 hardStop('32-0-0 cool R7 over 85°F unknown SR', custom(app, { routeType:'cool', roundNum:7, name:'32-0-0', n:32, p:0, k:0, labelMax:10, over85:true, stopSqft:14000, today:apr20 }), app.FERT_LIMITS.msgHot);
 hardStop('rate over label max', fromPick(app, 'LESCO 24-0-11 w/ 2% Fe + PolyPlus', { routeType:'warm', roundNum:3, labelMax:3, today:apr20 }), app.FERT_LIMITS.msgLabel);
 
@@ -311,7 +310,15 @@ for (const row of caseRows) {
 
 const warmCard = app.renderBagOnHandCard('warm', 6, 14000);
 const coolCard = app.renderBagOnHandCard('cool', 7, 14000);
-check('bag card renders on warm R6 and cool R7', /Bag on hand/.test(warmCard) && /andersons-5-0-31/.test(warmCard) && /Bag on hand/.test(coolCard) && /Rotary<\/option>/.test(coolCard), 'rendered');
+check('bag card renders on warm R6 and cool R7', /Bag on hand/.test(warmCard) && /andersons-5-0-31/.test(warmCard) && /Bag on hand/.test(coolCard), 'rendered');
+check('no your-spreader question and no drop red', app.FERT_LIMITS.msgDrop == null && app.BAG_TECH_SPREADER === 'rotary' && !/YOUR SPREADER/.test(warmCard) && !/>Drop</.test(warmCard) && /Spreader on the truck: rotary/.test(warmCard), 'spreader ui');
+{
+  const opti = fromPick(app, 'LESCO Poly Plus OPTI 28-0-3', { routeType:'cool', roundNum:6, labelMax:10, yourSpreader:'drop', today:apr20 });
+  check('28-0-3 cool R6 is not red when the old drop input is ignored', opti.status === 'ok' && opti.reds.length === 0, `status=${opti.status} reds=${opti.reds.join('|')}`);
+  app.bagApplyPick(app.ensureBagForm('cool', 6), 'lesco-28-0-3');
+  const optiCard = app.renderBagOnHandCard('cool', 6, 14000);
+  check('28-0-3 label spreader is display only', /Label spreader type: Rotary only/.test(optiCard) && !/data-bag-field="labelSpreader"/.test(optiCard) && !/data-bag-field="yourSpreader"/.test(optiCard), 'label display');
+}
 
 const failed = results.filter(r => !r.ok);
 console.log('\n| Check | Result | Detail |');

@@ -4259,6 +4259,8 @@ function showFallbackShare(text) {
 
 // APPROVED by Mike (Lawn Ops, Sep 29 2026). Final.
 // These are the SPEC CHANGE limits exactly as written, not proposed values.
+// His later approval: Flex has rotary spreaders only, so the
+// "label rotary-only + drop spreader" red is not a limit.
 // Edit a number in this object only after a new approval.
 const FERT_LIMITS = {
   allowed: { warm: [3, 5, 6], cool: [3, 6, 7] },
@@ -4295,7 +4297,6 @@ const FERT_LIMITS = {
   msgHot: 'Too hot for this bag, wait for a cooler day.',
   msgLabel: 'Rate is over the label max.',
   msgNPass: 'Nitrogen per pass is over {n} lb/1K.',
-  msgDrop: 'no drop spreaders',
   msgMay1: 'MAY 1 HARD STOP: Date is past May 1. Skip granular fertilizer entirely. Spot weed control only.',
   msgYellowP: 'Sensai program is zero-phosphorus; confirm with Mike',
   msgYellowHeat: 'use low label rate, water in within 24 hrs',
@@ -4306,14 +4307,19 @@ const FERT_LIMITS = {
 
 // Label max is pre-filled only when verified. Andersons 5-0-31 = 3.0. Everything else stays blank.
 // srMostly marks OPTI as mostly slow-release without inventing a percent (unknown stays fast).
+// Label spreader is display-only and only filled where the label says so.
+// Flex trucks are rotary. See BAG_TECH_SPREADER.
 const BAG_QUICK_PICKS = [
-  { id:'lesco-24-0-11', name:'LESCO 24-0-11 w/ 2% Fe + PolyPlus', n:24, p:0, k:11, srPercent:null, srMostly:false, labelMax:null, labelSpreader:'any', fe:true },
-  { id:'lesco-18-0-9', name:'LESCO 18-0-9 w/ 2% Fe', n:18, p:0, k:9, srPercent:null, srMostly:false, labelMax:null, labelSpreader:'any', fe:true },
-  { id:'lesco-28-0-0', name:'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe', n:28, p:0, k:0, srPercent:20, srMostly:false, labelMax:null, labelSpreader:'any', fe:true },
+  { id:'lesco-24-0-11', name:'LESCO 24-0-11 w/ 2% Fe + PolyPlus', n:24, p:0, k:11, srPercent:null, srMostly:false, labelMax:null, labelSpreader:null, fe:true },
+  { id:'lesco-18-0-9', name:'LESCO 18-0-9 w/ 2% Fe', n:18, p:0, k:9, srPercent:null, srMostly:false, labelMax:null, labelSpreader:null, fe:true },
+  { id:'lesco-28-0-0', name:'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe', n:28, p:0, k:0, srPercent:20, srMostly:false, labelMax:null, labelSpreader:null, fe:true },
   { id:'lesco-28-0-3', name:'LESCO Poly Plus OPTI 28-0-3', n:28, p:0, k:3, srPercent:null, srMostly:true, labelMax:null, labelSpreader:'rotary', fe:false },
-  { id:'andersons-5-0-31', name:'The Andersons 5-0-31 w/ 10% Fe', n:5, p:0, k:31, srPercent:null, srMostly:false, labelMax:3.0, labelSpreader:'any', fe:true },
-  { id:'lesco-5-0-25', name:'LESCO 5-0-25 w/ 10% Fe', n:5, p:0, k:25, srPercent:null, srMostly:false, labelMax:null, labelSpreader:'any', fe:true },
+  { id:'andersons-5-0-31', name:'The Andersons 5-0-31 w/ 10% Fe', n:5, p:0, k:31, srPercent:null, srMostly:false, labelMax:3.0, labelSpreader:null, fe:true },
+  { id:'lesco-5-0-25', name:'LESCO 5-0-25 w/ 10% Fe', n:5, p:0, k:25, srPercent:null, srMostly:false, labelMax:null, labelSpreader:null, fe:true },
 ];
+
+// Flex has no drop spreaders. The tech spreader is always rotary.
+const BAG_TECH_SPREADER = 'rotary';
 
 const BAG_LAST_KEY = 'flex-mix-bag-on-hand-last';
 
@@ -4381,11 +4387,6 @@ function bagPlannedRows(routeType, roundNum) {
   };
 }
 
-function bagDefaultSpreader(routeType, roundNum) {
-  const equip = ROUNDS[routeType]?.[roundNum]?.granular?.equipment || '';
-  return /rotary/i.test(equip) ? 'rotary' : '';
-}
-
 function bagDefaultForm(routeType, roundNum) {
   return {
     pick: '',
@@ -4398,7 +4399,6 @@ function bagDefaultForm(routeType, roundNum) {
     labelSpreader: '',
     fe: false,
     over85: '',
-    yourSpreader: bagDefaultSpreader(routeType, roundNum),
     stopSqft: '',
     checked: false,
   };
@@ -4429,7 +4429,6 @@ function bagSaveLastCustom(form) {
       bagLbs: form.bagLbs || '',
       srPercent: form.srPercent || '',
       labelMax: form.labelMax || '',
-      labelSpreader: form.labelSpreader || '',
       fe: !!form.fe,
     }));
   } catch (e) { /* private mode */ }
@@ -4459,7 +4458,7 @@ function bagApplyPick(form, pickId) {
     form.srPercent = last?.srPercent || '';
     form.srMostly = false;
     form.labelMax = last?.labelMax || '';
-    form.labelSpreader = last?.labelSpreader || '';
+    form.labelSpreader = '';
     form.fe = !!last?.fe;
     return;
   }
@@ -4473,7 +4472,7 @@ function bagApplyPick(form, pickId) {
   form.srPercent = q.srPercent == null ? '' : String(q.srPercent);
   form.srMostly = !!q.srMostly;
   form.labelMax = q.labelMax == null ? '' : String(q.labelMax);
-  form.labelSpreader = q.labelSpreader;
+  form.labelSpreader = q.labelSpreader === 'rotary' ? 'rotary' : '';
   form.fe = !!q.fe;
 }
 
@@ -4496,8 +4495,6 @@ function bagInputFromForm(routeType, roundNum, routeSqft) {
     srPercent: bagNumOrNull(form.srPercent),
     srMostly: !!(form.srMostly && (form.srPercent === '' || form.srPercent == null)),
     labelMax: bagNumOrNull(form.labelMax),
-    labelSpreader: form.labelSpreader || '',
-    yourSpreader: form.yourSpreader || '',
     over85: form.over85 === 'yes' ? true : form.over85 === 'no' ? false : null,
     fe: !!form.fe,
     stopSqft: bagNumOrNull(form.stopSqft),
@@ -4599,15 +4596,9 @@ function calcBagOnHand(input) {
 
   const missing = [];
   if (!(typeof product.bagLbs === 'number' && product.bagLbs > 0)) missing.push('bag weight');
-  if (product.labelSpreader !== 'rotary' && product.labelSpreader !== 'any') missing.push('label spreader type');
-  if (product.yourSpreader !== 'rotary' && product.yourSpreader !== 'drop') missing.push('your spreader');
   if (product.over85 !== true && product.over85 !== false) missing.push('Over 85°F today?');
   if (!(typeof product.labelMax === 'number' && Number.isFinite(product.labelMax))) missing.push('label max');
   if (missing.length) return bagEmptyResult('incomplete', [], missing);
-
-  if (product.labelSpreader === 'rotary' && product.yourSpreader === 'drop') {
-    return bagEmptyResult('red', [FERT_LIMITS.msgDrop]);
-  }
 
   const pct = isK ? k : n;
   if (!(pct > 0)) return bagEmptyResult('red', [isK ? FERT_LIMITS.msgPotash : FERT_LIMITS.msgWrong]);
@@ -4732,6 +4723,8 @@ function bagSyncFields(routeType, roundNum) {
   });
   const note = card.querySelector('[data-bag-sr-note]');
   if (note) note.textContent = form.srMostly ? 'Mostly slow-release.' : '';
+  const labelNote = card.querySelector('[data-bag-label-spreader]');
+  if (labelNote) labelNote.textContent = bagLabelSpreaderText(form.labelSpreader);
 }
 
 function bagFieldInput(routeType, roundNum, field, value) {
@@ -4767,6 +4760,10 @@ function bagFinish(routeType, roundNum) {
   if (result.status !== 'ok') return;
   ensureBagForm(routeType, roundNum).checked = true;
   bagRefreshResult(routeType, roundNum);
+}
+
+function bagLabelSpreaderText(value) {
+  return value === 'rotary' ? 'Label spreader type: Rotary only' : 'Label spreader type: —';
 }
 
 function renderBagOnHandCard(routeType, roundNum, routeSqft) {
@@ -4807,16 +4804,6 @@ function renderBagOnHandCard(routeType, roundNum, routeSqft) {
         <label class="bag-field"><span>BAG LB</span><input class="prop-input" inputmode="decimal" data-bag-field="bagLbs" value="${bagEsc(form.bagLbs)}" ${on('bagLbs','oninput',false)} /></label>
         <label class="bag-field"><span>SLOW-RELEASE % OF N</span><input class="prop-input" inputmode="decimal" placeholder="blank = unknown" data-bag-field="srPercent" value="${bagEsc(form.srPercent)}" ${on('srPercent','oninput',false)} /></label>
         <label class="bag-field"><span>LABEL MAX LB/1K</span><input class="prop-input" inputmode="decimal" placeholder="from the bag" data-bag-field="labelMax" value="${bagEsc(form.labelMax)}" ${on('labelMax','oninput',false)} /></label>
-        <label class="bag-field"><span>LABEL SPREADER</span>
-          <select class="round-select" data-bag-field="labelSpreader" ${on('labelSpreader','onchange',false)}>
-            ${sel('labelSpreader', form.labelSpreader, [['','Required'],['rotary','Rotary only'],['any','Any']])}
-          </select>
-        </label>
-        <label class="bag-field"><span>YOUR SPREADER</span>
-          <select class="round-select" data-bag-field="yourSpreader" ${on('yourSpreader','onchange',false)}>
-            ${sel('yourSpreader', form.yourSpreader, [['','Required'],['rotary','Rotary'],['drop','Drop']])}
-          </select>
-        </label>
         <label class="bag-field"><span>OVER ${FERT_LIMITS.heatF}°F TODAY?</span>
           <select class="round-select" data-bag-field="over85" ${on('over85','onchange',false)}>
             ${sel('over85', form.over85, [['','Required'],['no','No'],['yes','Yes']])}
@@ -4828,6 +4815,8 @@ function renderBagOnHandCard(routeType, roundNum, routeSqft) {
         <input type="checkbox" data-bag-field="fe" ${form.fe ? 'checked' : ''} ${on('fe','onchange',true)} />
         <span>Iron (Fe) on the label</span>
       </div>
+      <div class="info-row">Spreader on the truck: ${bagEsc(BAG_TECH_SPREADER)}.</div>
+      <div class="info-row" data-bag-label-spreader>${bagEsc(bagLabelSpreaderText(form.labelSpreader))}</div>
       <div data-bag-sr-note style="font-size:12px;color:var(--text2);font-family:var(--font-mono);min-height:16px;margin-bottom:8px">${form.srMostly ? 'Mostly slow-release.' : ''}</div>
       <div id="bag-result-${id}">
         ${renderBagResultBody(result, form.checked)}
@@ -4838,6 +4827,7 @@ function renderBagOnHandCard(routeType, roundNum, routeSqft) {
 
 window.FERT_LIMITS = FERT_LIMITS;
 window.BAG_QUICK_PICKS = BAG_QUICK_PICKS;
+window.BAG_TECH_SPREADER = BAG_TECH_SPREADER;
 window.calcBagOnHand = calcBagOnHand;
 window.renderBagResultBody = renderBagResultBody;
 
