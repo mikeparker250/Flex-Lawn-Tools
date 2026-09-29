@@ -390,6 +390,11 @@ header h1 {
   padding: 12px 14px; margin-bottom: 12px;
   font-size: 13px; color: #ffaaaa; line-height: 1.5; font-weight: 600;
 }
+.bag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.bag-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--text2); font-family: var(--font-mono); }
+.bag-field.full { grid-column: 1 / -1; }
+.bag-field .prop-input, .bag-field .round-select { width: 100%; }
+.bag-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); min-height: 42px; }
 
 /* Totals summary */
 .totals-bar {
@@ -1148,6 +1153,8 @@ const state = {
   leftoverFromPass: null,  // liquid | liquidAlt | fungSep | null
   // v2 reform confirm — required before allowlist spike/dilute credit applies
   leftoverReformConfirmed: false,
+  // Bag on hand — session only. Custom last-used lives in localStorage, not here as doctrine.
+  bagOnHand: {},
 };
 
 function detectRound() {
@@ -3293,6 +3300,7 @@ function renderResults() {
             </div></div>`;
         }
         content += renderGranCard(sec.granData);
+        if (sec.granData) content += renderBagOnHandCard(state.routeType, sec.roundNum, sec.sqft);
       }
       content += renderBGCard(rd.bg, 'Sedge + Grassy Weeds — 1 Gallon', '🧪', '1-GAL METAL B&G', '#aaa');
       content += renderBGCard(rd.bgSpecialSauce, 'Special Sauce — 1 Gallon', '🧪', '1-GAL METAL B&G — SEPARATE BOTTLE', '#aaa');
@@ -4242,6 +4250,594 @@ function showFallbackShare(text) {
     fb.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }
+
+// ═══════════════════════════════════════════════════════════
+//  BAG ON HAND — granular rounds only
+//  Does not write ROUNDS, Firestore, or the Order Planner.
+//  RED = hard stop: no rate, no bag count, can't finish.
+// ═══════════════════════════════════════════════════════════
+
+// Every numeric limit and the tech-facing guardrail strings. Change a number in this object only.
+const FERT_LIMITS = {
+  allowed: { warm: [3, 5, 6], cool: [3, 6, 7] },
+  coolR3Round: 3,
+  coolR3HardStopMonth: 5,
+  coolR3HardStopDay: 1, // red after this day in that month, and every later month (same test as the granular May 1 banner)
+
+  nRounds: { warm: [3, 5], cool: [3, 6, 7] },
+  minNPercent: 15,
+  maxPPercent: 3,
+  yellowPPercentMin: 1,
+  warmR5Round: 5,
+  warmR5MinSrPercent: 20,
+
+  kRound: { route: 'warm', round: 6 },
+  minK2OPercent: 20,
+  maxNPercentOnKRound: 8,
+  maxDeliveredNLb: 0.25,
+  k2oTargetLb: 0.9,
+
+  maxNPerPassLb: 1.0,
+
+  heatF: 85,
+  heatSrBelowPercent: 30,
+  heatNTargetAboveLb: 0.5,
+
+  twoPassBelowLb: 2.0,
+  defaultBagLbs: 50,
+  plannedDecimals: 2,
+
+  msgNoFert: 'No fertilizer this round.',
+  msgWrong: 'Wrong fertilizer for this round.',
+  msgPotash: 'This round needs a high-potash bag.',
+  msgHot: 'Too hot for this bag, wait for a cooler day.',
+  msgLabel: 'Rate is over the label max.',
+  msgNPass: 'Nitrogen per pass is over {n} lb/1K.',
+  msgDrop: 'no drop spreaders',
+  msgMay1: 'MAY 1 HARD STOP: Date is past May 1. Skip granular fertilizer entirely. Spot weed control only.',
+  msgYellowP: 'Sensai program is zero-phosphorus; confirm with Mike',
+  msgYellowHeat: 'use low label rate, water in within 24 hrs',
+  msgYellowFe: 'sweep off concrete, iron stains',
+  msgTwoPass: 'two crossing half-rate passes',
+  msgRecalibrate: 'recalibrate for this bag.',
+};
+
+// Label max is pre-filled only when verified. Andersons 5-0-31 = 3.0. Everything else stays blank.
+// srMostly marks OPTI as mostly slow-release without inventing a percent (unknown stays fast).
+const BAG_QUICK_PICKS = [
+  { id:'lesco-24-0-11', name:'LESCO 24-0-11 w/ 2% Fe + PolyPlus', n:24, p:0, k:11, srPercent:null, srMostly:false, labelMax:null, labelSpreader:'any', fe:true },
+  { id:'lesco-18-0-9', name:'LESCO 18-0-9 w/ 2% Fe', n:18, p:0, k:9, srPercent:null, srMostly:false, labelMax:null, labelSpreader:'any', fe:true },
+  { id:'lesco-28-0-0', name:'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe', n:28, p:0, k:0, srPercent:20, srMostly:false, labelMax:null, labelSpreader:'any', fe:true },
+  { id:'lesco-28-0-3', name:'LESCO Poly Plus OPTI 28-0-3', n:28, p:0, k:3, srPercent:null, srMostly:true, labelMax:null, labelSpreader:'rotary', fe:false },
+  { id:'andersons-5-0-31', name:'The Andersons 5-0-31 w/ 10% Fe', n:5, p:0, k:31, srPercent:null, srMostly:false, labelMax:3.0, labelSpreader:'any', fe:true },
+  { id:'lesco-5-0-25', name:'LESCO 5-0-25 w/ 10% Fe', n:5, p:0, k:25, srPercent:null, srMostly:false, labelMax:null, labelSpreader:'any', fe:true },
+];
+
+const BAG_LAST_KEY = 'flex-mix-bag-on-hand-last';
+
+function bagRoundKey(routeType, roundNum) {
+  return routeType + '_' + roundNum;
+}
+
+function bagEsc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+}
+
+function bagRoundTo(n, dec) {
+  const f = 10 ** dec;
+  return Math.round((n + Number.EPSILON) * f) / f;
+}
+
+function bagNpkFromText(text) {
+  const m = String(text || '').match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
+  if (!m) return null;
+  return { n: Number(m[1]), p: Number(m[2]), k: Number(m[3]) };
+}
+
+function bagIsKRound(routeType, roundNum) {
+  return routeType === FERT_LIMITS.kRound.route && Number(roundNum) === FERT_LIMITS.kRound.round;
+}
+
+function bagAllowed(routeType, roundNum) {
+  return (FERT_LIMITS.allowed[routeType] || []).includes(Number(roundNum));
+}
+
+function bagCoolR3HardStop(date) {
+  const d = date instanceof Date ? date : new Date();
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  return (m === FERT_LIMITS.coolR3HardStopMonth && day > FERT_LIMITS.coolR3HardStopDay) || m > FERT_LIMITS.coolR3HardStopMonth;
+}
+
+function bagSrFailsMin(product, minPercent) {
+  if (product.srMostly) return false;
+  if (product.srPercent == null || !Number.isFinite(product.srPercent)) return true;
+  return product.srPercent < minPercent;
+}
+
+function bagHasIron(product) {
+  return !!product.fe || /\bFe\b/.test(product.name || '');
+}
+
+// Planned N (and the Sensai P/K the programmed bag delivers) from the current rate row.
+// Warm R6's spread rate uses k2oTargetLb, not this row.
+function bagPlannedRows(routeType, roundNum) {
+  const g = ROUNDS[routeType]?.[roundNum]?.granular;
+  if (!g || !g.rates || !g.rates.length) return null;
+  const analysis = bagNpkFromText(g.product);
+  if (!analysis) return null;
+  const dec = FERT_LIMITS.plannedDecimals;
+  return {
+    product: g.product,
+    rows: g.rates.map(r => ({
+      label: r.label,
+      doctrineLbs: r.lbs,
+      plannedN: bagRoundTo(r.lbs * analysis.n / 100, dec),
+      plannedP: bagRoundTo(r.lbs * analysis.p / 100, dec),
+      plannedK: bagRoundTo(r.lbs * analysis.k / 100, dec),
+    })),
+  };
+}
+
+function bagDefaultSpreader(routeType, roundNum) {
+  const equip = ROUNDS[routeType]?.[roundNum]?.granular?.equipment || '';
+  return /rotary/i.test(equip) ? 'rotary' : '';
+}
+
+function bagDefaultForm(routeType, roundNum) {
+  return {
+    pick: '',
+    customName: '',
+    n: '', p: '', k: '',
+    bagLbs: String(FERT_LIMITS.defaultBagLbs),
+    srPercent: '',
+    srMostly: false,
+    labelMax: '',
+    labelSpreader: '',
+    fe: false,
+    over85: '',
+    yourSpreader: bagDefaultSpreader(routeType, roundNum),
+    stopSqft: '',
+    checked: false,
+  };
+}
+
+function ensureBagForm(routeType, roundNum) {
+  const key = bagRoundKey(routeType, roundNum);
+  if (!state.bagOnHand[key]) state.bagOnHand[key] = bagDefaultForm(routeType, roundNum);
+  return state.bagOnHand[key];
+}
+
+function bagLoadLastCustom() {
+  try {
+    const raw = localStorage.getItem(BAG_LAST_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return data && typeof data === 'object' ? data : null;
+  } catch (e) { return null; }
+}
+
+function bagSaveLastCustom(form) {
+  try {
+    localStorage.setItem(BAG_LAST_KEY, JSON.stringify({
+      customName: form.customName || '',
+      n: form.n || '',
+      p: form.p || '',
+      k: form.k || '',
+      bagLbs: form.bagLbs || '',
+      srPercent: form.srPercent || '',
+      labelMax: form.labelMax || '',
+      labelSpreader: form.labelSpreader || '',
+      fe: !!form.fe,
+    }));
+  } catch (e) { /* private mode */ }
+}
+
+function bagApplyPick(form, pickId) {
+  form.pick = pickId;
+  form.checked = false;
+  if (!pickId) {
+    form.customName = '';
+    form.n = ''; form.p = ''; form.k = '';
+    form.bagLbs = String(FERT_LIMITS.defaultBagLbs);
+    form.srPercent = '';
+    form.srMostly = false;
+    form.labelMax = '';
+    form.labelSpreader = '';
+    form.fe = false;
+    return;
+  }
+  if (pickId === 'custom') {
+    const last = bagLoadLastCustom();
+    form.customName = last?.customName || '';
+    form.n = last?.n || '';
+    form.p = last?.p || '';
+    form.k = last?.k || '';
+    form.bagLbs = last?.bagLbs || String(FERT_LIMITS.defaultBagLbs);
+    form.srPercent = last?.srPercent || '';
+    form.srMostly = false;
+    form.labelMax = last?.labelMax || '';
+    form.labelSpreader = last?.labelSpreader || '';
+    form.fe = !!last?.fe;
+    return;
+  }
+  const q = BAG_QUICK_PICKS.find(p => p.id === pickId);
+  if (!q) return;
+  form.customName = q.name;
+  form.n = String(q.n);
+  form.p = String(q.p);
+  form.k = String(q.k);
+  form.bagLbs = String(granuleBagLbs(q.name) || FERT_LIMITS.defaultBagLbs);
+  form.srPercent = q.srPercent == null ? '' : String(q.srPercent);
+  form.srMostly = !!q.srMostly;
+  form.labelMax = q.labelMax == null ? '' : String(q.labelMax);
+  form.labelSpreader = q.labelSpreader;
+  form.fe = !!q.fe;
+}
+
+function bagNumOrNull(v) {
+  if (v === '' || v == null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function bagInputFromForm(routeType, roundNum, routeSqft) {
+  const form = ensureBagForm(routeType, roundNum);
+  return {
+    routeType,
+    roundNum: Number(roundNum),
+    name: form.customName || '',
+    n: bagNumOrNull(form.n),
+    p: bagNumOrNull(form.p),
+    k: bagNumOrNull(form.k),
+    bagLbs: bagNumOrNull(form.bagLbs),
+    srPercent: bagNumOrNull(form.srPercent),
+    srMostly: !!(form.srMostly && (form.srPercent === '' || form.srPercent == null)),
+    labelMax: bagNumOrNull(form.labelMax),
+    labelSpreader: form.labelSpreader || '',
+    yourSpreader: form.yourSpreader || '',
+    over85: form.over85 === 'yes' ? true : form.over85 === 'no' ? false : null,
+    fe: !!form.fe,
+    stopSqft: bagNumOrNull(form.stopSqft),
+    routeSqft: Number(routeSqft) || 0,
+    today: new Date(),
+  };
+}
+
+function bagEmptyResult(status, reds, missing) {
+  return { status, reds: reds || [], missing: missing || [], yellows: [], rows: [], doctrineProduct: '', isKRound: false };
+}
+
+function bagFitReds(routeType, roundNum, product) {
+  const reds = [];
+  const n = product.n, p = product.p, k = product.k;
+  const isN = (FERT_LIMITS.nRounds[routeType] || []).includes(Number(roundNum));
+  if (isN) {
+    let wrong = false;
+    if (!(n >= FERT_LIMITS.minNPercent)) wrong = true;
+    if (k > n) wrong = true;
+    if (p > FERT_LIMITS.maxPPercent) wrong = true;
+    if (routeType === 'warm' && Number(roundNum) === FERT_LIMITS.warmR5Round && bagSrFailsMin(product, FERT_LIMITS.warmR5MinSrPercent)) wrong = true;
+    if (wrong) reds.push(FERT_LIMITS.msgWrong);
+  }
+  if (bagIsKRound(routeType, roundNum)) {
+    let potash = false;
+    if (!(k >= FERT_LIMITS.minK2OPercent)) potash = true;
+    if (n > FERT_LIMITS.maxNPercentOnKRound) potash = true;
+    if (potash) reds.push(FERT_LIMITS.msgPotash);
+  }
+  return reds;
+}
+
+function bagFigures(lbs, bagLbs) {
+  const exact = lbs / bagLbs;
+  const exactText = fmt(exact, 2);
+  const load = Math.ceil(exact - 1e-12);
+  const exactNoun = exactText === '1' ? 'bag' : 'bags';
+  const loadNoun = load === 1 ? 'bag' : 'bags';
+  return {
+    lbs,
+    lbsText: fmt(lbs, 1),
+    exact,
+    exactText,
+    load,
+    line: `${exactText} ${exactNoun}, ${load} ${loadNoun} to load`,
+  };
+}
+
+function bagSqftFigures(rate, sqft, bagLbs) {
+  if (!(sqft > 0) || !(bagLbs > 0)) return null;
+  const figs = bagFigures(rate * (sqft / 1000), bagLbs);
+  figs.sqft = sqft;
+  return figs;
+}
+
+function bagCompareLines(delivered, planned) {
+  const pairs = [['N', 'n', 'N'], ['P2O5', 'p', 'P'], ['K2O', 'k', 'K']];
+  return pairs.map(([full, key, short]) => {
+    const d = delivered[key];
+    const plan = planned[key];
+    if (Math.abs(d - plan) > 0.0005) return `delivers ${fmt(d, 3)} ${short} vs ${fmt(plan, 3)} planned`;
+    return `${full} ${fmt(d, 3)} lb/1K`;
+  });
+}
+
+function calcBagOnHand(input) {
+  const routeType = input.routeType;
+  const roundNum = Number(input.roundNum);
+  const today = input.today instanceof Date ? input.today : new Date();
+
+  if (!bagAllowed(routeType, roundNum)) return bagEmptyResult('red', [FERT_LIMITS.msgNoFert]);
+  if (routeType === 'cool' && roundNum === FERT_LIMITS.coolR3Round && bagCoolR3HardStop(today)) {
+    return bagEmptyResult('red', [FERT_LIMITS.msgMay1]);
+  }
+
+  const npkReady = [input.n, input.p, input.k].every(v => typeof v === 'number' && Number.isFinite(v) && v >= 0);
+  if (!npkReady) return bagEmptyResult('incomplete', [], ['N-P-K']);
+
+  const product = input;
+  const fit = bagFitReds(routeType, roundNum, product);
+  if (fit.length) return bagEmptyResult('red', fit);
+
+  const planned = bagPlannedRows(routeType, roundNum);
+  if (!planned) return bagEmptyResult('red', [FERT_LIMITS.msgNoFert]);
+
+  const isK = bagIsKRound(routeType, roundNum);
+  const n = product.n, p = product.p, k = product.k;
+
+  if (isK && k > 0) {
+    const probe = FERT_LIMITS.k2oTargetLb / (k / 100);
+    if (probe * n / 100 > FERT_LIMITS.maxDeliveredNLb + 1e-9) return bagEmptyResult('red', [FERT_LIMITS.msgPotash]);
+  }
+
+  const nTarget = planned.rows.reduce((m, r) => Math.max(m, r.plannedN), 0);
+  if (product.over85 === true && bagSrFailsMin(product, FERT_LIMITS.heatSrBelowPercent) && nTarget > FERT_LIMITS.heatNTargetAboveLb + 1e-9) {
+    return bagEmptyResult('red', [FERT_LIMITS.msgHot]);
+  }
+
+  const missing = [];
+  if (!(typeof product.bagLbs === 'number' && product.bagLbs > 0)) missing.push('bag weight');
+  if (product.labelSpreader !== 'rotary' && product.labelSpreader !== 'any') missing.push('label spreader type');
+  if (product.yourSpreader !== 'rotary' && product.yourSpreader !== 'drop') missing.push('your spreader');
+  if (product.over85 !== true && product.over85 !== false) missing.push('Over 85°F today?');
+  if (!(typeof product.labelMax === 'number' && Number.isFinite(product.labelMax))) missing.push('label max');
+  if (missing.length) return bagEmptyResult('incomplete', [], missing);
+
+  if (product.labelSpreader === 'rotary' && product.yourSpreader === 'drop') {
+    return bagEmptyResult('red', [FERT_LIMITS.msgDrop]);
+  }
+
+  const pct = isK ? k : n;
+  if (!(pct > 0)) return bagEmptyResult('red', [isK ? FERT_LIMITS.msgPotash : FERT_LIMITS.msgWrong]);
+
+  let overLabel = false;
+  let overNPass = false;
+  const rows = planned.rows.map(row => {
+    const target = isK ? FERT_LIMITS.k2oTargetLb : row.plannedN;
+    const rate = target / (pct / 100);
+    const delivered = { n: rate * n / 100, p: rate * p / 100, k: rate * k / 100 };
+    if (rate > product.labelMax + 1e-9) overLabel = true;
+    if (delivered.n > FERT_LIMITS.maxNPerPassLb + 1e-9) overNPass = true;
+    const stop = bagSqftFigures(rate, product.stopSqft, product.bagLbs);
+    const route = bagSqftFigures(rate, product.routeSqft, product.bagLbs);
+    return {
+      label: row.label,
+      plannedN: row.plannedN,
+      plannedP: row.plannedP,
+      plannedK: row.plannedK,
+      lbPer1K: rate,
+      lbPer1KText: fmt(rate, 2),
+      delivered,
+      deliveredNText: fmt(delivered.n, 3),
+      deliveredPText: fmt(delivered.p, 3),
+      deliveredKText: fmt(delivered.k, 3),
+      compares: bagCompareLines(delivered, { n: row.plannedN, p: row.plannedP, k: row.plannedK }),
+      twoPass: rate < FERT_LIMITS.twoPassBelowLb,
+      stop,
+      route,
+    };
+  });
+
+  if (overNPass || overLabel) {
+    const reds = [];
+    if (overNPass) reds.push(FERT_LIMITS.msgNPass.replace('{n}', String(FERT_LIMITS.maxNPerPassLb)));
+    if (overLabel) reds.push(FERT_LIMITS.msgLabel);
+    return bagEmptyResult('red', reds);
+  }
+
+  const yellows = [];
+  if (p >= FERT_LIMITS.yellowPPercentMin && p <= FERT_LIMITS.maxPPercent) yellows.push(FERT_LIMITS.msgYellowP);
+  if (product.over85 === true) yellows.push(FERT_LIMITS.msgYellowHeat);
+  if (bagHasIron(product)) yellows.push(FERT_LIMITS.msgYellowFe);
+  if (rows.some(r => r.twoPass)) yellows.push(FERT_LIMITS.msgTwoPass);
+  yellows.push(FERT_LIMITS.msgRecalibrate);
+
+  return {
+    status: 'ok',
+    reds: [],
+    missing: [],
+    yellows,
+    rows,
+    doctrineProduct: planned.product,
+    isKRound: isK,
+  };
+}
+
+function renderBagResultBody(result, checked) {
+  if (result.status === 'red') {
+    return `
+      <div class="hardstop-banner" data-bag-status="red">
+        <div>HARD STOP. No rate. No bag count. Can't finish.</div>
+        ${result.reds.map(msg => `<div>${bagEsc(msg)}</div>`).join('')}
+      </div>
+      <button type="button" class="btn btn-primary" disabled>Can't finish</button>`;
+  }
+  if (result.status === 'incomplete') {
+    return `
+      <div class="alert-box alert-info" data-bag-status="incomplete">
+        Fill in the bag before a rate can show: ${bagEsc(result.missing.join(', '))}.
+      </div>
+      <button type="button" class="btn btn-primary" disabled>Can't finish</button>`;
+  }
+  const rows = result.rows.map(row => `
+    <div class="gran-rate-row">
+      <div>
+        <div class="gran-label">${bagEsc(row.label)}</div>
+        <div class="gran-equip">${result.isKRound ? `Target ${fmt(FERT_LIMITS.k2oTargetLb, 1)} lb K2O/1K` : `Target ${fmt(row.plannedN, 2)} lb N/1K`}</div>
+      </div>
+      <div class="gran-amount">
+        <div class="big">${bagEsc(row.lbPer1KText)} lb/1K</div>
+        <div class="small">${bagEsc(row.deliveredNText)} lb N/1K · ${bagEsc(row.deliveredPText)} lb P2O5 · ${bagEsc(row.deliveredKText)} lb K2O</div>
+        ${row.stop ? `<div class="small">This stop (${Number(row.stop.sqft).toLocaleString()} sqft): ${bagEsc(row.stop.lbsText)} lb</div><div class="small">${bagEsc(row.stop.line)}</div>` : ''}
+        ${row.route ? `<div class="small">Route (${Number(row.route.sqft).toLocaleString()} sqft): ${bagEsc(row.route.lbsText)} lb</div><div class="small">${bagEsc(row.route.line)}</div>` : ''}
+      </div>
+    </div>
+    <div class="info-row">vs Sensai product (${bagEsc(result.doctrineProduct)}): ${bagEsc(row.compares.join(' · '))}</div>
+  `).join('');
+  const yellows = result.yellows.map(msg => `<div class="alert-box alert-warn">${bagEsc(msg)}</div>`).join('');
+  const done = checked ? `<div class="alert-box alert-info">Checked for this stop. Not saved to the program.</div>` : '';
+  return `
+    <div data-bag-status="ok">
+      ${rows}
+      ${yellows}
+      ${done}
+      <button type="button" class="btn btn-primary" onclick="bagFinishFromButton(this)">Use this bag</button>
+    </div>`;
+}
+
+function bagCardEl(routeType, roundNum) {
+  return document.getElementById(`bag-card-${routeType}-${roundNum}`);
+}
+
+function bagRefreshResult(routeType, roundNum) {
+  const card = bagCardEl(routeType, roundNum);
+  const box = document.getElementById(`bag-result-${routeType}-${roundNum}`);
+  if (!card || !box) return;
+  const sqft = Number(card.dataset.routeSqft) || 0;
+  const form = ensureBagForm(routeType, roundNum);
+  box.innerHTML = renderBagResultBody(calcBagOnHand(bagInputFromForm(routeType, roundNum, sqft)), form.checked);
+}
+
+function bagSyncFields(routeType, roundNum) {
+  const card = bagCardEl(routeType, roundNum);
+  if (!card) return;
+  const form = ensureBagForm(routeType, roundNum);
+  card.querySelectorAll('[data-bag-field]').forEach(el => {
+    const field = el.dataset.bagField;
+    if (field === 'pick') { el.value = form.pick; return; }
+    if (el.type === 'checkbox') el.checked = !!form[field];
+    else el.value = form[field] == null ? '' : form[field];
+  });
+  const note = card.querySelector('[data-bag-sr-note]');
+  if (note) note.textContent = form.srMostly ? 'Mostly slow-release.' : '';
+}
+
+function bagFieldInput(routeType, roundNum, field, value) {
+  const form = ensureBagForm(routeType, roundNum);
+  form.checked = false;
+  if (field === 'pick') {
+    bagApplyPick(form, value);
+    bagSyncFields(routeType, roundNum);
+  } else if (field === 'fe') {
+    form.fe = !!value;
+  } else {
+    form[field] = value;
+    if (field === 'srPercent') {
+      form.srMostly = false;
+      const note = bagCardEl(routeType, roundNum)?.querySelector('[data-bag-sr-note]');
+      if (note) note.textContent = '';
+    }
+  }
+  if (form.pick === 'custom') bagSaveLastCustom(form);
+  bagRefreshResult(routeType, roundNum);
+}
+
+function bagFinishFromButton(btn) {
+  const card = btn.closest('[data-bag-card]');
+  if (!card) return;
+  bagFinish(card.dataset.bagRoute, Number(card.dataset.bagRound));
+}
+
+function bagFinish(routeType, roundNum) {
+  const card = bagCardEl(routeType, roundNum);
+  const sqft = card ? Number(card.dataset.routeSqft) || 0 : 0;
+  const result = calcBagOnHand(bagInputFromForm(routeType, roundNum, sqft));
+  if (result.status !== 'ok') return;
+  ensureBagForm(routeType, roundNum).checked = true;
+  bagRefreshResult(routeType, roundNum);
+}
+
+function renderBagOnHandCard(routeType, roundNum, routeSqft) {
+  if (!bagAllowed(routeType, roundNum)) return '';
+  const form = ensureBagForm(routeType, roundNum);
+  const result = calcBagOnHand(bagInputFromForm(routeType, roundNum, routeSqft));
+  const id = `${routeType}-${roundNum}`;
+  const on = (field, event, box) => `${event}="bagFieldInput('${routeType}',${roundNum},'${field}',${box ? 'this.checked' : 'this.value'})"`;
+  const pickOpts = [
+    `<option value="" ${form.pick === '' ? 'selected' : ''}>Choose the bag on the truck</option>`,
+    ...BAG_QUICK_PICKS.map(q => `<option value="${q.id}" ${form.pick === q.id ? 'selected' : ''}>${bagEsc(q.name)}</option>`),
+    `<option value="custom" ${form.pick === 'custom' ? 'selected' : ''}>Custom</option>`,
+  ].join('');
+  const sel = (field, current, options) => options.map(([val, label]) =>
+    `<option value="${val}" ${current === val ? 'selected' : ''}>${label}</option>`
+  ).join('');
+
+  return `
+  <div class="mix-card" id="bag-card-${id}" data-bag-card="1" data-bag-route="${routeType}" data-bag-round="${roundNum}" data-route-sqft="${Number(routeSqft) || 0}" style="border-color:rgba(255,200,0,0.35)">
+    <div class="mix-card-header" style="background:rgba(255,200,0,0.08)">
+      <span class="mix-card-icon">🎒</span>
+      <span class="mix-card-title">Bag on hand</span>
+      <span style="font-size:10px;font-family:var(--font-mono);color:#ffc800;letter-spacing:1px">THIS STOP</span>
+    </div>
+    <div class="mix-card-body">
+      <div class="bag-field full" style="margin-bottom:8px">
+        <span>QUICK PICK</span>
+        <select class="round-select" data-bag-field="pick" ${on('pick','onchange',false)}>${pickOpts}</select>
+      </div>
+      <div class="bag-field full" style="margin-bottom:8px">
+        <span>BAG NAME</span>
+        <input class="prop-input" data-bag-field="customName" value="${bagEsc(form.customName)}" ${on('customName','oninput',false)} />
+      </div>
+      <div class="bag-grid">
+        <label class="bag-field"><span>N %</span><input class="prop-input" inputmode="decimal" data-bag-field="n" value="${bagEsc(form.n)}" ${on('n','oninput',false)} /></label>
+        <label class="bag-field"><span>P %</span><input class="prop-input" inputmode="decimal" data-bag-field="p" value="${bagEsc(form.p)}" ${on('p','oninput',false)} /></label>
+        <label class="bag-field"><span>K2O %</span><input class="prop-input" inputmode="decimal" data-bag-field="k" value="${bagEsc(form.k)}" ${on('k','oninput',false)} /></label>
+        <label class="bag-field"><span>BAG LB</span><input class="prop-input" inputmode="decimal" data-bag-field="bagLbs" value="${bagEsc(form.bagLbs)}" ${on('bagLbs','oninput',false)} /></label>
+        <label class="bag-field"><span>SLOW-RELEASE % OF N</span><input class="prop-input" inputmode="decimal" placeholder="blank = unknown" data-bag-field="srPercent" value="${bagEsc(form.srPercent)}" ${on('srPercent','oninput',false)} /></label>
+        <label class="bag-field"><span>LABEL MAX LB/1K</span><input class="prop-input" inputmode="decimal" placeholder="from the bag" data-bag-field="labelMax" value="${bagEsc(form.labelMax)}" ${on('labelMax','oninput',false)} /></label>
+        <label class="bag-field"><span>LABEL SPREADER</span>
+          <select class="round-select" data-bag-field="labelSpreader" ${on('labelSpreader','onchange',false)}>
+            ${sel('labelSpreader', form.labelSpreader, [['','Required'],['rotary','Rotary only'],['any','Any']])}
+          </select>
+        </label>
+        <label class="bag-field"><span>YOUR SPREADER</span>
+          <select class="round-select" data-bag-field="yourSpreader" ${on('yourSpreader','onchange',false)}>
+            ${sel('yourSpreader', form.yourSpreader, [['','Required'],['rotary','Rotary'],['drop','Drop']])}
+          </select>
+        </label>
+        <label class="bag-field"><span>OVER ${FERT_LIMITS.heatF}°F TODAY?</span>
+          <select class="round-select" data-bag-field="over85" ${on('over85','onchange',false)}>
+            ${sel('over85', form.over85, [['','Required'],['no','No'],['yes','Yes']])}
+          </select>
+        </label>
+        <label class="bag-field"><span>STOP SQFT</span><input class="prop-input" inputmode="numeric" placeholder="this stop" data-bag-field="stopSqft" value="${bagEsc(form.stopSqft)}" ${on('stopSqft','oninput',false)} /></label>
+      </div>
+      <div class="bag-check" style="margin-bottom:8px">
+        <input type="checkbox" data-bag-field="fe" ${form.fe ? 'checked' : ''} ${on('fe','onchange',true)} />
+        <span>Iron (Fe) on the label</span>
+      </div>
+      <div data-bag-sr-note style="font-size:12px;color:var(--text2);font-family:var(--font-mono);min-height:16px;margin-bottom:8px">${form.srMostly ? 'Mostly slow-release.' : ''}</div>
+      <div id="bag-result-${id}">
+        ${renderBagResultBody(result, form.checked)}
+      </div>
+    </div>
+  </div>`;
+}
+
+window.FERT_LIMITS = FERT_LIMITS;
+window.BAG_QUICK_PICKS = BAG_QUICK_PICKS;
+window.calcBagOnHand = calcBagOnHand;
+window.renderBagResultBody = renderBagResultBody;
 
 // ═══════════════════════════════════════════════════════════
 //  BOOT
