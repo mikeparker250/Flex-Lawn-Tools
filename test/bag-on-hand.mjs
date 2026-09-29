@@ -272,6 +272,43 @@ for (const bucket of ['gran', 'liquid', 'alt', 'order']) {
 }
 check(`existing rounds + Order Planner match main (${Object.keys(mainSnap.gran).length * 3 + Object.keys(mainSnap.order).length} snapshots)`, regressions === 0, `${regressions} mismatches`);
 
+// Mike-approved limits, reported at 14,000 sq ft. Unverified quick picks ship with a
+// blank label max; the rate below is after the tech enters a max that does not block.
+const STOP = 14000;
+function caseLine(label, expect, res) {
+  const rate = res.status === 'ok'
+    ? res.rows.map(r => `${r.label} ${r.lbPer1KText} lb/1K`).join('; ')
+    : 'none';
+  const bags = res.status === 'ok'
+    ? res.rows.map(r => `${r.label} ${r.stop.lbsText} lb, ${r.stop.line}`).join('; ')
+    : 'none';
+  const red = res.reds.length ? res.reds.join('; ') : 'none';
+  const yellow = res.yellows.length ? res.yellows.join('; ') : 'none';
+  const ok = expect === 'pass' ? res.status === 'ok' && res.reds.length === 0 : res.status === 'red' && res.rows.length === 0;
+  check(`case table: ${label}`, ok, `${expect} status=${res.status}`);
+  return { label, expect, rate, bags, red, yellow };
+}
+const caseRows = [
+  caseLine('24-0-11 warm R3', 'pass', fromPick(app, 'LESCO 24-0-11 w/ 2% Fe + PolyPlus', { routeType:'warm', roundNum:3, labelMax:10, stopSqft:STOP, today:apr20 })),
+  caseLine('24-0-11 cool R3', 'pass', fromPick(app, 'LESCO 24-0-11 w/ 2% Fe + PolyPlus', { routeType:'cool', roundNum:3, labelMax:10, stopSqft:STOP, today:apr20 })),
+  caseLine('28-0-0 warm R5 (20% SR)', 'pass', fromPick(app, 'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe', { routeType:'warm', roundNum:5, labelMax:10, stopSqft:STOP, today:apr20 })),
+  caseLine('18-0-9 cool R6', 'pass', fromPick(app, 'LESCO 18-0-9 w/ 2% Fe', { routeType:'cool', roundNum:6, labelMax:10, stopSqft:STOP, today:apr20 })),
+  caseLine('28-0-3 cool R6', 'pass', fromPick(app, 'LESCO Poly Plus OPTI 28-0-3', { routeType:'cool', roundNum:6, labelMax:10, stopSqft:STOP, today:apr20 })),
+  caseLine('28-0-3 cool R7', 'pass', fromPick(app, 'LESCO Poly Plus OPTI 28-0-3', { routeType:'cool', roundNum:7, labelMax:10, stopSqft:STOP, today:apr20 })),
+  caseLine('Andersons 5-0-31 warm R6', 'pass', fromPick(app, 'The Andersons 5-0-31 w/ 10% Fe', { routeType:'warm', roundNum:6, stopSqft:STOP, today:apr20 })),
+  caseLine('5-0-31 cool R7', 'red', fromPick(app, 'The Andersons 5-0-31 w/ 10% Fe', { routeType:'cool', roundNum:7, stopSqft:STOP, today:apr20 })),
+  caseLine('46-0-0 unknown SR warm R5', 'red', custom(app, { routeType:'warm', roundNum:5, name:'46-0-0 urea', n:46, p:0, k:0, labelMax:10, stopSqft:STOP, today:apr20 })),
+  caseLine('10-10-10 warm R3 (N round)', 'red', custom(app, { routeType:'warm', roundNum:3, name:'10-10-10', n:10, p:10, k:10, labelMax:10, stopSqft:STOP, today:apr20 })),
+  caseLine('28-0-3 warm R6', 'red', fromPick(app, 'LESCO Poly Plus OPTI 28-0-3', { routeType:'warm', roundNum:6, labelMax:40, stopSqft:STOP, today:apr20 })),
+];
+console.log('\n## Approved-limit case results at 14,000 sq ft\n');
+console.log('| Case | Expect | Rate | Bags | Red | Yellow |');
+console.log('| --- | --- | --- | --- | --- | --- |');
+for (const row of caseRows) {
+  const cell = (s) => String(s).replace(/\|/g, '/');
+  console.log(`| ${cell(row.label)} | ${row.expect} | ${cell(row.rate)} | ${cell(row.bags)} | ${cell(row.red)} | ${cell(row.yellow)} |`);
+}
+
 const warmCard = app.renderBagOnHandCard('warm', 6, 14000);
 const coolCard = app.renderBagOnHandCard('cool', 7, 14000);
 check('bag card renders on warm R6 and cool R7', /Bag on hand/.test(warmCard) && /andersons-5-0-31/.test(warmCard) && /Bag on hand/.test(coolCard) && /Rotary<\/option>/.test(coolCard), 'rendered');
