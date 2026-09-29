@@ -2159,8 +2159,8 @@ function calcRoundSection(routeType, roundNum, props, feedMode) {
   // that don't wire up the toggle, which correctly falls through to granular.
   const mode = (feedMode && feedMode[`${routeType}_${roundNum}`]) || 'granular';
   const useLiquidAlt = mode === 'liquid' && !!rd.liquidAlt;
-  // Late-season cool R5 is a per-gallon backpack recipe. Do not build
-  // route-total Toro/PS tanks from sq ft in that window.
+  // Late-season cool R5 still stores the summer tank (so Order Planner and
+  // round snapshots match) but the card must not render those gallons.
   const coolR5Spot = coolR5SpotActive(routeType, roundNum);
 
   // Liquid rounds split into Toro/PS mixes per-property. Equipment precedence:
@@ -2169,7 +2169,7 @@ function calcRoundSection(routeType, roundNum, props, feedMode) {
   // rd.liquid.equipment is NEVER a filter on whether the liquid card renders —
   // whenever rd.liquid.products exists, the card renders for whichever
   // equipment bucket(s) end up with sqft in them.
-  if (rd.liquid && !coolR5Spot) {
+  if (rd.liquid) {
     const forcedEquip = rd.liquid.equipment; // round-level default; property override still wins
     const toroProps = props.filter(p => resolveEquip(p, forcedEquip) === 'toro');
     const psProps   = props.filter(p => resolveEquip(p, forcedEquip) === 'ps');
@@ -2350,7 +2350,7 @@ function renderAlerts(alerts) {
   ).join('');
 }
 
-// Summer-window FRAC warning contradicts the Mike-approved late-season exception.
+// Summer-window FRAC warning contradicts the late-season exception on this card.
 function coolR5DisplayAlerts(rd, spot) {
   if (!spot) return rd.alerts;
   return (rd.alerts || []).filter(a => !/back-to-back/i.test(a.msg || ''));
