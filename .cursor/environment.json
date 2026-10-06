@@ -1,0 +1,10 @@
+{
+  "name": "Flex Lawn Tools",
+  "install": "npm install",
+  "terminals": [
+    {
+      "name": "dev-server",
+      "command": "npm run dev"
+    }
+  ]
+}
