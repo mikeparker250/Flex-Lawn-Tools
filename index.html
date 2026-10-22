@@ -1137,7 +1137,8 @@ const state = {
   opCountCool: 0,
   opLoading: false,
   opError: null,
-  opFRData: null,         // { warmCount, coolCount, warmSqft, coolSqft, source }
+  opFRData: null,         // live /api/fieldroutes-lawn-totals payload
+  opInputEpoch: 0,        // bumps when the user pulls or calculates, so a late saved-sqft load cannot overwrite it
   opSavedSqft: {},        // { 'warm_4': 95000, 'cool_4': 42000, ... }
   newPropName:'',
   newPropSqft:'',
@@ -3023,7 +3024,7 @@ function renderStep1() {
 function selectRoute(type) { state.routeType=type; state.feedMode={}; resetLeftoverState(); navigateTo('step2'); }
 function selectFly() { state.flyMode='round'; navigateTo('fly'); }
 function selectReservice() { state.rsTurfType=null; state.rsSelectedWeeds=[]; state.rsWeedSearch=''; navigateTo('reservice'); }
-function selectOrderPlanner() { state.opRound=null; state.opRouteType=null; state.opSqftWarm=0; state.opSqftCool=0; state.opCountWarm=0; state.opCountCool=0; state.opLoading=false; state.opError=null; state.opFRData=null; navigateTo('orderplanner'); }
+function selectOrderPlanner() { state.opRound=null; state.opRouteType=null; state.opSqftWarm=0; state.opSqftCool=0; state.opCountWarm=0; state.opCountCool=0; state.opLoading=false; state.opError=null; state.opFRData=null; state.opInputEpoch=(state.opInputEpoch||0)+1; navigateTo('orderplanner'); }
 
 function renderFly() {
   const detectedRound = detectRound();
@@ -3996,10 +3997,9 @@ window.addEventListener('error', (e) => {
 
 // ═══════════════════════════════════════════════════════════
 //  ORDER PLANNER — FieldRoutes sqft pull + chemical calc
+//  Live totals come from /api/fieldroutes-lawn-totals. The browser
+//  never sees FieldRoutes credentials.
 // ═══════════════════════════════════════════════════════════
-
-const FR_BASE = 'https://fieldroutes-mcp.vercel.app/mcp';
-const LAWN_CARE_SERVICE_ID = 111;
 
 // Firestore path for stored sqft data
 async function loadSavedSqft() {
@@ -4027,18 +4027,6 @@ async function saveSqftToFirestore(key, sqft) {
       .doc('order_planner_sqft')
       .set({ [key]: sqft }, { merge: true });
   } catch(e) { console.warn('saveSqftToFirestore error:', e); }
-}
-
-// Pull active Lawn Care subscriptions from FieldRoutes via direct API
-// Returns { warmCount, coolCount } — sqft not available from FR directly
-async function fetchFRLawnCareData() {
-  // We use the existing Firestore-connected Firebase approach; FR API is not
-  // directly callable from browser without proxy. Instead we query via the
-  // FieldRoutes MCP proxy URL that is available as a connected server.
-  // Since we can't call MCP from the browser directly, we use a best-effort
-  // count from Firestore cache if available, otherwise return null to prompt manual entry.
-  // The count is informational only — sqft is what drives chemical calcs.
-  return null; // FR pull happens server-side via MCP; browser app uses stored sqft
 }
 
 function orderProductKey(name) {
@@ -4254,7 +4242,7 @@ function renderOrderPlanner() {
       const tag = isNext ? `<span style="font-size:10px;font-family:var(--font-mono);color:#a064ff;background:rgba(160,100,255,0.15);border:1px solid rgba(160,100,255,0.3);border-radius:4px;padding:2px 6px;margin-left:8px">NEXT UP</span>`
         : isCurrent ? `<span style="font-size:10px;font-family:var(--font-mono);color:var(--green);background:var(--green-glow);border:1px solid var(--green-border);border-radius:4px;padding:2px 6px;margin-left:8px">CURRENT</span>`
         : '';
-      return `<div onclick="state.opRound=${n};state.opRouteType='both';state.opCountWarm=0;state.opCountCool=0;opInitRound();render()" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius);background:${bg};border:1px solid ${border};cursor:pointer;margin-bottom:8px">
+      return `<div onclick="opOpenRound(${n})" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius);background:${bg};border:1px solid ${border};cursor:pointer;margin-bottom:8px">
         <span style="font-family:var(--font-display);font-weight:900;font-size:20px;color:#a064ff;min-width:28px">R${n}</span>
         <div style="flex:1">
           <div style="font-size:14px;font-weight:600">${warm.dates}${tag}</div>
@@ -4286,16 +4274,20 @@ function renderOrderPlanner() {
     <label style="display:block;font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px">${label}</label>
     <input type="number" min="0" id="${id}" class="prop-input" value="${value || ''}" style="width:100%;font-size:16px;padding:10px;margin-bottom:10px" />`;
 
+  const missing = (state.opFRData && state.opFRData.missingSfIds) || {};
   const inputs = `
   <div style="background:var(--bg2);border:1px solid rgba(160,100,255,0.25);border-radius:var(--radius);padding:14px;margin-bottom:16px">
+    ${opFieldRoutesButton()}
     <div style="font-size:12px;font-weight:700;margin-bottom:8px">🔥 Warm — Bermuda & Zoysia</div>
     ${field('op-sqft-warm', 'Sq ft', state.opSqftWarm)}
     ${field('op-count-warm', 'Properties', state.opCountWarm)}
+    ${opMissingSfHtml(missing.warm)}
     <div style="font-size:12px;font-weight:700;margin:8px 0">❄️ Cool — Tall Fescue</div>
     ${field('op-sqft-cool', 'Sq ft', state.opSqftCool)}
     ${field('op-count-cool', 'Properties', state.opCountCool)}
+    ${opMissingSfHtml(missing.cool)}
     <button id="op-calc-btn" onclick="opUpdateSqft()" class="btn btn-primary" style="width:100%;padding:14px">Calculate</button>
-    <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:8px">Either turf can be 0. Sq ft drives the chemical totals. Property count is recorded with the order.</div>
+    <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:8px">Either turf can be 0. Sq ft drives the chemical totals. Property count is recorded with the order. Edit any box after the pull.</div>
   </div>`;
 
   const section = (id, title, sub, sqft, count, list) => `
@@ -4333,15 +4325,86 @@ function renderOrderPlanner() {
   ${orderHTML}`;
 }
 
+function opOpenRound(n) {
+  state.opRound = n;
+  state.opRouteType = 'both';
+  state.opCountWarm = 0;
+  state.opCountCool = 0;
+  state.opError = null;
+  state.opFRData = null;
+  state.opLoading = false;
+  opInitRound();
+  render();
+}
+
 function opInitRound() {
+  const rn = state.opRound;
+  const epoch = state.opInputEpoch || 0;
   loadSavedSqft().then(saved => {
     state.opSavedSqft = saved || {};
-    const rn = state.opRound;
-    if (!rn) return;
+    if (state.opRound !== rn) return;
+    if ((state.opInputEpoch || 0) !== epoch) return;
     state.opSqftWarm = Number(saved[`warm_${rn}`]) || 0;
     state.opSqftCool = Number(saved[`cool_${rn}`]) || 0;
     render();
   });
+}
+
+function escapeHtml(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[ch]));
+}
+
+function opMissingSfText(ids) {
+  const list = Array.isArray(ids) ? ids.filter(id => id != null && id !== '') : [];
+  if (!list.length) return '';
+  const n = list.length;
+  return `${n} ${n === 1 ? 'property' : 'properties'} missing SF: ${list.join(', ')}`;
+}
+
+function opMissingSfHtml(ids) {
+  const text = opMissingSfText(ids);
+  if (!text) return '';
+  return `<div class="op-missing-sf" style="font-size:11px;color:var(--warn);font-family:var(--font-mono);margin:-4px 0 10px">${escapeHtml(text)}</div>`;
+}
+
+function opFieldRoutesButton() {
+  const label = state.opLoading ? 'Pulling FieldRoutes…' : 'Pull live FieldRoutes totals';
+  const err = state.opError
+    ? `<div id="op-fr-error" class="alert-box alert-warn" style="margin-bottom:10px">${escapeHtml(state.opError)}</div>`
+    : '';
+  return `
+    ${err}
+    <button id="op-fr-btn" type="button" onclick="opPullFieldRoutes()" class="btn btn-secondary" style="width:100%;padding:12px;margin-bottom:10px;border-color:rgba(160,100,255,0.45);color:#d7c4ff" ${state.opLoading ? 'disabled' : ''}>${label}</button>
+    <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin:-2px 0 12px">Same active Lawn Care totals for every round, including R7 (Oct 4 – Nov 14).</div>`;
+}
+
+async function opPullFieldRoutes() {
+  if (state.opLoading || !state.opRound) return;
+  state.opLoading = true;
+  state.opError = null;
+  render();
+  try {
+    const res = await fetch('/api/fieldroutes-lawn-totals', { cache: 'no-store' });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data || data.warmSqft == null || data.warmProps == null || data.coolSqft == null || data.coolProps == null) {
+      state.opError = (data && data.error) || 'FieldRoutes request failed';
+      return;
+    }
+    state.opSqftWarm = Math.max(0, Math.round(Number(data.warmSqft) || 0));
+    state.opSqftCool = Math.max(0, Math.round(Number(data.coolSqft) || 0));
+    state.opCountWarm = Math.max(0, Math.round(Number(data.warmProps) || 0));
+    state.opCountCool = Math.max(0, Math.round(Number(data.coolProps) || 0));
+    state.opFRData = data;
+    state.opInputEpoch = (state.opInputEpoch || 0) + 1;
+    opSaveSqft();
+  } catch (e) {
+    state.opError = 'FieldRoutes request failed';
+  } finally {
+    state.opLoading = false;
+    render();
+  }
 }
 
 function opUpdateSqft() {
@@ -4350,6 +4413,7 @@ function opUpdateSqft() {
   state.opSqftCool = num('op-sqft-cool');
   state.opCountWarm = num('op-count-warm');
   state.opCountCool = num('op-count-cool');
+  state.opInputEpoch = (state.opInputEpoch || 0) + 1;
   opSaveSqft();
   render();
 }
@@ -4955,6 +5019,7 @@ function renderBagOnHandCard(routeType, roundNum, routeSqft) {
 }
 
 window.FERT_LIMITS = FERT_LIMITS;
+window.state = state;
 window.BAG_QUICK_PICKS = BAG_QUICK_PICKS;
 window.BAG_TECH_SPREADER = BAG_TECH_SPREADER;
 window.calcBagOnHand = calcBagOnHand;
