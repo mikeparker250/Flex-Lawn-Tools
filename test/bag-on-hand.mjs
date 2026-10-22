@@ -328,6 +328,21 @@ function expectedOrder7(mainJson) {
   return snap;
 }
 
+// Order rows now carry stock conversion fields. The main comparison keeps
+// the need math (name, needed, unit, cond, bag figures) and ignores to-order.
+// To-order behavior is covered in test/order-inventory.mjs.
+function orderNeedSnapshot(plan) {
+  const keep = ['name', 'needed', 'unit', 'cond', 'bagLbs', 'exactBags', 'bagsToLoad'];
+  const rows = (list) => (list || []).map(p => {
+    const out = {};
+    for (const k of keep) {
+      if (Object.prototype.hasOwnProperty.call(p, k)) out[k] = p[k];
+    }
+    return out;
+  });
+  return { warm: rows(plan.warm), cool: rows(plan.cool), combined: rows(plan.combined) };
+}
+
 function snapshotMatches(bucket, key) {
   const nowJson = nowSnap[bucket][key];
   const mainJson = mainSnap[bucket][key];
@@ -335,9 +350,9 @@ function snapshotMatches(bucket, key) {
     const expected = expectedWarmR7Liquid(mainJson);
     return expected != null && deepEqual(JSON.parse(nowJson), expected);
   }
-  if (bucket === 'order' && key === '7') {
-    const expected = expectedOrder7(mainJson);
-    return expected != null && deepEqual(JSON.parse(nowJson), expected);
+  if (bucket === 'order') {
+    const expected = key === '7' ? expectedOrder7(mainJson) : JSON.parse(mainJson);
+    return expected != null && deepEqual(orderNeedSnapshot(JSON.parse(nowJson)), orderNeedSnapshot(expected));
   }
   return nowJson === mainJson;
 }
