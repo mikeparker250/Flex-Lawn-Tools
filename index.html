@@ -703,6 +703,7 @@ const REORDER_THRESHOLDS = {
 
 let _invData = {};
 let _invReady = false;
+let _invError = null;
 let _fbDb = null;
 
 function initFirebase() {
@@ -716,7 +717,13 @@ function initFirebase() {
 
 async function loadInventory() {
   const db = initFirebase();
-  if (!db) return;
+  if (!db) {
+    _invData = {};
+    _invError = 'Inventory did not load';
+    _invReady = true;
+    if (typeof state !== 'undefined' && (state.screen === 'results' || state.screen === 'orderplanner')) render();
+    return;
+  }
   try {
     const snap = await db
       .collection('companies')
@@ -727,22 +734,53 @@ async function loadInventory() {
       .get();
     const map = {};
     snap.forEach(doc => {
-      const d = doc.data();
-      if (d.name && d.category === 'Lawn Products') map[d.name] = { quantity: d.quantity ?? 0, unit: d.unit ?? '' };
+      const d = doc.data() || {};
+      const key = orderProductKey(d.name);
+      if (key && d.category === 'Lawn Products') {
+        map[key] = {
+          quantity: d.quantity ?? 0,
+          unit: d.unit ?? '',
+          updatedAt: readInventoryStamp(d),
+        };
+      }
     });
     _invData = map;
+    _invError = null;
     _invReady = true;
     console.log('Inventory loaded:', Object.keys(map).length, 'products');
     // Re-render results screen to show badges
     if (typeof state !== 'undefined' && (state.screen === 'results' || state.screen === 'orderplanner')) render();
   } catch(e) {
     console.warn('Inventory load failed:', e);
+    _invData = {};
+    _invError = 'Inventory did not load';
     _invReady = true; // mark ready even on error so we don't show spinner forever
+    if (typeof state !== 'undefined' && (state.screen === 'results' || state.screen === 'orderplanner')) render();
   }
 }
 
+// Tests call this. Production inventory still comes only from loadInventory().
+function setOrderInventory(map, opts) {
+  opts = opts || {};
+  if (opts.ready === false) {
+    _invReady = false;
+    _invError = opts.error || null;
+    _invData = map || {};
+    return;
+  }
+  if (opts.error) {
+    _invError = opts.error;
+    _invReady = true;
+    _invData = {};
+    return;
+  }
+  _invError = null;
+  _invReady = true;
+  _invData = map || {};
+}
+
 function invBadge(productName) {
-  const cleanName = productName.replace(/\s*⚠️.*$/, '').trim();
+  const cleanName = orderProductKey(productName);
   const item = _invData[cleanName];
   if (!item) return '';
   const qty = Number(item.quantity);
@@ -3312,8 +3350,11 @@ function renderStep3() {
 // Shared by Route Results' "CURRENT ROUND" banner and Mix on the Fly, so
 // both surfaces show identical stock signals for the same round.
 function renderRoundInventoryBanner(routeType, roundNum, label) {
-  if (!_invReady) {
+  if (!_invReady && !_invError) {
     return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;font-family:var(--font-mono);color:var(--text3)">⏳ Loading inventory...</div>`;
+  }
+  if (_invError) {
+    return `<div class="alert-box alert-warn" id="inv-load-flag">Inventory did not load — stock was not checked. Do not treat this round as in stock.</div>`;
   }
   const rd = (routeType && roundNum) ? ROUNDS[routeType]?.[roundNum] : null;
   if (!rd) return '';
@@ -4089,7 +4130,251 @@ function calcOrderSection(routeType, roundNum, sqft) {
   return products;
 }
 
-// Subtract on-hand inventory once. Read-only — does not write Firestore.
+// Dry ounce ↔ pound. This is a unit conversion, not a container size.
+const OZ_PER_LB = 16;
+
+// Inventory stamps we will show when the Firestore doc actually has one.
+const INVENTORY_STAMP_FIELDS = ['updatedAt', 'lastUpdated', 'lastModified', 'modifiedAt', 'updated', 'timestamp', 'updated_at', 'last_updated'];
+
+function normalizeStockUnit(unit) {
+  const s = String(unit == null ? '' : unit).trim().toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ');
+  if (!s) return '';
+  if (s === 'fl oz' || s === 'floz' || s === 'fluid oz' || s === 'fluid ounce' || s === 'fluid ounces') return 'fl oz';
+  if (s === 'oz dry' || s === 'dry oz' || s === 'ounce dry' || s === 'ounces dry') return 'oz dry';
+  if (s === 'oz' || s === 'ounce' || s === 'ounces') return 'oz';
+  if (s === 'gal' || s === 'gallon' || s === 'gallons') return 'gal';
+  if (s === 'lb' || s === 'lbs' || s === 'pound' || s === 'pounds') return 'lb';
+  if (s === 'jug' || s === 'jugs') return 'jug';
+  if (s === 'bottle' || s === 'bottles') return 'bottle';
+  if (s === 'bag' || s === 'bags') return 'bag';
+  return s;
+}
+
+// Need units collapse onto one base. oz and fl oz are both liquid ounces here
+// (the tank math already divides them by OZ_PER_GAL). oz dry stays weight.
+function needBaseUnit(unit) {
+  const s = normalizeStockUnit(unit);
+  if (s === 'oz' || s === 'fl oz') return 'floz';
+  if (s === 'oz dry') return 'dryoz';
+  if (s === 'lb') return 'lb';
+  return '';
+}
+
+// Fertilizer bags. Size comes from GRANULE_BAG_LBS / GRANULE_BAG_LBS_BY_PRODUCT.
+// Only used when the need itself is pounds — not for dry herbicides.
+function fertilizerBagContainer(productName) {
+  const lbs = granuleBagLbs(productName);
+  if (!(lbs > 0)) return null;
+  return { size: lbs, label: 'bag', sizeLabel: lbs + ' lb' };
+}
+
+function gallonContainer() {
+  return { size: OZ_PER_GAL, label: 'gal', sizeLabel: OZ_PER_GAL + ' fl oz' };
+}
+
+// Multiplier from the inventory unit into the need's base unit.
+// null means this app has no explicit conversion. Do not guess one.
+function stockMultiplier(kind, base, productName) {
+  if ((kind === 'oz' || kind === 'fl oz') && base === 'floz') return { multiplier: 1, container: null };
+  if ((kind === 'oz' || kind === 'oz dry') && base === 'dryoz') return { multiplier: 1, container: null };
+  if (kind === 'lb' && base === 'lb') return { multiplier: 1, container: fertilizerBagContainer(productName) };
+  if (kind === 'lb' && base === 'dryoz') return { multiplier: OZ_PER_LB, container: null };
+  if (kind === 'gal' && base === 'floz') return { multiplier: OZ_PER_GAL, container: gallonContainer() };
+  if (kind === 'bag' && base === 'lb') {
+    const bag = fertilizerBagContainer(productName);
+    if (!bag) return null;
+    return { multiplier: bag.size, container: bag };
+  }
+  return null;
+}
+
+function containerNoun(label, n) {
+  if (label === 'gal') return 'gal';
+  if (label === 'bag') return n === 1 ? 'bag' : 'bags';
+  return n === 1 ? label : label + 's';
+}
+
+function containersForOrder(toOrder, container) {
+  if (!container || !(container.size > 0) || toOrder == null) return null;
+  if (toOrder <= 0) return 0;
+  return Math.ceil((toOrder / container.size) - 1e-9);
+}
+
+function readInventoryStamp(doc) {
+  if (!doc || typeof doc !== 'object') return null;
+  for (const key of INVENTORY_STAMP_FIELDS) {
+    if (doc[key] != null && doc[key] !== '') return doc[key];
+  }
+  return null;
+}
+
+function formatInventoryStamp(value) {
+  if (value == null || value === '') return '';
+  let date = null;
+  if (value instanceof Date) date = value;
+  else if (typeof value === 'number' || typeof value === 'string') {
+    const parsed = new Date(value);
+    if (!isNaN(parsed.getTime())) date = parsed;
+  } else if (typeof value === 'object') {
+    if (typeof value.toDate === 'function') {
+      try { date = value.toDate(); } catch (e) { date = null; }
+    } else if (typeof value.seconds === 'number') date = new Date(value.seconds * 1000);
+  }
+  if (!(date instanceof Date) || isNaN(date.getTime())) return String(value);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const h = date.getHours();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hr = h % 12 || 12;
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return months[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear() + ', ' + hr + ':' + min + ' ' + ampm;
+}
+
+function inventoryStockFlag(kind) {
+  const title = kind === 'jug' ? 'Jug' : kind === 'bottle' ? 'Bottle' : kind === 'bag' ? 'Bag' : 'Container';
+  return title + ' size is not in the product data — stock not subtracted';
+}
+
+function unknownContainerRoundupFlag(kind) {
+  if (kind === 'jug' || kind === 'bottle' || kind === 'bag') {
+    return 'Container size unknown — not rounded up to ' + kind + 's';
+  }
+  return 'Container size unknown — not rounded up to a purchasable container';
+}
+
+function fmtBaseAmount(val, unit) {
+  const n = Number(val);
+  if (unit === 'lbs') return fmt(n, 1) + ' lb';
+  if (unit === 'fl oz') return n.toFixed(1) + ' fl oz';
+  if (unit === 'oz dry') return n.toFixed(1) + ' oz dry';
+  if (unit === 'oz') return n.toFixed(1) + ' oz';
+  return n.toFixed(1) + ' ' + unit;
+}
+
+function fmtHaveText(p) {
+  if (p.stockStatus === 'loading') return 'loading';
+  if (p.stockStatus === 'inventory_unavailable') return 'inventory unavailable';
+  if (p.stockStatus === 'unmatched') return 'no match';
+  const rawUnit = String(p.stockUnit || '').trim();
+  let text = (p.currentStock + ' ' + rawUnit).trim();
+  if (p.onHandBase != null && p.showConverted) text += ' = ' + fmtBaseAmount(p.onHandBase, p.unit);
+  const when = formatInventoryStamp(p.updatedAt);
+  if (when) text += ' · updated ' + when;
+  return text;
+}
+
+function orderAmountText(p) {
+  if (p.stockStatus !== 'ok' || p.toOrder == null) return '';
+  if (p.toOrder === 0) return 'stocked';
+  let text = fmtBaseAmount(p.toOrder, p.unit);
+  if (p.orderContainers != null && p.containerLabel) {
+    const n = p.orderContainers;
+    text += ' · ' + n + ' ' + containerNoun(p.containerLabel, n);
+    if (p.containerSizeLabel) text += ' @ ' + p.containerSizeLabel;
+  }
+  return text;
+}
+
+// Subtract warehouse stock once, after converting it into the need unit.
+// Read-only — does not write Firestore. Does not change needed.
+function applyInventoryToNeed(item) {
+  const row = {
+    name: item.name,
+    needed: item.needed,
+    unit: item.unit,
+    cond: item.cond || null,
+    currentStock: null,
+    stockUnit: null,
+    onHandBase: null,
+    showConverted: false,
+    toOrder: null,
+    orderContainers: null,
+    containerLabel: null,
+    containerSize: null,
+    containerSizeLabel: null,
+    stockStatus: 'loading',
+    stockFlag: 'Inventory is still loading — stock not subtracted',
+    containerFlag: null,
+    updatedAt: null,
+  };
+  if (item.unit === 'lbs') {
+    row.bagLbs = granuleBagLbs(item.name);
+    row.exactBags = item.needed / row.bagLbs;
+    row.bagsToLoad = parseInt(fmtBags(item.needed, item.name), 10);
+  }
+  if (!_invReady && !_invError) return row;
+  if (_invError || !_invReady) {
+    row.stockStatus = 'inventory_unavailable';
+    row.stockFlag = 'Inventory did not load — stock not subtracted';
+    return row;
+  }
+  const inv = _invData[item.name];
+  if (!inv) {
+    row.stockStatus = 'unmatched';
+    row.stockFlag = 'No warehouse match — stock not subtracted';
+    return row;
+  }
+  row.currentStock = Number(inv.quantity);
+  row.stockUnit = inv.unit == null ? '' : String(inv.unit);
+  row.updatedAt = inv.updatedAt == null ? null : inv.updatedAt;
+  const kind = normalizeStockUnit(row.stockUnit);
+  const base = needBaseUnit(item.unit);
+  if (!Number.isFinite(row.currentStock)) {
+    row.stockStatus = 'unknown_unit';
+    row.stockFlag = 'Stock quantity is not a number — stock not subtracted';
+    return row;
+  }
+  if (!kind) {
+    row.stockStatus = 'missing_unit';
+    row.stockFlag = 'Inventory unit is blank — stock not subtracted';
+    return row;
+  }
+  const factor = stockMultiplier(kind, base, item.name);
+  let onHand = null;
+  let container = null;
+  if (factor) {
+    onHand = row.currentStock * factor.multiplier;
+    container = factor.container;
+    row.showConverted = factor.multiplier !== 1;
+  } else if (row.currentStock === 0) {
+    // 0 jugs, 0 bottles, 0 of an unknown unit is still 0 of the product.
+    // The container size is only unknown for rounding the purchase up.
+    onHand = 0;
+    row.showConverted = true;
+    row.containerFlag = unknownContainerRoundupFlag(kind);
+  } else if (kind === 'jug' || kind === 'bottle' || kind === 'bag') {
+    row.stockStatus = 'unknown_container';
+    row.stockFlag = inventoryStockFlag(kind);
+    return row;
+  } else {
+    row.stockStatus = 'unknown_unit';
+    row.stockFlag = 'Cannot convert ' + (row.stockUnit.trim() || kind) + ' to ' + item.unit + ' — stock not subtracted';
+    return row;
+  }
+  if (row.currentStock < 0) {
+    onHand = 0;
+    const note = 'On-hand quantity was negative and was treated as 0';
+    row.containerFlag = row.containerFlag ? note + '. ' + row.containerFlag : note;
+  } else {
+    onHand = Math.max(0, onHand);
+  }
+  row.onHandBase = onHand;
+  let toOrder = Math.max(0, item.needed - onHand);
+  if (toOrder < 1e-6) toOrder = 0;
+  row.toOrder = toOrder;
+  row.stockStatus = 'ok';
+  if (container) {
+    row.containerLabel = container.label;
+    row.containerSize = container.size;
+    row.containerSizeLabel = container.sizeLabel;
+    row.orderContainers = containersForOrder(toOrder, container);
+  } else if (!row.containerFlag) {
+    row.containerFlag = base === 'dryoz'
+      ? 'Container size unknown — not rounded up to a bag or jug'
+      : 'Container size unknown — not rounded up to a jug, bottle, or gallon';
+  }
+  return row;
+}
+
 function withOrderInventory(products) {
   const merged = {};
   for (const p of products) {
@@ -4099,27 +4384,7 @@ function withOrderInventory(products) {
     merged[cleanName].needed += p.needed;
     if (!merged[cleanName].cond && p.cond) merged[cleanName].cond = p.cond;
   }
-  return Object.values(merged).map(item => {
-    const inv = _invData[item.name];
-    const currentStock = inv ? Number(inv.quantity) : null;
-    const stockUnit = inv ? inv.unit : item.unit;
-    const toOrder = currentStock !== null ? Math.max(0, item.needed - currentStock) : item.needed;
-    const row = {
-      name: item.name,
-      needed: item.needed,
-      unit: item.unit,
-      currentStock,
-      stockUnit,
-      toOrder,
-      cond: item.cond,
-    };
-    if (item.unit === 'lbs') {
-      row.bagLbs = granuleBagLbs(item.name);
-      row.exactBags = item.needed / row.bagLbs;
-      row.bagsToLoad = parseInt(fmtBags(item.needed, item.name), 10);
-    }
-    return row;
-  });
+  return Object.values(merged).map(applyInventoryToNeed);
 }
 
 function calcOrderList(routeType, roundNum, totalSqftWarm, totalSqftCool) {
@@ -4185,10 +4450,12 @@ function buildPlanShareText(roundNum, warmSqft, coolSqft, warmCount, coolCount, 
     }
     for (const p of list) {
       const need = fmtNeeded(p.needed, p.unit, p.name);
-      const have = p.currentStock !== null ? fmtNeeded(p.currentStock, p.stockUnit, p.name) : 'unknown';
-      const toOrder = p.toOrder > 0.5 ? fmtNeeded(p.toOrder, p.unit, p.name) : 'stocked';
+      const have = fmtHaveText(p);
+      const blocked = p.stockStatus !== 'ok' || p.toOrder == null;
+      const toOrder = blocked ? (p.stockFlag || 'stock not subtracted') : orderAmountText(p);
       lines.push(`• ${p.name}${p.cond ? ` (${p.cond})` : ''}`);
       lines.push(`  Need ${need}  ·  Have ${have}  →  ${toOrder}`);
+      if (!blocked && p.containerFlag) lines.push(`  ${p.containerFlag}`);
     }
   }
   addBlock('🔥 WARM', plan.warm);
@@ -4206,24 +4473,47 @@ function opSaveSqft() {
   saveSqftToFirestore(`cool_${rn}`, state.opSqftCool);
 }
 
+function orderInventoryNotices(plan) {
+  const notices = [];
+  if (!_invReady && !_invError) {
+    notices.push('Loading warehouse inventory. Stock has not been subtracted yet.');
+  } else if (_invError) {
+    notices.push('Inventory did not load. Stock was not subtracted. Do not use these rows as a purchase order.');
+  }
+  const rows = [].concat((plan && plan.warm) || [], (plan && plan.cool) || [], (plan && plan.combined) || []);
+  const blocked = rows.filter(p => p.stockStatus && p.stockStatus !== 'ok');
+  if (blocked.length && _invReady && !_invError) {
+    const names = [...new Set(blocked.map(p => p.name))];
+    notices.push(names.length + ' product' + (names.length === 1 ? '' : 's') + ' flagged (no warehouse match, or stock that cannot be converted). Those rows are not a purchase quantity.');
+  }
+  if (!notices.length) return '';
+  return `<div id="op-inv-flag">${notices.map(text =>
+    `<div class="alert-box alert-warn op-inv-flag" style="margin-bottom:10px">${escapeHtml(text)}</div>`
+  ).join('')}</div>`;
+}
+
 function renderOrderRows(list) {
   if (!list.length) {
     return `<div style="font-size:13px;color:var(--text3);padding:8px 0">0 sq ft — no products for this turf.</div>`;
   }
   return list.map(p => {
     const needStr = fmtNeeded(p.needed, p.unit, p.name);
-    const haveStr = p.currentStock !== null ? `${p.currentStock} ${p.stockUnit || ''}`.trim() : '?';
-    const haveColor = p.currentStock === null ? 'var(--text3)' : p.currentStock === 0 ? 'var(--danger)' : p.toOrder > 0.5 ? 'var(--warn)' : 'var(--green)';
-    const orderStr = p.toOrder > 0.5 ? fmtNeeded(p.toOrder, p.unit, p.name) : '✓';
-    const orderColor = p.toOrder > 0.5 ? '#a064ff' : 'var(--green)';
+    const haveStr = fmtHaveText(p);
+    const blocked = p.stockStatus !== 'ok' || p.toOrder == null;
+    const haveColor = blocked ? 'var(--warn)' : p.currentStock === 0 ? 'var(--danger)' : p.toOrder > 0 ? 'var(--warn)' : 'var(--green)';
+    const orderStr = blocked ? '—' : (p.toOrder === 0 ? '✓' : orderAmountText(p));
+    const orderColor = blocked ? 'var(--warn)' : p.toOrder > 0 ? '#a064ff' : 'var(--green)';
+    const flag = blocked ? p.stockFlag : p.containerFlag;
+    const toOrderAttr = p.toOrder == null ? '' : String(p.toOrder);
     return `
-    <div style="border-bottom:1px solid rgba(255,255,255,0.05);padding:10px 0">
-      <div style="font-size:13px;font-weight:600;margin-bottom:5px">${p.name}${p.cond ? `<span style="font-size:10px;color:var(--warn);font-family:var(--font-mono);margin-left:6px">${p.cond}</span>` : ''}</div>
+    <div class="op-row" data-product="${escapeHtml(p.name)}" data-stock-status="${escapeHtml(p.stockStatus || '')}" data-to-order="${escapeHtml(toOrderAttr)}" data-containers="${p.orderContainers == null ? '' : String(p.orderContainers)}" style="border-bottom:1px solid rgba(255,255,255,0.05);padding:10px 0">
+      <div style="font-size:13px;font-weight:600;margin-bottom:5px">${escapeHtml(p.name)}${p.cond ? `<span style="font-size:10px;color:var(--warn);font-family:var(--font-mono);margin-left:6px">${escapeHtml(p.cond)}</span>` : ''}</div>
       <div style="display:flex;gap:8px;font-size:11px;font-family:var(--font-mono);flex-wrap:wrap">
-        <div style="flex:1;min-width:140px"><span style="color:var(--text3)">NEED </span><span style="color:var(--text);font-weight:700">${needStr}</span></div>
-        <div><span style="color:var(--text3)">HAVE </span><span style="color:${haveColor};font-weight:700">${haveStr}</span></div>
-        <div style="text-align:right"><span style="color:var(--text3)">ORDER </span><span style="color:${orderColor};font-weight:700">${orderStr}</span></div>
+        <div style="flex:1;min-width:140px"><span style="color:var(--text3)">NEED </span><span style="color:var(--text);font-weight:700">${escapeHtml(needStr)}</span></div>
+        <div><span style="color:var(--text3)">HAVE </span><span style="color:${haveColor};font-weight:700">${escapeHtml(haveStr)}</span></div>
+        <div style="text-align:right"><span style="color:var(--text3)">ORDER </span><span style="color:${orderColor};font-weight:700">${escapeHtml(orderStr)}</span></div>
       </div>
+      ${flag ? `<div class="alert-box alert-warn op-stock-flag" style="margin-top:8px;padding:8px 10px">${escapeHtml(flag)}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -4305,7 +4595,7 @@ function renderOrderPlanner() {
   const orderHTML = hasSqft ? `
     ${section('op-warm', '🔥 Warm', warmRd.name, state.opSqftWarm, state.opCountWarm, plan.warm)}
     ${section('op-cool', '❄️ Cool', coolRd.name, state.opSqftCool, state.opCountCool, plan.cool)}
-    ${section('op-combined', '🛒 Combined shopping list', 'Shared products are added together. Warehouse stock is subtracted once.', state.opSqftWarm + state.opSqftCool, state.opCountWarm + state.opCountCool, plan.combined)}
+    ${section('op-combined', '🛒 Combined shopping list', 'Shared products are added together. Warehouse stock is converted into the product unit and subtracted once.', state.opSqftWarm + state.opSqftCool, state.opCountWarm + state.opCountCool, plan.combined)}
     <button onclick="opShareOrder()" class="btn btn-primary" style="margin-top:4px;background:rgba(160,100,255,0.9);border:none">📤 Share Order List</button>
     <div id="op-share-fallback" style="display:none;margin-top:12px">
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:6px">Copy the text below:</div>
@@ -4322,6 +4612,7 @@ function renderOrderPlanner() {
     </div>
   </div>
   ${inputs}
+  ${orderInventoryNotices(plan)}
   ${orderHTML}`;
 }
 
