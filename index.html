@@ -706,22 +706,42 @@ let _invReady = false;
 let _invError = null;
 let _fbDb = null;
 
+// Shown for a thrown read, a permission error, or an empty offline cache.
+// Never use the unmatched-name copy for this.
+const INVENTORY_FAILED = 'inventory failed to load';
+
 function initFirebase() {
   if (_fbDb) return _fbDb;
   try {
     if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     _fbDb = firebase.firestore();
+    // The default watch stream often never opens. get() then resolves an
+    // empty memory cache and does not throw, which looked like a real load
+    // of zero products. Long polling is what actually reaches Firestore.
+    if (typeof _fbDb.settings === 'function') {
+      try { _fbDb.settings({ experimentalForceLongPolling: true, merge: true }); } catch (e) {}
+    }
   } catch(e) { console.warn('Firebase init error:', e); }
   return _fbDb;
+}
+
+function markInventoryFailed() {
+  _invData = {};
+  _invError = INVENTORY_FAILED;
+  _invReady = true;
+  if (typeof state !== 'undefined' && (state.screen === 'results' || state.screen === 'orderplanner')) render();
+}
+
+function inventoryDocQuantity(d) {
+  if (d.quantity != null && d.quantity !== '') return d.quantity;
+  if (d.onHand != null && d.onHand !== '') return d.onHand;
+  return 0;
 }
 
 async function loadInventory() {
   const db = initFirebase();
   if (!db) {
-    _invData = {};
-    _invError = 'Inventory did not load';
-    _invReady = true;
-    if (typeof state !== 'undefined' && (state.screen === 'results' || state.screen === 'orderplanner')) render();
+    markInventoryFailed();
     return;
   }
   try {
@@ -731,14 +751,20 @@ async function loadInventory() {
       .collection('warehouses')
       .doc(WAREHOUSE_ID)
       .collection('inventory')
-      .get();
+      .get({ source: 'server' });
+    // Offline get() resolves fromCache with zero docs and does not throw.
+    if (!snap || (snap.metadata && snap.metadata.fromCache)) {
+      markInventoryFailed();
+      return;
+    }
     const map = {};
     snap.forEach(doc => {
       const d = doc.data() || {};
-      const key = orderProductKey(d.name);
-      if (key && d.category === 'Lawn Products') {
+      const key = orderProductKey(d.name || d.productName || '');
+      const category = String(d.category == null ? '' : d.category).trim().toLowerCase();
+      if (key && category === 'lawn products') {
         map[key] = {
-          quantity: d.quantity ?? 0,
+          quantity: inventoryDocQuantity(d),
           unit: d.unit ?? '',
           updatedAt: readInventoryStamp(d),
         };
@@ -748,14 +774,10 @@ async function loadInventory() {
     _invError = null;
     _invReady = true;
     console.log('Inventory loaded:', Object.keys(map).length, 'products');
-    // Re-render results screen to show badges
     if (typeof state !== 'undefined' && (state.screen === 'results' || state.screen === 'orderplanner')) render();
   } catch(e) {
     console.warn('Inventory load failed:', e);
-    _invData = {};
-    _invError = 'Inventory did not load';
-    _invReady = true; // mark ready even on error so we don't show spinner forever
-    if (typeof state !== 'undefined' && (state.screen === 'results' || state.screen === 'orderplanner')) render();
+    markInventoryFailed();
   }
 }
 
@@ -781,8 +803,9 @@ function setOrderInventory(map, opts) {
 
 function invBadge(productName) {
   const cleanName = orderProductKey(productName);
-  const item = _invData[cleanName];
-  if (!item) return '';
+  const found = findInventoryItem(cleanName);
+  if (!found) return '';
+  const item = found.item;
   const qty = Number(item.quantity);
   const unit = item.unit;
   const t = REORDER_THRESHOLDS[cleanName];
@@ -3354,7 +3377,7 @@ function renderRoundInventoryBanner(routeType, roundNum, label) {
     return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;font-family:var(--font-mono);color:var(--text3)">⏳ Loading inventory...</div>`;
   }
   if (_invError) {
-    return `<div class="alert-box alert-warn" id="inv-load-flag">Inventory did not load — stock was not checked. Do not treat this round as in stock.</div>`;
+    return `<div class="alert-box alert-warn" id="inv-load-flag">${INVENTORY_FAILED}</div>`;
   }
   const rd = (routeType && roundNum) ? ROUNDS[routeType]?.[roundNum] : null;
   if (!rd) return '';
@@ -3363,15 +3386,8 @@ function renderRoundInventoryBanner(routeType, roundNum, label) {
   const toggleHTML = rd.liquidAlt ? renderFeedToggle(routeType, roundNum, mode) : '';
 
   const products = getProductsForRound(routeType, roundNum, mode);
-  const outList = [], lowList = [];
-  for (const [name, item] of Object.entries(_invData)) {
-    const cleanName = name.replace(/\s*⚠️.*$/, '').trim();
-    if (!products.has(cleanName)) continue;
-    const qty = Number(item.quantity);
-    const t = REORDER_THRESHOLDS[cleanName];
-    if (qty === 0) outList.push(cleanName);
-    else if (t !== undefined && qty <= t) lowList.push({name: cleanName, qty, unit: item.unit});
-  }
+  const alerts = listInventoryAlerts(products);
+  const outList = alerts.out, lowList = alerts.low;
 
   if (!outList.length && !lowList.length) {
     return `<div style="background:rgba(0,255,71,0.06);border:1px solid rgba(0,255,71,0.2);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;font-family:var(--font-mono);color:var(--green);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
@@ -3542,15 +3558,8 @@ function renderResults() {
       ? getProductsForRound(state.routeType, nextRound)
       : new Set();
 
-    const nextOut = [], nextLow = [];
-    for (const [name, item] of Object.entries(_invData)) {
-      const cleanName = name.replace(/\s*⚠️.*$/, '').trim();
-      if (!showNextRound || !nextProducts.has(cleanName)) continue;
-      const qty = Number(item.quantity);
-      const t = REORDER_THRESHOLDS[cleanName];
-      if (qty === 0) nextOut.push(cleanName);
-      else if (t !== undefined && qty <= t) nextLow.push({name: cleanName, qty, unit: item.unit});
-    }
+    const nextAlerts = showNextRound ? listInventoryAlerts(nextProducts) : { out: [], low: [] };
+    const nextOut = nextAlerts.out, nextLow = nextAlerts.low;
 
     if (nextOut.length || nextLow.length) {
       const outRows = nextOut.map(name =>
@@ -4133,6 +4142,29 @@ function calcOrderSection(routeType, roundNum, sqft) {
 // Dry ounce ↔ pound. This is a unit conversion, not a container size.
 const OZ_PER_LB = 16;
 
+// Mike's rule: every jug is 2.5 gal, including Three-Way.
+const JUG_FL_OZ = 2.5 * OZ_PER_GAL;
+
+// Invoice bottle sizes, in fl oz. A jug does not use this table.
+// Specticle and every other bottle stay unknown — do not add a guess.
+const KNOWN_BOTTLE_FL_OZ = {
+  'quin-way': 64,
+  'quin-way 1.5l': 64,
+  'albaugh sulfentrazone 4sc select': 64,
+  'sulfentrazone': 64,
+  '90/10 nis': 320,
+  'simazine': 320,
+  'simazine 4l': 320,
+};
+
+// Order name → warehouse name. Only these two are confirmed.
+// Not aliased: MSO → MSO Adigor, Artavia → Azoxy,
+// LESCO Poly Plus OPTI 28-0-3 → Lesco 28-0-3.
+const INVENTORY_NAME_ALIASES = {
+  'simazine': 'simazine 4l',
+  'albaugh sulfentrazone 4sc select': 'sulfentrazone',
+};
+
 // Inventory stamps we will show when the Firestore doc actually has one.
 const INVENTORY_STAMP_FIELDS = ['updatedAt', 'lastUpdated', 'lastModified', 'modifiedAt', 'updated', 'timestamp', 'updated_at', 'last_updated'];
 
@@ -4172,14 +4204,80 @@ function gallonContainer() {
   return { size: OZ_PER_GAL, label: 'gal', sizeLabel: OZ_PER_GAL + ' fl oz' };
 }
 
+function jugContainer() {
+  return { size: JUG_FL_OZ, label: 'jug', sizeLabel: JUG_FL_OZ + ' fl oz' };
+}
+
+// Case-insensitive, end-trimmed, internal whitespace collapsed.
+function inventoryMatchKey(name) {
+  return orderProductKey(name).toLowerCase().replace(/\s+/g, ' ');
+}
+
+function knownBottleFlOz(productName, inventoryName) {
+  const names = [productName, inventoryName];
+  for (const name of names) {
+    const key = inventoryMatchKey(name);
+    if (key && Object.prototype.hasOwnProperty.call(KNOWN_BOTTLE_FL_OZ, key)) {
+      return KNOWN_BOTTLE_FL_OZ[key];
+    }
+  }
+  return null;
+}
+
+// Exact trimmed name wins, then case/whitespace, then the alias map.
+function findInventoryItem(productName) {
+  const wanted = inventoryMatchKey(productName);
+  if (!wanted) return null;
+  const canonical = orderProductKey(productName);
+  let folded = null;
+  for (const [name, item] of Object.entries(_invData)) {
+    const key = inventoryMatchKey(name);
+    if (!key || key !== wanted) continue;
+    if (orderProductKey(name) === canonical) return { name, item };
+    if (!folded) folded = { name, item };
+  }
+  if (folded) return folded;
+  if (!Object.prototype.hasOwnProperty.call(INVENTORY_NAME_ALIASES, wanted)) return null;
+  const alias = INVENTORY_NAME_ALIASES[wanted];
+  for (const [name, item] of Object.entries(_invData)) {
+    if (inventoryMatchKey(name) === alias) return { name, item };
+  }
+  return null;
+}
+
+function listInventoryAlerts(productNames) {
+  const out = [];
+  const low = [];
+  for (const productName of productNames) {
+    const found = findInventoryItem(productName);
+    if (!found) continue;
+    const qty = Number(found.item.quantity);
+    const unit = found.item.unit;
+    const t = REORDER_THRESHOLDS[productName];
+    if (qty === 0) out.push(productName);
+    else if (t !== undefined && qty <= t) low.push({ name: productName, qty, unit });
+  }
+  return { out, low };
+}
+
 // Multiplier from the inventory unit into the need's base unit.
 // null means this app has no explicit conversion. Do not guess one.
-function stockMultiplier(kind, base, productName) {
+function stockMultiplier(kind, base, productName, inventoryName) {
   if ((kind === 'oz' || kind === 'fl oz') && base === 'floz') return { multiplier: 1, container: null };
   if ((kind === 'oz' || kind === 'oz dry') && base === 'dryoz') return { multiplier: 1, container: null };
   if (kind === 'lb' && base === 'lb') return { multiplier: 1, container: fertilizerBagContainer(productName) };
   if (kind === 'lb' && base === 'dryoz') return { multiplier: OZ_PER_LB, container: null };
   if (kind === 'gal' && base === 'floz') return { multiplier: OZ_PER_GAL, container: gallonContainer() };
+  if (kind === 'jug' && base === 'floz') return { multiplier: JUG_FL_OZ, container: jugContainer() };
+  if (kind === 'bottle' && base === 'floz') {
+    const flOz = knownBottleFlOz(productName, inventoryName);
+    if (!(flOz > 0)) return null;
+    // 2.5 gal bottles (90/10 NIS, Simazine 4L) are the same 320 fl oz container as a jug.
+    const container = flOz === JUG_FL_OZ
+      ? jugContainer()
+      : { size: flOz, label: 'bottle', sizeLabel: flOz + ' fl oz' };
+    return { multiplier: flOz, container };
+  }
   if (kind === 'bag' && base === 'lb') {
     const bag = fertilizerBagContainer(productName);
     if (!bag) return null;
@@ -4230,7 +4328,8 @@ function formatInventoryStamp(value) {
 }
 
 function inventoryStockFlag(kind) {
-  const title = kind === 'jug' ? 'Jug' : kind === 'bottle' ? 'Bottle' : kind === 'bag' ? 'Bag' : 'Container';
+  if (kind === 'bottle') return 'Container size unknown — stock not subtracted';
+  const title = kind === 'jug' ? 'Jug' : kind === 'bag' ? 'Bag' : 'Container';
   return title + ' size is not in the product data — stock not subtracted';
 }
 
@@ -4252,7 +4351,7 @@ function fmtBaseAmount(val, unit) {
 
 function fmtHaveText(p) {
   if (p.stockStatus === 'loading') return 'loading';
-  if (p.stockStatus === 'inventory_unavailable') return 'inventory unavailable';
+  if (p.stockStatus === 'inventory_unavailable') return INVENTORY_FAILED;
   if (p.stockStatus === 'unmatched') return 'no match';
   const rawUnit = String(p.stockUnit || '').trim();
   let text = (p.currentStock + ' ' + rawUnit).trim();
@@ -4304,15 +4403,16 @@ function applyInventoryToNeed(item) {
   if (!_invReady && !_invError) return row;
   if (_invError || !_invReady) {
     row.stockStatus = 'inventory_unavailable';
-    row.stockFlag = 'Inventory did not load — stock not subtracted';
+    row.stockFlag = INVENTORY_FAILED;
     return row;
   }
-  const inv = _invData[item.name];
-  if (!inv) {
+  const found = findInventoryItem(item.name);
+  if (!found) {
     row.stockStatus = 'unmatched';
     row.stockFlag = 'No warehouse match — stock not subtracted';
     return row;
   }
+  const inv = found.item;
   row.currentStock = Number(inv.quantity);
   row.stockUnit = inv.unit == null ? '' : String(inv.unit);
   row.updatedAt = inv.updatedAt == null ? null : inv.updatedAt;
@@ -4328,7 +4428,7 @@ function applyInventoryToNeed(item) {
     row.stockFlag = 'Inventory unit is blank — stock not subtracted';
     return row;
   }
-  const factor = stockMultiplier(kind, base, item.name);
+  const factor = stockMultiplier(kind, base, item.name, found.name);
   let onHand = null;
   let container = null;
   if (factor) {
@@ -4336,7 +4436,7 @@ function applyInventoryToNeed(item) {
     container = factor.container;
     row.showConverted = factor.multiplier !== 1;
   } else if (row.currentStock === 0) {
-    // 0 jugs, 0 bottles, 0 of an unknown unit is still 0 of the product.
+    // 0 of an unknown unit is still 0 of the product.
     // The container size is only unknown for rounding the purchase up.
     onHand = 0;
     row.showConverted = true;
@@ -4478,7 +4578,7 @@ function orderInventoryNotices(plan) {
   if (!_invReady && !_invError) {
     notices.push('Loading warehouse inventory. Stock has not been subtracted yet.');
   } else if (_invError) {
-    notices.push('Inventory did not load. Stock was not subtracted. Do not use these rows as a purchase order.');
+    notices.push(INVENTORY_FAILED);
   }
   const rows = [].concat((plan && plan.warm) || [], (plan && plan.cool) || [], (plan && plan.combined) || []);
   const blocked = rows.filter(p => p.stockStatus && p.stockStatus !== 'ok');
