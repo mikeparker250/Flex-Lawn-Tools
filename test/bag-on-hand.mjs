@@ -227,6 +227,9 @@ hardStop('rate over label max', fromPick(app, 'LESCO 24-0-11 w/ 2% Fe + PolyPlus
 }
 
 // Existing calculator + Order Planner must match main.
+// Warm R7 Pass 1 Triad/Simazine (and the order-7 totals they drive) are the
+// cleared rates: Triad 3.24/0.96 oz/gal, Simazine 1.44/0.43 oz/gal. Those two
+// snapshots are checked against that baseline; everything else stays on main.
 function snap(ctx) {
   const baseProps = (round) => ([
     { name:'Small', sqft:8000, round, isRockYard:false, hasRockBeds:false, isHoseDrag:false, equipmentOverride:null },
@@ -256,19 +259,100 @@ const mainHtml = execSync('git show origin/main:index.html', { encoding: 'utf8',
 const main = loadApp(mainHtml, 'main-index.html');
 const nowSnap = snap(app);
 const mainSnap = snap(main);
+
+// Lawn Ops cleared warm R7 Pass 1. Power Sprayer rates are explicit, not the
+// 0.34/1.14 derivation. Order Planner round 7 uses the Toro rates at 95,000 sq ft.
+const CLEARED_WARM_R7 = {
+  'Simazine': { toro: 1.44, ps: 0.43 },
+  'Triad Select': { toro: 3.24, ps: 0.96 },
+};
+const ORDER_SAMPLE_SQFT = 95000;
+const ORDER_TORO_OUT = 0.34;
+
+function deepEqual(a, b) {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== 'object' || typeof b !== 'object' || a == null || b == null) return false;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((v, i) => deepEqual(v, b[i]));
+  }
+  const ak = Object.keys(a);
+  const bk = Object.keys(b);
+  if (ak.length !== bk.length) return false;
+  return ak.every(k => Object.prototype.hasOwnProperty.call(b, k) && deepEqual(a[k], b[k]));
+}
+
+function setLiquidRate(mix, name, rate, psRate) {
+  const row = mix && mix.products && mix.products.find(p => p.name === name);
+  if (!row) return false;
+  row.rate = rate;
+  row.psRate = psRate;
+  row.amt = mix.gal * rate;
+  return true;
+}
+
+// Main snapshot with Triad and Simazine replaced by the cleared rates.
+// Specticle, 90/10 NIS, and the Artavia pass stay as main recorded them.
+function expectedWarmR7Liquid(mainJson) {
+  const snap = JSON.parse(mainJson);
+  for (const [name, rates] of Object.entries(CLEARED_WARM_R7)) {
+    if (!setLiquidRate(snap.toro, name, rates.toro, rates.ps)) return null;
+    if (!setLiquidRate(snap.ps, name, rates.ps, rates.ps)) return null;
+  }
+  return snap;
+}
+
+function setOrderTotal(list, name, needed) {
+  const row = list && list.find(p => p.name === name);
+  if (!row) return false;
+  row.needed = needed;
+  row.toOrder = row.currentStock != null ? Math.max(0, needed - row.currentStock) : needed;
+  return true;
+}
+
+// Same sample as snap(): 95,000 warm sq ft at the Toro output. Combined Triad
+// keeps whatever cool R7 adds on top of the warm broadcast (the 1.4 oz B&G).
+function expectedOrder7(mainJson) {
+  const snap = JSON.parse(mainJson);
+  const gal = (ORDER_SAMPLE_SQFT / 1000) * ORDER_TORO_OUT;
+  const sim = gal * CLEARED_WARM_R7['Simazine'].toro;
+  const triad = gal * CLEARED_WARM_R7['Triad Select'].toro;
+  const warmTriad = snap.warm.find(p => p.name === 'Triad Select');
+  const combinedTriad = snap.combined.find(p => p.name === 'Triad Select');
+  if (!warmTriad || !combinedTriad) return null;
+  const coolExtra = combinedTriad.needed - warmTriad.needed;
+  if (!setOrderTotal(snap.warm, 'Simazine', sim)) return null;
+  if (!setOrderTotal(snap.warm, 'Triad Select', triad)) return null;
+  if (!setOrderTotal(snap.combined, 'Simazine', sim)) return null;
+  if (!setOrderTotal(snap.combined, 'Triad Select', triad + coolExtra)) return null;
+  return snap;
+}
+
+function snapshotMatches(bucket, key) {
+  const nowJson = nowSnap[bucket][key];
+  const mainJson = mainSnap[bucket][key];
+  if (bucket === 'liquid' && key === 'warm-R7') {
+    const expected = expectedWarmR7Liquid(mainJson);
+    return expected != null && deepEqual(JSON.parse(nowJson), expected);
+  }
+  if (bucket === 'order' && key === '7') {
+    const expected = expectedOrder7(mainJson);
+    return expected != null && deepEqual(JSON.parse(nowJson), expected);
+  }
+  return nowJson === mainJson;
+}
+
 let regressions = 0;
 for (const bucket of ['gran', 'liquid', 'alt', 'order']) {
   const keys = Object.keys(mainSnap[bucket]);
   for (const key of keys) {
-    const same = nowSnap[bucket][key] === mainSnap[bucket][key];
-    if (!same) {
-      regressions += 1;
-      console.error('REGRESSION', bucket, key);
-      console.error('--- main ---');
-      console.error(String(mainSnap[bucket][key]).slice(0, 500));
-      console.error('--- now ---');
-      console.error(String(nowSnap[bucket][key]).slice(0, 500));
-    }
+    if (snapshotMatches(bucket, key)) continue;
+    regressions += 1;
+    console.error('REGRESSION', bucket, key);
+    console.error('--- main ---');
+    console.error(String(mainSnap[bucket][key]).slice(0, 500));
+    console.error('--- now ---');
+    console.error(String(nowSnap[bucket][key]).slice(0, 500));
   }
 }
 check(`existing rounds + Order Planner match main (${Object.keys(mainSnap.gran).length * 3 + Object.keys(mainSnap.order).length} snapshots)`, regressions === 0, `${regressions} mismatches`);
