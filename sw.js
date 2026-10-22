@@ -1,4 +1,4 @@
-const CACHE = 'flex-mix-v71';
+const CACHE = 'flex-mix-v72';
 const STATIC = [
   '/icon-512.png',
   '/manifest.json',
@@ -25,8 +25,9 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = e.request.url;
 
-  // Never intercept API calls
-  if (url.includes('anthropic.com')) return;
+  // Never intercept API calls. Lawn totals are cached on the server for
+  // about 10 minutes; the service worker must not freeze that response.
+  if (url.includes('anthropic.com') || url.includes('/api/')) return;
 
   // HTML files: always network-first — never serve stale app code
   if (e.request.destination === 'document' || url.endsWith('.html')) {
