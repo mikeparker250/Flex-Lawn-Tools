@@ -144,23 +144,67 @@ function near(a, b) {
   check('dry ounces are not a 50 lb fertilizer bag', dry.orderContainers == null && dry.containerSize == null, dry.containerSize);
 }
 
-// --- jugs and bottles have no size in the product data ---
+// --- every jug is 2.5 gal = 320 fl oz ---
 {
   const jug = one('Triad Select', 10, 'oz', stock(2, 'Jugs'));
-  check('non-zero jugs are not subtracted', jug.stockStatus === 'unknown_container' && jug.toOrder == null && jug.onHandBase == null, jug.stockStatus);
-  check('jug flag names the missing size', /Jug size is not in the product data/.test(jug.stockFlag), jug.stockFlag);
+  check('2 jugs are 640 fl oz on hand', jug.stockStatus === 'ok' && near(jug.onHandBase, 640) && jug.toOrder === 0, jug.onHandBase);
   check('2 jugs is not 10 - 2', jug.toOrder !== 8, jug.toOrder);
+  check('a covered jug order has no container-size flag', !/container size unknown/i.test(jug.containerFlag || '') && !/container size unknown/i.test(jug.stockFlag || ''), jug.containerFlag || jug.stockFlag);
 
-  const bottle = one('Specticle FLO', 10, 'oz', stock(2, 'Bottles'));
-  check('non-zero bottles are not subtracted', bottle.stockStatus === 'unknown_container' && bottle.toOrder == null, bottle.toOrder);
-  check('bottle flag names the missing size', /Bottle size is not in the product data/.test(bottle.stockFlag), bottle.stockFlag);
+  const oneJug = one('Stonewall 4L (Prodiamine)', 400, 'oz', stock(1, 'Jug'));
+  check('1 jug leaves 80 oz and rounds up to 1 jug', oneJug.stockStatus === 'ok' && near(oneJug.onHandBase, 320) && near(oneJug.toOrder, 80) && oneJug.orderContainers === 1 && oneJug.containerSize === 320, orderText(oneJug));
+  check('jug order names 320 fl oz', oneJug.containerSizeLabel === '320 fl oz' && orderText(oneJug).includes('1 jug @ 320 fl oz'), orderText(oneJug));
 
   const zeroJug = one('Triad Select', 10, 'oz', stock(0, 'Jugs'));
   check('0 jugs is 0 on hand', zeroJug.stockStatus === 'ok' && zeroJug.onHandBase === 0 && near(zeroJug.toOrder, 10), zeroJug.toOrder);
-  check('0 jugs is not rounded up to a guessed jug', zeroJug.orderContainers == null && /not rounded up to jugs/.test(zeroJug.containerFlag), zeroJug.containerFlag);
+  check('0 jugs rounds up to 1 whole jug', zeroJug.orderContainers === 1 && zeroJug.containerSize === 320, zeroJug.orderContainers);
+  check('0 jugs drops the container-size-unknown flag', !/container size unknown/i.test(zeroJug.containerFlag || ''), zeroJug.containerFlag);
 
-  const zeroBottle = one('90/10 NIS', 0.25, 'oz', stock(0, 'Bottles'));
-  check('0 bottles still orders the base amount', zeroBottle.stockStatus === 'ok' && near(zeroBottle.toOrder, 0.25) && zeroBottle.orderContainers == null, zeroBottle.toOrder);
+  const twoJugs = one('Artavia SC (Azoxystrobin)', 321, 'fl oz', stock(0, 'jugs'));
+  check('321 fl oz rounds up to 2 jugs', near(twoJugs.toOrder, 321) && twoJugs.orderContainers === 2, twoJugs.orderContainers);
+
+  const exactJug = one('Propiconazole 14.3', 320, 'fl oz', stock(0, 'Jugs'));
+  check('320 fl oz is exactly 1 jug', exactJug.toOrder === 320 && exactJug.orderContainers === 1, exactJug.orderContainers);
+
+  const threeWay = one('Three-Way', 100, 'oz', stock(1, 'Jugs'));
+  check('Three-Way jug is 320 fl oz', near(threeWay.onHandBase, 320) && threeWay.toOrder === 0 && threeWay.containerSize === 320, threeWay.onHandBase);
+
+  const quinJug = one('Quin-Way 1.5L', 100, 'fl oz', stock(1, 'Jugs'));
+  check('a Quin-Way jug is 320 fl oz, not the 64 fl oz bottle', near(quinJug.onHandBase, 320) && quinJug.toOrder === 0, quinJug.onHandBase);
+}
+
+// --- invoice bottle sizes; every other bottle stays unknown ---
+{
+  const bottle = one('Specticle FLO', 10, 'oz', stock(2, 'Bottles'));
+  check('non-zero Specticle bottles are not subtracted', bottle.stockStatus === 'unknown_container' && bottle.toOrder == null, bottle.toOrder);
+  check('Specticle bottle flag is container size unknown', /container size unknown/i.test(bottle.stockFlag), bottle.stockFlag);
+
+  const other = one('Atrazine', 10, 'oz', stock(1, 'Bottle'));
+  check('an unlisted bottle stays container size unknown', other.stockStatus === 'unknown_container' && other.toOrder == null && /container size unknown/i.test(other.stockFlag), other.stockFlag);
+
+  const zeroBottle = one('Specticle FLO', 18.3, 'oz', stock(0, 'Bottles'));
+  check('0 unknown bottles still order the base amount', zeroBottle.stockStatus === 'ok' && near(zeroBottle.toOrder, 18.3) && zeroBottle.orderContainers == null, zeroBottle.toOrder);
+  check('0 unknown bottles are not rounded', /container size unknown/i.test(zeroBottle.containerFlag) && /not rounded up to bottles/.test(zeroBottle.containerFlag), zeroBottle.containerFlag);
+
+  const quin = one('Quin-Way 1.5L', 100, 'fl oz', stock(1, 'Bottle'));
+  check('Quin-Way bottle is 64 fl oz', quin.stockStatus === 'ok' && near(quin.onHandBase, 64) && near(quin.toOrder, 36) && quin.orderContainers === 1 && quin.containerSize === 64, orderText(quin));
+  check('Quin-Way bottle line names 64 fl oz', orderText(quin).includes('1 bottle @ 64 fl oz'), orderText(quin));
+
+  const quinShort = one('Quin-Way', 64, 'fl oz', stock(1, 'Bottles'));
+  check('Quin-Way short name bottle is 64 fl oz', near(quinShort.onHandBase, 64) && quinShort.toOrder === 0, quinShort.onHandBase);
+
+  const albaughBottle = one('Albaugh Sulfentrazone 4SC Select', 100, 'oz', stock(1, 'Bottle'));
+  check('Albaugh bottle is 64 fl oz', near(albaughBottle.onHandBase, 64) && near(albaughBottle.toOrder, 36) && albaughBottle.containerSize === 64, orderText(albaughBottle));
+
+  const nis = one('90/10 NIS', 51.49, 'oz', stock(2, 'Bottles'));
+  check('90/10 bottle is 320 fl oz', nis.stockStatus === 'ok' && near(nis.onHandBase, 640) && nis.toOrder === 0, nis.onHandBase);
+  check('90/10 known size drops the container-size-unknown flag', !/container size unknown/i.test(nis.containerFlag || '') && !/container size unknown/i.test(nis.stockFlag || ''), nis.stockFlag || nis.containerFlag);
+
+  const nisZero = one('90/10 NIS', 51.49, 'oz', stock(0, 'Bottles'));
+  check('0 NIS bottles round up to 1 jug of 320 fl oz', near(nisZero.onHandBase, 0) && near(nisZero.toOrder, 51.49) && nisZero.orderContainers === 1 && nisZero.containerSize === 320, orderText(nisZero));
+
+  const simBottle = one('Simazine 4L', 400, 'oz', stock(1, 'Bottle'));
+  check('Simazine 4L bottle is 320 fl oz', near(simBottle.onHandBase, 320) && near(simBottle.toOrder, 80) && simBottle.orderContainers === 1 && simBottle.containerSize === 320, orderText(simBottle));
 }
 
 // --- other unit failures ---
@@ -240,20 +284,71 @@ function orderText(p) {
   check('shared product subtracts stock once', rows.length === 1 && near(rows[0].needed, 15) && near(rows[0].toOrder, 12), rows[0].toOrder);
 }
 
-// --- unmatched name and a failed load are never a silent full order ---
+// --- case, whitespace, and the two confirmed aliases ---
 {
   app.setOrderInventory({ 'Three-way': stock(3, 'Jugs') });
-  const miss = app.withOrderInventory([{ name: 'Three-Way', needed: 10, unit: 'oz' }])[0];
-  check('exact name miss is unmatched', miss.stockStatus === 'unmatched' && miss.toOrder == null, miss.stockStatus);
-  check('unmatched flag is explicit', miss.stockFlag === 'No warehouse match — stock not subtracted', miss.stockFlag);
+  const three = app.withOrderInventory([{ name: 'Three-Way', needed: 10, unit: 'oz' }])[0];
+  check('Three-Way matches Three-way', three.stockStatus === 'ok' && near(three.onHandBase, 960) && three.toOrder === 0, three.onHandBase);
 
-  app.setOrderInventory({}, { error: 'Inventory did not load' });
+  app.setOrderInventory({ '  triad select  ': stock(4, 'oz') });
+  const spaced = app.withOrderInventory([{ name: 'Triad Select', needed: 10, unit: 'oz' }])[0];
+  check('trimmed whitespace matches', spaced.stockStatus === 'ok' && near(spaced.onHandBase, 4) && near(spaced.toOrder, 6), spaced.toOrder);
+
+  app.setOrderInventory({ 'Triad   Select': stock(4, 'oz') });
+  const collapsed = app.withOrderInventory([{ name: 'Triad Select', needed: 10, unit: 'oz' }])[0];
+  check('collapsed internal whitespace matches', collapsed.stockStatus === 'ok' && near(collapsed.toOrder, 6), collapsed.toOrder);
+
+  app.setOrderInventory({ 'Simazine 4L': stock(1, 'Bottle') });
+  const sim = app.withOrderInventory([{ name: 'Simazine', needed: 400, unit: 'oz' }])[0];
+  check('Simazine aliases to Simazine 4L', sim.stockStatus === 'ok' && near(sim.onHandBase, 320) && near(sim.toOrder, 80), sim.onHandBase);
+  check('aliased Simazine uses the 320 fl oz bottle', sim.orderContainers === 1 && sim.containerSize === 320, orderText(sim));
+
+  app.setOrderInventory({ 'Sulfentrazone': stock(5, 'Jugs') });
+  const sulf = app.withOrderInventory([{ name: 'Albaugh Sulfentrazone 4SC Select', needed: 0.18, unit: 'oz' }])[0];
+  check('Albaugh aliases to Sulfentrazone jugs', sulf.stockStatus === 'ok' && near(sulf.onHandBase, 1600) && sulf.toOrder === 0, sulf.onHandBase);
+
+  app.setOrderInventory({
+    'Simazine': stock(2, 'oz'),
+    'Simazine 4L': stock(1, 'Bottle'),
+  });
+  const exactSim = app.withOrderInventory([{ name: 'Simazine', needed: 10, unit: 'oz' }])[0];
+  check('exact Simazine wins over the Simazine 4L alias', near(exactSim.onHandBase, 2) && near(exactSim.toOrder, 8), exactSim.onHandBase);
+
+  app.setOrderInventory({ 'MSO Adigor': stock(4, 'Jugs') });
+  const mso = app.withOrderInventory([{ name: 'MSO', needed: 10, unit: 'oz' }])[0];
+  check('MSO does not alias to MSO Adigor', mso.stockStatus === 'unmatched' && mso.toOrder == null, mso.stockStatus);
+  check('unmatched flag is explicit', mso.stockFlag === 'No warehouse match — stock not subtracted', mso.stockFlag);
+
+  app.setOrderInventory({ 'Artavia SC (Azoxystrobin)': stock(2, 'Jugs') });
+  const azoxy = app.withOrderInventory([{ name: 'Artavia SC (Azoxy)', needed: 10, unit: 'fl oz' }])[0];
+  check('Artavia does not alias to Azoxy', azoxy.stockStatus === 'unmatched' && azoxy.toOrder == null, azoxy.stockFlag);
+
+  app.setOrderInventory({ 'Lesco 28-0-3': stock(12, 'Bags') });
+  const opti = app.withOrderInventory([{ name: 'LESCO Poly Plus OPTI 28-0-3', needed: 80, unit: 'lbs' }])[0];
+  check('OPTI does not alias to Lesco 28-0-3', opti.stockStatus === 'unmatched' && opti.toOrder == null && opti.onHandBase == null, opti.stockStatus);
+
+  app.setOrderInventory({});
+  const miss = app.withOrderInventory([{ name: 'Special Sauce', needed: 10, unit: 'oz' }])[0];
+  check('a missing name stays unmatched', miss.stockStatus === 'unmatched' && miss.toOrder == null, miss.stockFlag);
+}
+
+// --- a failed load is never a silent full order ---
+{
+  app.setOrderInventory({}, { error: 'inventory failed to load' });
   const down = app.withOrderInventory([{ name: 'Triad Select', needed: 10, unit: 'oz' }])[0];
   check('failed load does not order the full need', down.stockStatus === 'inventory_unavailable' && down.toOrder == null, down.toOrder);
+  check('failed load says inventory failed to load', down.stockFlag === 'inventory failed to load' && app.fmtHaveText(down) === 'inventory failed to load', app.fmtHaveText(down));
+  check('failed load is never a no-match', down.stockStatus !== 'unmatched' && !/no match/i.test(app.fmtHaveText(down)) && !/no warehouse match/i.test(down.stockFlag), down.stockFlag);
   const banner = app.renderRoundInventoryBanner('warm', 7, 'R7');
-  check('failed load is not an all-in-stock banner', /did not load/.test(banner) && !/ALL PRODUCTS IN STOCK/.test(banner), banner.slice(0, 180));
+  check('failed load is not an all-in-stock banner', /inventory failed to load/.test(banner) && !/ALL PRODUCTS IN STOCK/.test(banner) && !/no match/i.test(banner), banner.slice(0, 180));
   const notice = app.orderInventoryNotices(app.calcOrderPlan(7, 1000, 0));
-  check('order planner shows the load failure', /id="op-inv-flag"/.test(notice) && /did not load/.test(notice), notice.slice(0, 180));
+  check('order planner shows the load failure', /id="op-inv-flag"/.test(notice) && /inventory failed to load/.test(notice) && !/no match/i.test(notice), notice.slice(0, 220));
+  const failedRows = app.renderOrderRows(app.withOrderInventory([{ name: 'Specticle FLO', needed: 18.3, unit: 'oz' }]));
+  check('failed Specticle row is not no match', /inventory failed to load/.test(failedRows) && !/no match/i.test(failedRows), failedRows.slice(0, 240));
+  check('quantity wins over onHand', app.inventoryDocQuantity({ quantity: 1, onHand: 9 }) === 1, app.inventoryDocQuantity({ quantity: 1, onHand: 9 }));
+  check('onHand is the quantity when quantity is absent', app.inventoryDocQuantity({ onHand: 3 }) === 3, app.inventoryDocQuantity({ onHand: 3 }));
+  check('a blank quantity falls through to onHand', app.inventoryDocQuantity({ quantity: '', onHand: 4 }) === 4, app.inventoryDocQuantity({ quantity: '', onHand: 4 }));
+  check('missing quantity and onHand is 0', app.inventoryDocQuantity({}) === 0, app.inventoryDocQuantity({}));
 
   app.setOrderInventory({}, { ready: false });
   const loading = app.withOrderInventory([{ name: 'Triad Select', needed: 10, unit: 'oz' }])[0];
@@ -278,9 +373,13 @@ function orderText(p) {
 
   app.setOrderInventory({ 'Triad Select': stock(2, 'Jugs', { updatedAt: stamp }) });
   const htmlRows = app.renderOrderRows(app.withOrderInventory([{ name: 'Triad Select', needed: 10, unit: 'oz' }]));
-  check('jug row flags instead of an order number', /data-stock-status="unknown_container"/.test(htmlRows) && /data-to-order=""/.test(htmlRows), htmlRows);
-  check('jug row shows Have in jugs', /2 Jugs/.test(htmlRows) && /updated /.test(htmlRows), htmlRows);
-  check('jug row does not show the old 8 oz order', !/data-to-order="8"/.test(htmlRows) && /Jug size is not in the product data/.test(htmlRows), htmlRows);
+  check('jug row converts and stocks the order', /data-stock-status="ok"/.test(htmlRows) && /data-to-order="0"/.test(htmlRows), htmlRows);
+  check('jug row shows Have in jugs and fl oz', /2 Jugs = 640.0 oz/.test(htmlRows) && /updated /.test(htmlRows), htmlRows);
+  check('jug row does not show the old 8 oz order', !/data-to-order="8"/.test(htmlRows) && !/container size unknown/i.test(htmlRows), htmlRows);
+
+  app.setOrderInventory({ 'Triad Select': stock(0, 'Jugs') });
+  const jugOrder = app.renderOrderRows(app.withOrderInventory([{ name: 'Triad Select', needed: 400, unit: 'oz' }]));
+  check('jug shortfall rounds up in the row', /400.0 oz · 2 jugs @ 320 fl oz/.test(jugOrder) && !/container size unknown/i.test(jugOrder), jugOrder);
 
   app.setOrderInventory({ 'LESCO 24-0-11 w/ 2% Fe + PolyPlus': stock(0, 'Bags') });
   const bagHtml = app.renderOrderRows(app.withOrderInventory([{ name: 'LESCO 24-0-11 w/ 2% Fe + PolyPlus', needed: 80, unit: 'lbs' }]));
@@ -291,6 +390,68 @@ function orderText(p) {
   const share = app.buildPlanShareText(2, 1000, 0, 1, 0, plan);
   check('share text flags an unmatched product', /No warehouse match — stock not subtracted/.test(share), share.split('\n').slice(0, 12).join(' | '));
   check('share text does not put a bare amount after the arrow', !/→\s+\d/.test(share), 'arrow stayed flagged');
+}
+
+// --- R7 against the v73 warehouse snapshot (fixture, not a live read) ---
+{
+  const WARM = 538261;
+  const COOL = 20939;
+  const gal = (WARM / 1000) * 0.34;
+  app.setOrderInventory({
+    'Specticle FLO': stock(0, 'Bottles'),
+    'Simazine 4L': stock(1, 'Bottle'),
+    'Triad Select': stock(0, 'Jugs'),
+    '90/10 NIS': stock(2, 'Bottles'),
+    'Artavia SC (Azoxystrobin)': stock(0, 'Jugs'),
+    'Lesco 28-0-3': stock(12, 'Bags'),
+    'Sulfentrazone': stock(5, 'Jugs'),
+    'Three-way': stock(3, 'Jugs'),
+    'MSO Adigor': stock(0, 'Jugs'),
+  });
+  const plan = app.calcOrderPlan(7, WARM, COOL);
+  const row = (name) => plan.combined.find(p => p.name === name);
+  const spec = row('Specticle FLO');
+  const sim = row('Simazine');
+  const triad = row('Triad Select');
+  const nis = row('90/10 NIS');
+  const art = row('Artavia SC (Azoxystrobin)');
+  const opti = row('LESCO Poly Plus OPTI 28-0-3');
+  const sulf = row('Albaugh Sulfentrazone 4SC Select');
+  check('R7 Specticle need unchanged', near(spec.needed, gal * 0.10), spec.needed);
+  check('R7 Specticle 0 bottles stay unrounded', spec.stockStatus === 'ok' && spec.onHandBase === 0 && spec.orderContainers == null && /container size unknown/i.test(spec.containerFlag), spec.containerFlag);
+  check('R7 Simazine need unchanged', near(sim.needed, gal * 1.44), sim.needed);
+  check('R7 Simazine 1 bottle covers the need', sim.stockStatus === 'ok' && near(sim.onHandBase, 320) && sim.toOrder === 0, sim.onHandBase);
+  check('R7 Triad need unchanged', near(triad.needed, gal * 3.24 + 1.4), triad.needed);
+  check('R7 Triad 0 jugs rounds up to 2 jugs', triad.onHandBase === 0 && triad.orderContainers === 2 && triad.containerSize === 320 && !/container size unknown/i.test(triad.containerFlag || ''), triad.orderContainers);
+  check('R7 90/10 need unchanged', near(nis.needed, gal * 0.28 + 0.25), nis.needed);
+  check('R7 90/10 2 bottles cover the need', near(nis.onHandBase, 640) && nis.toOrder === 0, nis.onHandBase);
+  check('R7 Artavia need unchanged', near(art.needed, gal * 2.26), art.needed);
+  check('R7 Artavia 0 jugs rounds up to 2 jugs', art.onHandBase === 0 && art.orderContainers === 2 && art.containerSize === 320, art.orderContainers);
+  check('R7 OPTI need unchanged', near(opti.needed, (COOL / 1000) * 3.57), opti.needed);
+  check('R7 OPTI stays no warehouse match beside Lesco 28-0-3', opti.stockStatus === 'unmatched' && opti.stockFlag === 'No warehouse match — stock not subtracted', opti.stockFlag);
+  check('R7 Albaugh need unchanged', near(sulf.needed, 0.18), sulf.needed);
+  check('R7 Albaugh 5 jugs cover the need', near(sulf.onHandBase, 1600) && sulf.toOrder === 0, sulf.onHandBase);
+}
+
+{
+  app.setOrderInventory({ 'Three-way': stock(0, 'Jugs') });
+  const cool = app.renderRoundInventoryBanner('cool', 1, 'R1');
+  check('banner matches Three-way to Three-Way', /Three-Way/.test(cool) && /OUT/.test(cool) && !/ALL PRODUCTS IN STOCK/.test(cool), cool.slice(0, 240));
+
+  app.setOrderInventory({ 'Simazine 4L': stock(0, 'Bottle') });
+  const warm = app.renderRoundInventoryBanner('warm', 7, 'R7');
+  check('banner aliases Simazine 4L onto Simazine', /Simazine/.test(warm) && /OUT/.test(warm) && !/Simazine 4L/.test(warm), warm.slice(0, 240));
+
+  app.setOrderInventory({ 'Lesco 28-0-3': stock(0, 'Bags') });
+  const optiBanner = app.renderRoundInventoryBanner('cool', 7, 'R7');
+  check('banner does not treat Lesco 28-0-3 as OPTI', !/OPTI/.test(optiBanner) && /ALL PRODUCTS IN STOCK/.test(optiBanner), optiBanner.slice(0, 200));
+}
+
+{
+  const version = JSON.parse(fs.readFileSync(new URL('../version.json', import.meta.url), 'utf8'));
+  check('version.json is 74', version.v === 74, version.v);
+  const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+  check('service worker cache is v74', sw.includes('flex-mix-v74') && !sw.includes('flex-mix-v73'), sw.slice(0, 30));
 }
 
 const failed = results.filter(r => !r.ok);
