@@ -323,9 +323,17 @@ function orderText(p) {
   const azoxy = app.withOrderInventory([{ name: 'Artavia SC (Azoxy)', needed: 10, unit: 'fl oz' }])[0];
   check('Artavia does not alias to Azoxy', azoxy.stockStatus === 'unmatched' && azoxy.toOrder == null, azoxy.stockFlag);
 
-  app.setOrderInventory({ 'Lesco 28-0-3': stock(12, 'Bags') });
+  app.setOrderInventory({ 'Lesco 28-0-3 ': stock(12, 'Bags') });
   const opti = app.withOrderInventory([{ name: 'LESCO Poly Plus OPTI 28-0-3', needed: 80, unit: 'lbs' }])[0];
-  check('OPTI does not alias to Lesco 28-0-3', opti.stockStatus === 'unmatched' && opti.toOrder == null && opti.onHandBase == null, opti.stockStatus);
+  check('OPTI aliases to Lesco 28-0-3 after trim and case fold', opti.stockStatus === 'ok' && near(opti.onHandBase, 600) && opti.toOrder === 0, opti.onHandBase);
+  check('trailing space on Lesco 28-0-3 still matches', app.inventoryMatchKey('Lesco 28-0-3 ') === 'lesco 28-0-3' && app.inventoryMatchKey('LESCO POLY PLUS OPTI 28-0-3') === 'lesco poly plus opti 28-0-3', app.inventoryMatchKey('Lesco 28-0-3 '));
+
+  app.setOrderInventory({
+    'LESCO Poly Plus OPTI 28-0-3': stock(1, 'Bags'),
+    'Lesco 28-0-3 ': stock(12, 'Bags'),
+  });
+  const exactOpti = app.withOrderInventory([{ name: 'LESCO Poly Plus OPTI 28-0-3', needed: 80, unit: 'lbs' }])[0];
+  check('exact OPTI name wins over the Lesco 28-0-3 alias', near(exactOpti.onHandBase, 50) && near(exactOpti.toOrder, 30), exactOpti.onHandBase);
 
   app.setOrderInventory({});
   const miss = app.withOrderInventory([{ name: 'Special Sauce', needed: 10, unit: 'oz' }])[0];
@@ -428,7 +436,7 @@ function orderText(p) {
   check('R7 Artavia need unchanged', near(art.needed, gal * 2.26), art.needed);
   check('R7 Artavia 0 jugs rounds up to 2 jugs', art.onHandBase === 0 && art.orderContainers === 2 && art.containerSize === 320, art.orderContainers);
   check('R7 OPTI need unchanged', near(opti.needed, (COOL / 1000) * 3.57), opti.needed);
-  check('R7 OPTI stays no warehouse match beside Lesco 28-0-3', opti.stockStatus === 'unmatched' && opti.stockFlag === 'No warehouse match — stock not subtracted', opti.stockFlag);
+  check('R7 OPTI aliases to 12 Lesco 28-0-3 bags', opti.stockStatus === 'ok' && near(opti.onHandBase, 600) && opti.toOrder === 0, opti.onHandBase);
   check('R7 Albaugh need unchanged', near(sulf.needed, 0.18), sulf.needed);
   check('R7 Albaugh 5 jugs cover the need', near(sulf.onHandBase, 1600) && sulf.toOrder === 0, sulf.onHandBase);
 }
@@ -442,16 +450,16 @@ function orderText(p) {
   const warm = app.renderRoundInventoryBanner('warm', 7, 'R7');
   check('banner aliases Simazine 4L onto Simazine', /Simazine/.test(warm) && /OUT/.test(warm) && !/Simazine 4L/.test(warm), warm.slice(0, 240));
 
-  app.setOrderInventory({ 'Lesco 28-0-3': stock(0, 'Bags') });
+  app.setOrderInventory({ 'Lesco 28-0-3 ': stock(0, 'Bags') });
   const optiBanner = app.renderRoundInventoryBanner('cool', 7, 'R7');
-  check('banner does not treat Lesco 28-0-3 as OPTI', !/OPTI/.test(optiBanner) && /ALL PRODUCTS IN STOCK/.test(optiBanner), optiBanner.slice(0, 200));
+  check('banner aliases Lesco 28-0-3 onto OPTI', /LESCO Poly Plus OPTI 28-0-3/.test(optiBanner) && /OUT/.test(optiBanner) && !/ALL PRODUCTS IN STOCK/.test(optiBanner), optiBanner.slice(0, 240));
 }
 
 {
   const version = JSON.parse(fs.readFileSync(new URL('../version.json', import.meta.url), 'utf8'));
-  check('version.json is 75', version.v === 75, version.v);
+  check('version.json is 76', version.v === 76, version.v);
   const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
-  check('service worker cache is v75', sw.includes('flex-mix-v75') && !sw.includes('flex-mix-v74'), sw.slice(0, 30));
+  check('service worker cache is v76', sw.includes('flex-mix-v76') && !sw.includes('flex-mix-v75'), sw.slice(0, 30));
 }
 
 const failed = results.filter(r => !r.ok);
