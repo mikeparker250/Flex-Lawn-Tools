@@ -227,9 +227,9 @@ hardStop('rate over label max', fromPick(app, 'LESCO 24-0-11 w/ 2% Fe + PolyPlus
 }
 
 // Existing calculator + Order Planner must match main.
-// Warm R7 Pass 1 Triad/Simazine (and the order-7 totals they drive) are the
-// cleared rates: Triad 3.24/0.96 oz/gal, Simazine 1.44/0.43 oz/gal. Those two
-// snapshots are checked against that baseline; everything else stays on main.
+// Warm R7 Simazine is 2.15 oz/gal Toro and 0.64 oz/gal Power Spray.
+// Triad stays 3.24/0.96 oz/gal. 90/10 NIS is unchanged. A product removed
+// from a round is dropped from the main snapshot before comparing.
 function snap(ctx) {
   const baseProps = (round) => ([
     { name:'Small', sqft:8000, round, isRockYard:false, hasRockBeds:false, isHoseDrag:false, equipmentOverride:null },
@@ -263,7 +263,7 @@ const mainSnap = snap(main);
 // Lawn Ops cleared warm R7 Pass 1. Power Sprayer rates are explicit, not the
 // 0.34/1.14 derivation. Order Planner round 7 uses the Toro rates at 95,000 sq ft.
 const CLEARED_WARM_R7 = {
-  'Simazine': { toro: 1.44, ps: 0.43 },
+  'Simazine': { toro: 2.15, ps: 0.64 },
   'Triad Select': { toro: 3.24, ps: 0.96 },
 };
 const ORDER_SAMPLE_SQFT = 95000;
@@ -291,14 +291,32 @@ function setLiquidRate(mix, name, rate, psRate) {
   return true;
 }
 
-// Main snapshot with Triad and Simazine replaced by the cleared rates.
-// Specticle, 90/10 NIS, and the Artavia pass stay as main recorded them.
-function expectedWarmR7Liquid(mainJson) {
+function namesInMix(mix) {
+  return new Set((mix && mix.products || []).map(p => p.name));
+}
+
+function keepCurrentProducts(expectedMix, currentMix) {
+  if (!expectedMix || !expectedMix.products) return;
+  const allowed = namesInMix(currentMix);
+  expectedMix.products = expectedMix.products.filter(p => allowed.has(p.name));
+}
+
+// Drop products this version removed, then apply the warm R7 rates.
+function expectedWarmR7Liquid(mainJson, nowJson) {
   const snap = JSON.parse(mainJson);
+  const now = JSON.parse(nowJson);
+  for (const side of ['toro', 'ps', 'fung']) keepCurrentProducts(snap[side], now[side]);
   for (const [name, rates] of Object.entries(CLEARED_WARM_R7)) {
     if (!setLiquidRate(snap.toro, name, rates.toro, rates.ps)) return null;
     if (!setLiquidRate(snap.ps, name, rates.ps, rates.ps)) return null;
   }
+  return snap;
+}
+
+function expectedWarmR2Liquid(mainJson, nowJson) {
+  const snap = JSON.parse(mainJson);
+  const now = JSON.parse(nowJson);
+  for (const side of ['toro', 'ps', 'fung']) keepCurrentProducts(snap[side], now[side]);
   return snap;
 }
 
@@ -312,8 +330,19 @@ function setOrderTotal(list, name, needed) {
 
 // Same sample as snap(): 95,000 warm sq ft at the Toro output. Combined Triad
 // keeps whatever cool R7 adds on top of the warm broadcast (the 1.4 oz B&G).
-function expectedOrder7(mainJson) {
+function keepCurrentOrderRows(expectedList, currentList) {
+  if (!Array.isArray(expectedList)) return;
+  const allowed = new Set((currentList || []).map(p => p.name));
+  const kept = expectedList.filter(p => allowed.has(p.name));
+  expectedList.length = 0;
+  expectedList.push(...kept);
+}
+
+function expectedOrder(mainJson, nowJson, roundKey) {
   const snap = JSON.parse(mainJson);
+  const now = JSON.parse(nowJson);
+  for (const side of ['warm', 'cool', 'combined']) keepCurrentOrderRows(snap[side], now[side]);
+  if (roundKey !== '7') return snap;
   const gal = (ORDER_SAMPLE_SQFT / 1000) * ORDER_TORO_OUT;
   const sim = gal * CLEARED_WARM_R7['Simazine'].toro;
   const triad = gal * CLEARED_WARM_R7['Triad Select'].toro;
@@ -347,11 +376,15 @@ function snapshotMatches(bucket, key) {
   const nowJson = nowSnap[bucket][key];
   const mainJson = mainSnap[bucket][key];
   if (bucket === 'liquid' && key === 'warm-R7') {
-    const expected = expectedWarmR7Liquid(mainJson);
+    const expected = expectedWarmR7Liquid(mainJson, nowJson);
+    return expected != null && deepEqual(JSON.parse(nowJson), expected);
+  }
+  if (bucket === 'liquid' && key === 'warm-R2') {
+    const expected = expectedWarmR2Liquid(mainJson, nowJson);
     return expected != null && deepEqual(JSON.parse(nowJson), expected);
   }
   if (bucket === 'order') {
-    const expected = key === '7' ? expectedOrder7(mainJson) : JSON.parse(mainJson);
+    const expected = expectedOrder(mainJson, nowJson, key);
     return expected != null && deepEqual(orderNeedSnapshot(JSON.parse(nowJson)), orderNeedSnapshot(expected));
   }
   return nowJson === mainJson;

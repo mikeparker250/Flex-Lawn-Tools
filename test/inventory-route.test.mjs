@@ -26,18 +26,14 @@ test('the dashboard fixture is Bentonville-filterable and keeps Lawn Products on
   assert.equal(fixture.collection, 'inventory');
   assert.equal(fixture.project_id, 'premium-inventory-app');
   const lawn = inventory.bentonvilleLawnProducts(fixture);
-  assert.equal(lawn.length, 39);
+  assert.equal(lawn.length, 38);
   assert.equal(lawn.every(item => item.warehouseId === 'J29nPerDyPRDoVqg1Wsf'), true);
   assert.equal(lawn.every(item => item.category === 'Lawn Products'), true);
   const names = new Set(lawn.map(item => item.name.trim()));
-  assert.equal(names.has('Specticle FLO'), true);
   assert.equal(names.has('Triad Select'), true);
   assert.equal(names.has('Artavia SC (Azoxystrobin)'), true);
   assert.equal(names.has('Simazine 4L'), true);
   assert.equal(names.has('Sulfentrazone'), true);
-  const specticle = lawn.find(item => item.name.trim() === 'Specticle FLO');
-  assert.equal(specticle.onHand, 0);
-  assert.equal(specticle.unit.trim(), 'Bottles');
 });
 
 test('quantity from the edge function is used when the dashboard onHand field is absent', () => {
@@ -45,7 +41,7 @@ test('quantity from the edge function is used when the dashboard onHand field is
     items: [
       {
         id: 'raw-1',
-        name: 'Specticle FLO',
+        name: 'Quin-Way 1.5L',
         category: 'Lawn Products',
         unit: 'Bottles',
         quantity: 4,
@@ -69,7 +65,7 @@ test('quantity from the edge function is used when the dashboard onHand field is
       },
       {
         id: 'other-wh',
-        name: 'Specticle FLO',
+        name: 'Quin-Way 1.5L',
         category: 'Lawn Products',
         quantity: 9,
         warehouseId: 'ImsYYDCLRoAgF4u3HtEe',
@@ -77,7 +73,7 @@ test('quantity from the edge function is used when the dashboard onHand field is
     ],
   });
   assert.deepEqual(products.map(item => [item.name.trim(), item.onHand, item.unit]), [
-    ['Specticle FLO', 4, 'Bottles'],
+    ['Quin-Way 1.5L', 4, 'Bottles'],
     ['Triad Select', 0, 'Jugs'],
   ]);
   assert.equal(products[0].updatedAt, '2026-04-30T20:43:23.634319Z');
@@ -114,13 +110,13 @@ test('unset env falls back to the public CRM client key and URL', async () => {
     const res = mockRes();
     await handler({ method: 'GET' }, res);
     assert.equal(res.statusCode, 200);
-    assert.equal(res.body.count, 39);
+    assert.equal(res.body.count, 38);
     assert.equal(JSON.stringify(res.body).includes(handler.PUBLIC_SUPABASE_PUBLISHABLE_KEY), false);
     assert.match(res.headers['cache-control'], /s-maxage=300/);
     const cached = mockRes();
     await handler({ method: 'GET' }, cached);
     assert.equal(calls, 1);
-    assert.equal(cached.body.count, 39);
+    assert.equal(cached.body.count, 38);
   } finally {
     global.fetch = original;
     if (prevKey == null) delete process.env.FLEXQUOTE_SUPABASE_PUBLISHABLE_KEY;
@@ -163,13 +159,13 @@ test('a configured route returns Bentonville lawn products and caches for about 
     assert.equal(first.statusCode, 200);
     assert.equal(first.body.ok, true);
     assert.equal(first.body.warehouseId, 'J29nPerDyPRDoVqg1Wsf');
-    assert.equal(first.body.count, 39);
+    assert.equal(first.body.count, 38);
     assert.equal(JSON.stringify(first.body).includes('publishable-test-key'), false);
     assert.match(first.headers['cache-control'], /s-maxage=300/);
     const second = mockRes();
     await handler({ method: 'GET' }, second);
     assert.equal(calls, 1);
-    assert.equal(second.body.count, 39);
+    assert.equal(second.body.count, 38);
     const denied = mockRes();
     await handler({ method: 'POST' }, denied);
     assert.equal(denied.statusCode, 405);
@@ -239,10 +235,11 @@ test('R7 against the 23:52 UTC dashboard fixture', () => {
     status: p.stockStatus,
   }));
   const byName = Object.fromEntries(rows.map(row => [row.name, row]));
-  assert.equal(byName['Specticle FLO'].have, '0 Bottles = 0.0 oz');
-  assert.equal(byName['Specticle FLO'].flag, 'Container size unknown — not rounded up to bottles');
+  assert.equal(byName['Simazine'].need, '393.5 oz');
   assert.equal(byName['Simazine'].have, '1 Bottles = 320.0 oz');
-  assert.equal(byName['Simazine'].toOrder, 'stocked');
+  assert.equal(byName['Simazine'].toOrder, '73.5 oz · 1 jug @ 320 fl oz');
+  assert.equal(Object.prototype.hasOwnProperty.call(byName, 'Simazine'), true);
+  assert.equal(plan.warm.map(p => p.name).join('|'), 'Simazine|Triad Select|90/10 NIS|Artavia SC (Azoxystrobin)');
   assert.equal(byName['Triad Select'].toOrder, '594.3 oz · 2 jugs @ 320 fl oz');
   assert.equal(byName['90/10 NIS'].have, '2 Bottles = 640.0 oz');
   assert.equal(byName['90/10 NIS'].toOrder, 'stocked');

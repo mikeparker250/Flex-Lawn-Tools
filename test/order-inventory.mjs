@@ -101,8 +101,10 @@ function near(a, b) {
   const warm = (name) => plan.warm.find(p => p.name === name);
   const cool = (name) => plan.cool.find(p => p.name === name);
   const both = (name) => plan.combined.find(p => p.name === name);
-  check('R7 Specticle need is unchanged', near(warm('Specticle FLO').needed, gal * 0.10), warm('Specticle FLO').needed);
-  check('R7 Simazine need is unchanged', near(warm('Simazine').needed, gal * 1.44), warm('Simazine').needed);
+  check('R7 Simazine need is 2.15 oz/gal Toro', near(warm('Simazine').needed, gal * 2.15), warm('Simazine').needed);
+  check('R7 warm products are Simazine, Triad, NIS, and Artavia', plan.warm.map(p => p.name).join('|') === 'Simazine|Triad Select|90/10 NIS|Artavia SC (Azoxystrobin)', plan.warm.map(p => p.name).join('|'));
+  const r2 = app.calcOrderPlan(2, 95000, 0);
+  check('R2 warm products are Prodiamine, Triad, Quin-Way, MSO, then the B&G list', r2.warm.map(p => p.name).join('|') === 'Prodiamine 65 WDG|Triad Select|Quin-Way 1.5L|MSO|Albaugh Sulfentrazone 4SC Select|90/10 NIS|Special Sauce', r2.warm.map(p => p.name).join('|'));
   check('R7 Triad need is unchanged', near(warm('Triad Select').needed, gal * 3.24), warm('Triad Select').needed);
   check('R7 90/10 need is unchanged', near(warm('90/10 NIS').needed, gal * 0.28), warm('90/10 NIS').needed);
   check('R7 Artavia need is unchanged', near(warm('Artavia SC (Azoxystrobin)').needed, gal * 2.26), warm('Artavia SC (Azoxystrobin)').needed);
@@ -175,14 +177,10 @@ function near(a, b) {
 
 // --- invoice bottle sizes; every other bottle stays unknown ---
 {
-  const bottle = one('Specticle FLO', 10, 'oz', stock(2, 'Bottles'));
-  check('non-zero Specticle bottles are not subtracted', bottle.stockStatus === 'unknown_container' && bottle.toOrder == null, bottle.toOrder);
-  check('Specticle bottle flag is container size unknown', /container size unknown/i.test(bottle.stockFlag), bottle.stockFlag);
-
   const other = one('Atrazine', 10, 'oz', stock(1, 'Bottle'));
   check('an unlisted bottle stays container size unknown', other.stockStatus === 'unknown_container' && other.toOrder == null && /container size unknown/i.test(other.stockFlag), other.stockFlag);
 
-  const zeroBottle = one('Specticle FLO', 18.3, 'oz', stock(0, 'Bottles'));
+  const zeroBottle = one('Atrazine', 18.3, 'oz', stock(0, 'Bottles'));
   check('0 unknown bottles still order the base amount', zeroBottle.stockStatus === 'ok' && near(zeroBottle.toOrder, 18.3) && zeroBottle.orderContainers == null, zeroBottle.toOrder);
   check('0 unknown bottles are not rounded', /container size unknown/i.test(zeroBottle.containerFlag) && /not rounded up to bottles/.test(zeroBottle.containerFlag), zeroBottle.containerFlag);
 
@@ -351,8 +349,8 @@ function orderText(p) {
   check('failed load is not an all-in-stock banner', /inventory failed to load/.test(banner) && !/ALL PRODUCTS IN STOCK/.test(banner) && !/no match/i.test(banner), banner.slice(0, 180));
   const notice = app.orderInventoryNotices(app.calcOrderPlan(7, 1000, 0));
   check('order planner shows the load failure', /id="op-inv-flag"/.test(notice) && /inventory failed to load/.test(notice) && !/no match/i.test(notice), notice.slice(0, 220));
-  const failedRows = app.renderOrderRows(app.withOrderInventory([{ name: 'Specticle FLO', needed: 18.3, unit: 'oz' }]));
-  check('failed Specticle row is not no match', /inventory failed to load/.test(failedRows) && !/no match/i.test(failedRows), failedRows.slice(0, 240));
+  const failedRows = app.renderOrderRows(app.withOrderInventory([{ name: 'Triad Select', needed: 18.3, unit: 'oz' }]));
+  check('failed load row is not no match', /inventory failed to load/.test(failedRows) && !/no match/i.test(failedRows), failedRows.slice(0, 240));
   check('quantity wins over onHand', app.inventoryDocQuantity({ quantity: 1, onHand: 9 }) === 1, app.inventoryDocQuantity({ quantity: 1, onHand: 9 }));
   check('onHand is the quantity when quantity is absent', app.inventoryDocQuantity({ onHand: 3 }) === 3, app.inventoryDocQuantity({ onHand: 3 }));
   check('a blank quantity falls through to onHand', app.inventoryDocQuantity({ quantity: '', onHand: 4 }) === 4, app.inventoryDocQuantity({ quantity: '', onHand: 4 }));
@@ -406,7 +404,6 @@ function orderText(p) {
   const COOL = 20939;
   const gal = (WARM / 1000) * 0.34;
   app.setOrderInventory({
-    'Specticle FLO': stock(0, 'Bottles'),
     'Simazine 4L': stock(1, 'Bottle'),
     'Triad Select': stock(0, 'Jugs'),
     '90/10 NIS': stock(2, 'Bottles'),
@@ -418,17 +415,14 @@ function orderText(p) {
   });
   const plan = app.calcOrderPlan(7, WARM, COOL);
   const row = (name) => plan.combined.find(p => p.name === name);
-  const spec = row('Specticle FLO');
   const sim = row('Simazine');
   const triad = row('Triad Select');
   const nis = row('90/10 NIS');
   const art = row('Artavia SC (Azoxystrobin)');
   const opti = row('LESCO Poly Plus OPTI 28-0-3');
   const sulf = row('Albaugh Sulfentrazone 4SC Select');
-  check('R7 Specticle need unchanged', near(spec.needed, gal * 0.10), spec.needed);
-  check('R7 Specticle 0 bottles stay unrounded', spec.stockStatus === 'ok' && spec.onHandBase === 0 && spec.orderContainers == null && /container size unknown/i.test(spec.containerFlag), spec.containerFlag);
-  check('R7 Simazine need unchanged', near(sim.needed, gal * 1.44), sim.needed);
-  check('R7 Simazine 1 bottle covers the need', sim.stockStatus === 'ok' && near(sim.onHandBase, 320) && sim.toOrder === 0, sim.onHandBase);
+  check('R7 Simazine need is 2.15 oz/gal', near(sim.needed, gal * 2.15), sim.needed);
+  check('R7 Simazine 1 bottle leaves one jug to order', sim.stockStatus === 'ok' && near(sim.onHandBase, 320) && sim.orderContainers === 1 && sim.containerSize === 320 && sim.toOrder > 0, sim.toOrder);
   check('R7 Triad need unchanged', near(triad.needed, gal * 3.24 + 1.4), triad.needed);
   check('R7 Triad 0 jugs rounds up to 2 jugs', triad.onHandBase === 0 && triad.orderContainers === 2 && triad.containerSize === 320 && !/container size unknown/i.test(triad.containerFlag || ''), triad.orderContainers);
   check('R7 90/10 need unchanged', near(nis.needed, gal * 0.28 + 0.25), nis.needed);
@@ -457,9 +451,9 @@ function orderText(p) {
 
 {
   const version = JSON.parse(fs.readFileSync(new URL('../version.json', import.meta.url), 'utf8'));
-  check('version.json is 76', version.v === 76, version.v);
+  check('version.json is 77', version.v === 77, version.v);
   const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
-  check('service worker cache is v76', sw.includes('flex-mix-v76') && !sw.includes('flex-mix-v75'), sw.slice(0, 30));
+  check('service worker cache is v77', sw.includes('flex-mix-v77') && !sw.includes('flex-mix-v76'), sw.slice(0, 30));
 }
 
 const failed = results.filter(r => !r.ok);

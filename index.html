@@ -693,7 +693,7 @@ const REORDER_THRESHOLDS = {
   'LESCO 24-0-11 w/ 2% Fe + PolyPlus':1, 'Terra Ally TA 22-0-0':2.5,
   'Artavia SC (Azoxystrobin)':1,
   'LESCO 28-0-0 w/ 20% PolyPlus + 1.2% Fe':1, 'Propiconazole 14.3':1,
-  'LESCO 5-0-25 w/ 10% Fe':1, 'The Andersons 5-0-31 w/ 10% Fe':1, 'Specticle FLO':10,
+  'LESCO 5-0-25 w/ 10% Fe':1, 'The Andersons 5-0-31 w/ 10% Fe':1,
   'LESCO Poly Plus OPTI 28-0-3':1,
   'LESCO 18-0-9 w/ 2% Fe':1, 'Ranger Pro 41% Glyphosate':2.5,
   'Albaugh Sulfentrazone 4SC Select':1, 'Revolver':1, 'Special Sauce':2.5, 'Empero (Halosulfuron)':1,
@@ -886,7 +886,6 @@ const ROUNDS = {
           {name:'Triad Select',       rate:3.24, unit:'oz'},
           {name:'Quin-Way 1.5L',      rate:4.26, unit:'fl oz'},
           {name:'MSO',                rate:1.28, unit:'oz', psRate:1.28},
-          {name:'Specticle FLO',      rate:0.085, unit:'oz', cond:true, condNote:'Pre-emergent sedge suppression — add to every R2 warm tank.'},
         ],
       },
       granular:null,
@@ -1020,8 +1019,7 @@ const ROUNDS = {
       name:'Fall Pre-Emergent + Spring Dead Spot Prevention', icon:'❄️', dates:'Oct 4 – Nov 14',
       liquid:{
         products:[
-          {name:'Specticle FLO', rate:0.10, unit:'oz'},
-          {name:'Simazine',      rate:1.44, unit:'oz', psRate:0.43},
+          {name:'Simazine',      rate:2.15, unit:'oz', psRate:0.64},
           {name:'Triad Select',  rate:3.24, unit:'oz', psRate:0.96},
           {name:'90/10 NIS',     rate:0.28, unit:'oz'},
         ],
@@ -4141,7 +4139,7 @@ const OZ_PER_LB = 16;
 const JUG_FL_OZ = 2.5 * OZ_PER_GAL;
 
 // Invoice bottle sizes, in fl oz. A jug does not use this table.
-// Specticle and every other bottle stay unknown — do not add a guess.
+// Every other bottle stays unknown — do not add a guess.
 const KNOWN_BOTTLE_FL_OZ = {
   'quin-way': 64,
   'quin-way 1.5l': 64,
