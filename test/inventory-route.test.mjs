@@ -83,19 +83,50 @@ test('quantity from the edge function is used when the dashboard onHand field is
   assert.equal(products[0].updatedAt, '2026-04-30T20:43:23.634319Z');
 });
 
-test('missing publishable key is a 503 and is not cached', async () => {
-  const prev = process.env.FLEXQUOTE_SUPABASE_PUBLISHABLE_KEY;
+test('unset env falls back to the public CRM client key and URL', async () => {
+  const prevKey = process.env.FLEXQUOTE_SUPABASE_PUBLISHABLE_KEY;
+  const prevUrl = process.env.FLEXQUOTE_INVENTORY_URL;
   delete process.env.FLEXQUOTE_SUPABASE_PUBLISHABLE_KEY;
+  delete process.env.FLEXQUOTE_INVENTORY_URL;
   handler.resetInventoryCache();
+  assert.equal(inventory.readConfig({}), null);
+  assert.equal(handler.PUBLIC_INVENTORY_URL, inventory.DEFAULT_INVENTORY_URL);
+  assert.match(handler.PUBLIC_SUPABASE_PUBLISHABLE_KEY, /^sb_publishable_[A-Za-z0-9_-]+$/);
+  const source = readFileSync(new URL('../api/inventory.js', import.meta.url), 'utf8');
+  assert.match(source, /public client key/i);
+  assert.match(source, /not a secret/i);
+  let calls = 0;
+  const original = global.fetch;
+  global.fetch = async (url, opts) => {
+    calls += 1;
+    assert.equal(url, handler.PUBLIC_INVENTORY_URL);
+    assert.equal(opts.headers.apikey, handler.PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+    assert.equal(opts.headers.Authorization, 'Bearer ' + handler.PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return { ok: true, fetched_at: fixture.fetched_at, items: fixture.items };
+      },
+    };
+  };
   try {
     const res = mockRes();
     await handler({ method: 'GET' }, res);
-    assert.equal(res.statusCode, 503);
-    assert.equal(res.body.error, 'Inventory not configured');
-    assert.equal(res.headers['cache-control'], 'no-store');
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.count, 39);
+    assert.equal(JSON.stringify(res.body).includes(handler.PUBLIC_SUPABASE_PUBLISHABLE_KEY), false);
+    assert.match(res.headers['cache-control'], /s-maxage=300/);
+    const cached = mockRes();
+    await handler({ method: 'GET' }, cached);
+    assert.equal(calls, 1);
+    assert.equal(cached.body.count, 39);
   } finally {
-    if (prev == null) delete process.env.FLEXQUOTE_SUPABASE_PUBLISHABLE_KEY;
-    else process.env.FLEXQUOTE_SUPABASE_PUBLISHABLE_KEY = prev;
+    global.fetch = original;
+    if (prevKey == null) delete process.env.FLEXQUOTE_SUPABASE_PUBLISHABLE_KEY;
+    else process.env.FLEXQUOTE_SUPABASE_PUBLISHABLE_KEY = prevKey;
+    if (prevUrl == null) delete process.env.FLEXQUOTE_INVENTORY_URL;
+    else process.env.FLEXQUOTE_INVENTORY_URL = prevUrl;
     handler.resetInventoryCache();
   }
 });

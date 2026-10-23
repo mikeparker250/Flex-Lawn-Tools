@@ -12,14 +12,17 @@ function nonempty(value) {
   return typeof value === 'string' && value.trim() !== '';
 }
 
-function readConfig(env) {
+function readConfig(env, defaults) {
   const source = env || process.env;
-  const key = source.FLEXQUOTE_SUPABASE_PUBLISHABLE_KEY;
-  if (!nonempty(key)) return null;
+  const fallback = defaults || {};
+  const key = nonempty(source.FLEXQUOTE_SUPABASE_PUBLISHABLE_KEY)
+    ? source.FLEXQUOTE_SUPABASE_PUBLISHABLE_KEY.trim()
+    : (nonempty(fallback.key) ? fallback.key.trim() : '');
+  if (!key) return null;
   const url = nonempty(source.FLEXQUOTE_INVENTORY_URL)
     ? source.FLEXQUOTE_INVENTORY_URL.trim()
-    : DEFAULT_INVENTORY_URL;
-  return { url, key: key.trim() };
+    : (nonempty(fallback.url) ? fallback.url.trim() : DEFAULT_INVENTORY_URL);
+  return { url, key };
 }
 
 function readQuantity(item) {

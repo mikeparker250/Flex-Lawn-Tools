@@ -6,6 +6,18 @@ const {
   BENTONVILLE_WAREHOUSE_ID,
 } = require('./lib/inventory');
 
+// Public client key from the Flex CRM bundle
+// https://flexpestcontrolquote.vercel.app/assets/App-DRiUxnON.js
+// (createClient url GFe, key KFe). This is the CRM's public client key
+// and not a secret. A logged-out browser sends it as the apikey header.
+// process.env.FLEXQUOTE_SUPABASE_PUBLISHABLE_KEY overrides it when set.
+const PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_7glZuC62QDH5bTl0ZiY18g_WVF1vKeh';
+
+// Same public fetch-inventory URL the CRM calls: the bundle's Supabase host
+// plus functions/v1/fetch-inventory?collection=inventory. Not a secret.
+// process.env.FLEXQUOTE_INVENTORY_URL overrides it when set.
+const PUBLIC_INVENTORY_URL = 'https://nsfdndlxrcionqqsydzy.supabase.co/functions/v1/fetch-inventory?collection=inventory';
+
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const NOT_CONFIGURED = 'Inventory not configured';
 
@@ -59,7 +71,10 @@ async function handler(req, res) {
     return;
   }
 
-  const config = readConfig();
+  const config = readConfig(process.env, {
+    key: PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    url: PUBLIC_INVENTORY_URL,
+  });
   if (!config) {
     res.setHeader('Cache-Control', 'no-store');
     res.status(503).json({ error: NOT_CONFIGURED });
@@ -89,3 +104,5 @@ module.exports.resetInventoryCache = resetInventoryCache;
 module.exports.fetchInventory = fetchInventory;
 module.exports.NOT_CONFIGURED = NOT_CONFIGURED;
 module.exports.CACHE_TTL_MS = CACHE_TTL_MS;
+module.exports.PUBLIC_SUPABASE_PUBLISHABLE_KEY = PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+module.exports.PUBLIC_INVENTORY_URL = PUBLIC_INVENTORY_URL;
