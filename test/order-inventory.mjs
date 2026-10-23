@@ -203,6 +203,8 @@ function near(a, b) {
 
   const simBottle = one('Simazine 4L', 400, 'oz', stock(1, 'Bottle'));
   check('Simazine 4L bottle is 320 fl oz', near(simBottle.onHandBase, 320) && near(simBottle.toOrder, 80) && simBottle.orderContainers === 1 && simBottle.containerSize === 320, orderText(simBottle));
+  check('Simazine Have says jug', app.fmtHaveText(simBottle) === '1 jug = 320.0 oz', app.fmtHaveText(simBottle));
+  check('90/10 Have keeps the warehouse bottle unit', app.fmtHaveText(nis) === '2 Bottles = 640.0 oz', app.fmtHaveText(nis));
 }
 
 // --- other unit failures ---
@@ -396,6 +398,9 @@ function orderText(p) {
   const share = app.buildPlanShareText(2, 1000, 0, 1, 0, plan);
   check('share text flags an unmatched product', /No warehouse match — stock not subtracted/.test(share), share.split('\n').slice(0, 12).join(' | '));
   check('share text does not put a bare amount after the arrow', !/→\s+\d/.test(share), 'arrow stayed flagged');
+  check('share text names the sourced 90/10 purchase', share.includes('Buy: LESCO 90/10 Nonionic Surfactant, 2.5 gal'), share);
+  check('share text names the sourced Albaugh purchase', share.includes('Buy: Albaugh Sulfentrazone 4SC Select, 64 fl oz'), share);
+  check('share text has no Buy line for an unsourced product', !/Buy:.*Prodiamine/.test(share) && !/Buy:.*Triad/.test(share), share);
 }
 
 // --- R7 against the v73 warehouse snapshot (fixture, not a live read) ---
@@ -423,6 +428,18 @@ function orderText(p) {
   const sulf = row('Albaugh Sulfentrazone 4SC Select');
   check('R7 Simazine need is 2.15 oz/gal', near(sim.needed, gal * 2.15), sim.needed);
   check('R7 Simazine 1 bottle leaves one jug to order', sim.stockStatus === 'ok' && near(sim.onHandBase, 320) && sim.orderContainers === 1 && sim.containerSize === 320 && sim.toOrder > 0, sim.toOrder);
+  check('R7 Simazine Have displays the 320 fl oz container as a jug', app.fmtHaveText(sim) === '1 jug = 320.0 oz', app.fmtHaveText(sim));
+  const simRow = app.renderOrderRows([sim]);
+  check('R7 Simazine row has the Drexel Buy line', /Buy: Drexel Simazine 4L \(EPA 19713-60\), 2.5 gal jug/.test(simRow) && /1 jug = 320\.0 oz/.test(simRow), simRow);
+  const nisRow = app.renderOrderRows([nis]);
+  check('R7 90/10 row has the LESCO Buy line', /Buy: LESCO 90\/10 Nonionic Surfactant, 2\.5 gal/.test(nisRow), nisRow);
+  const optiRow = app.renderOrderRows([opti]);
+  check('R7 OPTI row has the 50 lb bag Buy line', /Buy: LESCO Poly Plus OPTI 28-0-3, 50 lb bag/.test(optiRow), optiRow);
+  const sulfRow = app.renderOrderRows([sulf]);
+  check('R7 Albaugh row has the 64 fl oz Buy line', /Buy: Albaugh Sulfentrazone 4SC Select, 64 fl oz/.test(sulfRow), sulfRow);
+  const triadRow = app.renderOrderRows([triad]);
+  const artRow = app.renderOrderRows([art]);
+  check('unsourced R7 rows have no Buy line', !/Buy:/.test(triadRow) && !/Buy:/.test(artRow), triadRow.slice(0, 80));
   check('R7 Triad need unchanged', near(triad.needed, gal * 3.24 + 1.4), triad.needed);
   check('R7 Triad 0 jugs rounds up to 2 jugs', triad.onHandBase === 0 && triad.orderContainers === 2 && triad.containerSize === 320 && !/container size unknown/i.test(triad.containerFlag || ''), triad.orderContainers);
   check('R7 90/10 need unchanged', near(nis.needed, gal * 0.28 + 0.25), nis.needed);
@@ -451,9 +468,9 @@ function orderText(p) {
 
 {
   const version = JSON.parse(fs.readFileSync(new URL('../version.json', import.meta.url), 'utf8'));
-  check('version.json is 77', version.v === 77, version.v);
+  check('version.json is 78', version.v === 78, version.v);
   const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
-  check('service worker cache is v77', sw.includes('flex-mix-v77') && !sw.includes('flex-mix-v76'), sw.slice(0, 30));
+  check('service worker cache is v78', sw.includes('flex-mix-v78') && !sw.includes('flex-mix-v77'), sw.slice(0, 30));
 }
 
 const failed = results.filter(r => !r.ok);

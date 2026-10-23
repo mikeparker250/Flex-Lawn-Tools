@@ -236,7 +236,7 @@ test('R7 against the 23:52 UTC dashboard fixture', () => {
   }));
   const byName = Object.fromEntries(rows.map(row => [row.name, row]));
   assert.equal(byName['Simazine'].need, '393.5 oz');
-  assert.equal(byName['Simazine'].have, '1 Bottles = 320.0 oz');
+  assert.equal(byName['Simazine'].have, '1 jug = 320.0 oz');
   assert.equal(byName['Simazine'].toOrder, '73.5 oz · 1 jug @ 320 fl oz');
   assert.equal(Object.prototype.hasOwnProperty.call(byName, 'Simazine'), true);
   assert.equal(plan.warm.map(p => p.name).join('|'), 'Simazine|Triad Select|90/10 NIS|Artavia SC (Azoxystrobin)');
