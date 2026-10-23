@@ -715,9 +715,9 @@ function initFirebase() {
   try {
     if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     _fbDb = firebase.firestore();
-    // The default watch stream often never opens. get() then resolves an
-    // empty memory cache and does not throw, which looked like a real load
-    // of zero products. Long polling is what actually reaches Firestore.
+    // Saved sqft still uses this client. The default watch stream often
+    // never opens, so force long polling before the first read. Inventory
+    // Have does not use Firestore; it comes from /api/inventory.
     if (typeof _fbDb.settings === 'function') {
       try { _fbDb.settings({ experimentalForceLongPolling: true, merge: true }); } catch (e) {}
     }
@@ -738,38 +738,33 @@ function inventoryDocQuantity(d) {
   return 0;
 }
 
+// Have comes from /api/inventory, which calls FlexQuote's fetch-inventory
+// edge function. The browser never sees that credential. A non-OK response
+// is a failed load, never an empty warehouse.
 async function loadInventory() {
-  const db = initFirebase();
-  if (!db) {
-    markInventoryFailed();
-    return;
-  }
   try {
-    const snap = await db
-      .collection('companies')
-      .doc('940AB322-F85A-4883-8EBA-C151A88F3AD9')
-      .collection('warehouses')
-      .doc(WAREHOUSE_ID)
-      .collection('inventory')
-      .get({ source: 'server' });
-    // Offline get() resolves fromCache with zero docs and does not throw.
-    if (!snap || (snap.metadata && snap.metadata.fromCache)) {
+    const res = await fetch('/api/inventory', { cache: 'no-store' });
+    if (!res || !res.ok) {
+      markInventoryFailed();
+      return;
+    }
+    const body = await res.json();
+    if (!body || !Array.isArray(body.items)) {
       markInventoryFailed();
       return;
     }
     const map = {};
-    snap.forEach(doc => {
-      const d = doc.data() || {};
+    for (const d of body.items) {
       const key = orderProductKey(d.name || d.productName || '');
       const category = String(d.category == null ? '' : d.category).trim().toLowerCase();
       if (key && category === 'lawn products') {
         map[key] = {
           quantity: inventoryDocQuantity(d),
           unit: d.unit ?? '',
-          updatedAt: readInventoryStamp(d),
+          updatedAt: d.updatedAt || readInventoryStamp(d),
         };
       }
-    });
+    }
     _invData = map;
     _invError = null;
     _invReady = true;
