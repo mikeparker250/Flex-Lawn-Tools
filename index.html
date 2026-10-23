@@ -4267,6 +4267,7 @@ function stockMultiplier(kind, base, productName, inventoryName) {
     const flOz = knownBottleFlOz(productName, inventoryName);
     if (!(flOz > 0)) return null;
     // 2.5 gal bottles (90/10 NIS, Simazine 4L) are the same 320 fl oz container as a jug.
+    // Simazine's invoice is that jug. Have says "jug" even when the warehouse unit is Bottles.
     const container = flOz === JUG_FL_OZ
       ? jugContainer()
       : { size: flOz, label: 'bottle', sizeLabel: flOz + ' fl oz' };
@@ -4343,12 +4344,39 @@ function fmtBaseAmount(val, unit) {
   return n.toFixed(1) + ' ' + unit;
 }
 
+// Sourced purchase names. Anything not listed gets no Buy line.
+const ORDER_BUY_LINES = {
+  'simazine': 'Drexel Simazine 4L (EPA 19713-60), 2.5 gal jug',
+  '90/10 nis': 'LESCO 90/10 Nonionic Surfactant, 2.5 gal',
+  'albaugh sulfentrazone 4sc select': 'Albaugh Sulfentrazone 4SC Select, 64 fl oz',
+  'lesco poly plus opti 28-0-3': 'LESCO Poly Plus OPTI 28-0-3, 50 lb bag',
+};
+
+function orderBuyLine(productName) {
+  const key = inventoryMatchKey(productName);
+  if (!key || !Object.prototype.hasOwnProperty.call(ORDER_BUY_LINES, key)) return '';
+  return ORDER_BUY_LINES[key];
+}
+
+// Warehouse calls the Simazine 2.5 gal jug a Bottle. The invoice is a jug, still 320 fl oz.
+function haveStockLabel(p) {
+  const rawUnit = String(p.stockUnit || '').trim();
+  const key = inventoryMatchKey(p.name || '');
+  const simazineJug = (key === 'simazine' || key === 'simazine 4l')
+    && normalizeStockUnit(p.stockUnit) === 'bottle'
+    && p.containerLabel === 'jug'
+    && p.containerSize === JUG_FL_OZ;
+  if (simazineJug) {
+    return (p.currentStock + ' ' + containerNoun('jug', Number(p.currentStock))).trim();
+  }
+  return (p.currentStock + ' ' + rawUnit).trim();
+}
+
 function fmtHaveText(p) {
   if (p.stockStatus === 'loading') return 'loading';
   if (p.stockStatus === 'inventory_unavailable') return INVENTORY_FAILED;
   if (p.stockStatus === 'unmatched') return 'no match';
-  const rawUnit = String(p.stockUnit || '').trim();
-  let text = (p.currentStock + ' ' + rawUnit).trim();
+  let text = haveStockLabel(p);
   if (p.onHandBase != null && p.showConverted) text += ' = ' + fmtBaseAmount(p.onHandBase, p.unit);
   const when = formatInventoryStamp(p.updatedAt);
   if (when) text += ' · updated ' + when;
@@ -4549,6 +4577,8 @@ function buildPlanShareText(roundNum, warmSqft, coolSqft, warmCount, coolCount, 
       const toOrder = blocked ? (p.stockFlag || 'stock not subtracted') : orderAmountText(p);
       lines.push(`• ${p.name}${p.cond ? ` (${p.cond})` : ''}`);
       lines.push(`  Need ${need}  ·  Have ${have}  →  ${toOrder}`);
+      const buy = orderBuyLine(p.name);
+      if (buy) lines.push(`  Buy: ${buy}`);
       if (!blocked && p.containerFlag) lines.push(`  ${p.containerFlag}`);
     }
   }
@@ -4598,6 +4628,7 @@ function renderOrderRows(list) {
     const orderStr = blocked ? '—' : (p.toOrder === 0 ? '✓' : orderAmountText(p));
     const orderColor = blocked ? 'var(--warn)' : p.toOrder > 0 ? '#a064ff' : 'var(--green)';
     const flag = blocked ? p.stockFlag : p.containerFlag;
+    const buy = orderBuyLine(p.name);
     const toOrderAttr = p.toOrder == null ? '' : String(p.toOrder);
     return `
     <div class="op-row" data-product="${escapeHtml(p.name)}" data-stock-status="${escapeHtml(p.stockStatus || '')}" data-to-order="${escapeHtml(toOrderAttr)}" data-containers="${p.orderContainers == null ? '' : String(p.orderContainers)}" style="border-bottom:1px solid rgba(255,255,255,0.05);padding:10px 0">
@@ -4607,6 +4638,7 @@ function renderOrderRows(list) {
         <div><span style="color:var(--text3)">HAVE </span><span style="color:${haveColor};font-weight:700">${escapeHtml(haveStr)}</span></div>
         <div style="text-align:right"><span style="color:var(--text3)">ORDER </span><span style="color:${orderColor};font-weight:700">${escapeHtml(orderStr)}</span></div>
       </div>
+      ${buy ? `<div class="op-buy" style="font-size:11px;font-family:var(--font-mono);margin-top:4px;color:var(--text)">Buy: ${escapeHtml(buy)}</div>` : ''}
       ${flag ? `<div class="alert-box alert-warn op-stock-flag" style="margin-top:8px;padding:8px 10px">${escapeHtml(flag)}</div>` : ''}
     </div>`;
   }).join('');
