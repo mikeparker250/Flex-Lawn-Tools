@@ -5,37 +5,37 @@
   "collection": "inventory",
   "project_id": "premium-inventory-app",
   "fetched_at": "2026-10-22T23:52:38.933Z",
-  "count": 696,
-  "low_stock": 621,
-  "out_of_stock": 562,
+  "count": 692,
+  "low_stock": 617,
+  "out_of_stock": 558,
   "warehouses": [
     {
       "id": "FWsx4tkUNd9QjTqhXq3q",
       "name": "Wildlife storage",
-      "count": 174,
-      "low": 174,
-      "out": 174
+      "count": 173,
+      "low": 173,
+      "out": 173
     },
     {
       "id": "ImsYYDCLRoAgF4u3HtEe",
       "name": "Gravette Storage Unit",
-      "count": 174,
-      "low": 172,
-      "out": 171
+      "count": 173,
+      "low": 171,
+      "out": 170
     },
     {
       "id": "J29nPerDyPRDoVqg1Wsf",
       "name": "Bentonville",
-      "count": 174,
-      "low": 105,
-      "out": 59
+      "count": 173,
+      "low": 104,
+      "out": 58
     },
     {
       "id": "QPS6aVt4G1o6A4jsll0P",
       "name": "Conway",
-      "count": 174,
-      "low": 170,
-      "out": 158
+      "count": 173,
+      "low": 169,
+      "out": 157
     }
   ],
   "categories": [
@@ -47,9 +47,9 @@
     },
     {
       "category": "Lawn Products",
-      "count": 156,
-      "low": 150,
-      "out": 148
+      "count": 152,
+      "low": 146,
+      "out": 144
     },
     {
       "category": "Pest Equipment",
@@ -2066,19 +2066,6 @@
       "unit": "Lbs",
       "unitCost": 5.62,
       "reorderThreshold": 50,
-      "onHand": 0,
-      "isLow": true,
-      "isOutOfStock": true,
-      "warehouseId": "FWsx4tkUNd9QjTqhXq3q",
-      "warehouseName": "Wildlife storage"
-    },
-    {
-      "id": "E372224E-D104-453D-8CBE-7B4DBB44B7CC",
-      "name": "Specticle FLO",
-      "category": "Lawn Products",
-      "unit": "Bottles",
-      "unitCost": null,
-      "reorderThreshold": 1,
       "onHand": 0,
       "isLow": true,
       "isOutOfStock": true,
@@ -4328,19 +4315,6 @@
       "unit": "Lbs",
       "unitCost": 5.62,
       "reorderThreshold": 50,
-      "onHand": 0,
-      "isLow": true,
-      "isOutOfStock": true,
-      "warehouseId": "ImsYYDCLRoAgF4u3HtEe",
-      "warehouseName": "Gravette Storage Unit"
-    },
-    {
-      "id": "E372224E-D104-453D-8CBE-7B4DBB44B7CC",
-      "name": "Specticle FLO",
-      "category": "Lawn Products",
-      "unit": "Bottles",
-      "unitCost": null,
-      "reorderThreshold": 1,
       "onHand": 0,
       "isLow": true,
       "isOutOfStock": true,
@@ -6597,19 +6571,6 @@
       "warehouseName": "Bentonville"
     },
     {
-      "id": "E372224E-D104-453D-8CBE-7B4DBB44B7CC",
-      "name": "Specticle FLO",
-      "category": "Lawn Products",
-      "unit": "Bottles",
-      "unitCost": null,
-      "reorderThreshold": 1,
-      "onHand": 0,
-      "isLow": true,
-      "isOutOfStock": true,
-      "warehouseId": "J29nPerDyPRDoVqg1Wsf",
-      "warehouseName": "Bentonville"
-    },
-    {
       "id": "E38C37F2-7A14-482A-BFFB-6D4CF1949826",
       "name": "Termidor Foam",
       "category": "Pest Products",
@@ -8852,19 +8813,6 @@
       "unit": "Lbs",
       "unitCost": 5.62,
       "reorderThreshold": 50,
-      "onHand": 0,
-      "isLow": true,
-      "isOutOfStock": true,
-      "warehouseId": "QPS6aVt4G1o6A4jsll0P",
-      "warehouseName": "Conway"
-    },
-    {
-      "id": "E372224E-D104-453D-8CBE-7B4DBB44B7CC",
-      "name": "Specticle FLO",
-      "category": "Lawn Products",
-      "unit": "Bottles",
-      "unitCost": null,
-      "reorderThreshold": 1,
       "onHand": 0,
       "isLow": true,
       "isOutOfStock": true,
