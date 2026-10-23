@@ -4152,12 +4152,13 @@ const KNOWN_BOTTLE_FL_OZ = {
   'simazine 4l': 320,
 };
 
-// Order name → warehouse name. Only these two are confirmed.
-// Not aliased: MSO → MSO Adigor, Artavia → Azoxy,
-// LESCO Poly Plus OPTI 28-0-3 → Lesco 28-0-3.
+// Order name → warehouse name. Keys are inventoryMatchKey values:
+// trimmed, case-folded, internal whitespace collapsed.
+// Not aliased: MSO → MSO Adigor, Artavia → Azoxy.
 const INVENTORY_NAME_ALIASES = {
   'simazine': 'simazine 4l',
   'albaugh sulfentrazone 4sc select': 'sulfentrazone',
+  'lesco poly plus opti 28-0-3': 'lesco 28-0-3',
 };
 
 // Inventory stamps we will show when the Firestore doc actually has one.

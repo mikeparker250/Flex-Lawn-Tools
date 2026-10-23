@@ -247,7 +247,10 @@ test('R7 against the 23:52 UTC dashboard fixture', () => {
   assert.equal(byName['90/10 NIS'].have, '2 Bottles = 640.0 oz');
   assert.equal(byName['90/10 NIS'].toOrder, 'stocked');
   assert.equal(byName['Artavia SC (Azoxystrobin)'].toOrder, '413.6 fl oz · 2 jugs @ 320 fl oz');
-  assert.equal(byName['LESCO Poly Plus OPTI 28-0-3'].status, 'unmatched');
+  assert.equal(byName['LESCO Poly Plus OPTI 28-0-3'].need, '74.8 lb, 1.5 bags, 2 bags to load');
+  assert.equal(byName['LESCO Poly Plus OPTI 28-0-3'].have, '12 Bags = 600 lb');
+  assert.equal(byName['LESCO Poly Plus OPTI 28-0-3'].toOrder, 'stocked');
+  assert.equal(byName['LESCO Poly Plus OPTI 28-0-3'].status, 'ok');
   assert.equal(byName['Albaugh Sulfentrazone 4SC Select'].have, '5 Jugs = 1600.0 oz');
   assert.equal(byName['Albaugh Sulfentrazone 4SC Select'].toOrder, 'stocked');
 });
