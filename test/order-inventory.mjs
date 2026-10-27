@@ -396,11 +396,8 @@ function orderText(p) {
   app.setOrderInventory({});
   const plan = app.calcOrderPlan(2, 1000, 0);
   const share = app.buildPlanShareText(2, 1000, 0, 1, 0, plan);
-  check('share text flags an unmatched product', /No warehouse match — stock not subtracted/.test(share), share.split('\n').slice(0, 12).join(' | '));
-  check('share text does not put a bare amount after the arrow', !/→\s+\d/.test(share), 'arrow stayed flagged');
-  check('share text names the sourced 90/10 purchase', share.includes('Buy: LESCO 90/10 Nonionic Surfactant, 2.5 gal'), share);
-  check('share text names the sourced Albaugh purchase', share.includes('Buy: Albaugh Sulfentrazone 4SC Select, 64 fl oz'), share);
-  check('share text has no Buy line for an unsourced product', !/Buy:.*Prodiamine/.test(share) && !/Buy:.*Triad/.test(share), share);
+  check('unmatched round share text is the stocked message', share === '📦 Flex Lawn — R2 Order List\n✅ Stocked — nothing to buy', share);
+  check('share text has no Need/Have dump', !/Need |Have |→|WARM|COOL|COMBINED|No products/.test(share), share);
 }
 
 // --- R7 against the v73 warehouse snapshot (fixture, not a live read) ---
@@ -450,6 +447,55 @@ function orderText(p) {
   check('R7 OPTI aliases to 12 Lesco 28-0-3 bags', opti.stockStatus === 'ok' && near(opti.onHandBase, 600) && opti.toOrder === 0, opti.onHandBase);
   check('R7 Albaugh need unchanged', near(sulf.needed, 0.18), sulf.needed);
   check('R7 Albaugh 5 jugs cover the need', near(sulf.onHandBase, 1600) && sulf.toOrder === 0, sulf.onHandBase);
+  const share = app.buildPlanShareText(7, WARM, COOL, 12, 4, plan);
+  const expectedBuy = [
+    '📦 Flex Lawn — R7 Order List',
+    '🛒 Buy:',
+    '• Simazine — 1 jug',
+    '• Triad Select — 2 jugs',
+    '• Artavia SC (Azoxystrobin) — 2 jugs',
+  ].join('\n');
+  check('R7 share text lists only buys in store units', share === expectedBuy, share);
+  check('R7 share text omits stocked rows and the old dump', !/OPTI|90\/10|Albaugh|Need |Have |sq ft|EPA|Buy: |updated |No products|WARM|COOL|COMBINED/.test(share), share);
+  app.state.opRound = 7;
+  app.state.opSqftWarm = WARM;
+  app.state.opSqftCool = COOL;
+  app.state.opCountWarm = 12;
+  app.state.opCountCool = 4;
+  const view = app.renderOrderPlanner();
+  check('on-screen order list matches the share text', view.includes(share) && view.includes('id="op-order-list"'), share);
+  check('on-screen order list drops the Need/Have trio and turf dumps', !/id="op-warm"|id="op-cool"|id="op-combined"|NEED |HAVE |ORDER /.test(view), 'order list card');
+}
+
+{
+  const stocked = app.buildPlanShareText(4, 1000, 1000, 3, 2, {
+    warm: [{ name: 'Simazine', toOrder: 80, orderContainers: 1, containerLabel: 'jug', currentStock: 0, unit: 'oz' }],
+    cool: [{ name: 'Triad Select', toOrder: 400, orderContainers: 2, containerLabel: 'jug', currentStock: 0, unit: 'oz' }],
+    combined: [
+      { name: 'Simazine', toOrder: 0, orderContainers: 0, containerLabel: 'jug', currentStock: 2, unit: 'oz' },
+      { name: 'Triad Select', toOrder: 0.5, orderContainers: 1, containerLabel: 'jug', currentStock: 0, unit: 'oz' },
+    ],
+  });
+  check('fully stocked share text ignores warm and cool blocks', stocked === '📦 Flex Lawn — R4 Order List\n✅ Stocked — nothing to buy', stocked);
+
+  const buy = app.buildPlanShareText(3, 0, 0, 0, 0, {
+    combined: [
+      { name: 'Simazine', toOrder: 80, orderContainers: 1, containerLabel: 'jug', currentStock: 1, unit: 'oz', cond: 'Dormant turf ONLY. Warm-season ONLY — NEVER on fescue.' },
+      { name: 'LESCO Poly Plus OPTI 28-0-3', toOrder: 180, orderContainers: 4, containerLabel: 'bag', currentStock: 0, unit: 'lbs', cond: 'highest turf rate used' },
+      { name: '90/10 NIS', toOrder: 0, currentStock: 2, unit: 'oz' },
+      { name: 'Quin-Way 1.5L', toOrder: 36, orderContainers: 1, containerLabel: 'bottle', currentStock: null, unit: 'fl oz', cond: 'ester' },
+    ],
+  });
+  const buyText = [
+    '📦 Flex Lawn — R3 Order List',
+    '🛒 Buy:',
+    '• Simazine — 1 jug',
+    '• LESCO Poly Plus OPTI 28-0-3 — 4 bags (50 lb)',
+    '• Quin-Way 1.5L (ester) — 1 bottle',
+    '⚠️ Check stock: Quin-Way 1.5L',
+  ].join('\n');
+  check('buy share text is combined-only store units', buy === buyText, buy);
+  check('buy share text has no Need/Have or EPA catalog line', !/Need |Have |→|EPA|Buy: |updated /.test(buy), buy);
 }
 
 {
@@ -468,9 +514,9 @@ function orderText(p) {
 
 {
   const version = JSON.parse(fs.readFileSync(new URL('../version.json', import.meta.url), 'utf8'));
-  check('version.json is 78', version.v === 78, version.v);
+  check('version.json is 79', version.v === 79, version.v);
   const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
-  check('service worker cache is v78', sw.includes('flex-mix-v78') && !sw.includes('flex-mix-v77'), sw.slice(0, 30));
+  check('service worker cache is v79', sw.includes('flex-mix-v79') && !sw.includes('flex-mix-v78'), sw.slice(0, 30));
 }
 
 const failed = results.filter(r => !r.ok);
