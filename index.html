@@ -4553,38 +4553,71 @@ function fmtNeeded(val, unit, productName) {
   return val.toFixed(1) + ' ' + unit;
 }
 
+// Rate and spray notes do not change the product on the truck.
+// A short cond is a purchase variant (which jug or bag to buy).
+function buyListCond(cond) {
+  if (!cond) return '';
+  if (cond === '1-gal B&G' || cond === 'highest turf rate used') return '';
+  if (String(cond).length > 40) return '';
+  return String(cond);
+}
+
+function buyListLabel(p) {
+  const name = p && p.name ? p.name : '';
+  const cond = buyListCond(p && p.cond);
+  return cond ? name + ' (' + cond + ')' : name;
+}
+
+// Store units only. Bags use granuleBagLbs and the ceil already stored on
+// orderContainers. Liquids use that same container count (jug, bottle, gal).
+function buyListQty(p) {
+  const bag = p.containerLabel === 'bag' || p.unit === 'lbs';
+  if (bag) {
+    const bagLbs = granuleBagLbs(p.name);
+    let n = (p.containerLabel === 'bag' && p.orderContainers > 0)
+      ? p.orderContainers
+      : containersForOrder(p.toOrder, fertilizerBagContainer(p.name));
+    if (!(n > 0)) n = 1;
+    return n + ' bag' + (n === 1 ? '' : 's') + ' (' + bagLbs + ' lb)';
+  }
+  if (p.orderContainers > 0 && p.containerLabel) {
+    return p.orderContainers + ' ' + containerNoun(p.containerLabel, p.orderContainers);
+  }
+  if (needBaseUnit(p.unit) === 'floz') {
+    const known = knownBottleFlOz(p.name);
+    const container = (known > 0 && known !== JUG_FL_OZ)
+      ? { size: known, label: 'bottle', sizeLabel: known + ' fl oz' }
+      : jugContainer();
+    const n = containersForOrder(p.toOrder, container);
+    if (n > 0) return n + ' ' + containerNoun(container.label, n);
+  }
+  return '';
+}
+
 function buildPlanShareText(roundNum, warmSqft, coolSqft, warmCount, coolCount, plan) {
-  const warmName = ROUNDS.warm[roundNum].name;
-  const coolName = ROUNDS.cool[roundNum].name;
-  const lines = [
-    `📦 FLEX LAWN CARE — ORDER LIST`,
-    `R${roundNum} · ${ROUNDS.warm[roundNum].dates} · ${today()}`,
-    `🔥 ${warmName}`,
-    `❄️ ${coolName}`,
-    `Warm ${Number(warmSqft || 0).toLocaleString()} sq ft · ${Number(warmCount || 0)} properties`,
-    `Cool ${Number(coolSqft || 0).toLocaleString()} sq ft · ${Number(coolCount || 0)} properties`,
-  ];
-  function addBlock(title, list) {
-    lines.push('', title);
-    if (!list.length) {
-      lines.push('No products.');
-      return;
-    }
-    for (const p of list) {
-      const need = fmtNeeded(p.needed, p.unit, p.name);
-      const have = fmtHaveText(p);
-      const blocked = p.stockStatus !== 'ok' || p.toOrder == null;
-      const toOrder = blocked ? (p.stockFlag || 'stock not subtracted') : orderAmountText(p);
-      lines.push(`• ${p.name}${p.cond ? ` (${p.cond})` : ''}`);
-      lines.push(`  Need ${need}  ·  Have ${have}  →  ${toOrder}`);
-      const buy = orderBuyLine(p.name);
-      if (buy) lines.push(`  Buy: ${buy}`);
-      if (!blocked && p.containerFlag) lines.push(`  ${p.containerFlag}`);
+  const combined = (plan && plan.combined) || [];
+  const buys = [];
+  for (let i = 0; i < combined.length; i++) {
+    const p = combined[i];
+    if (p && Number(p.toOrder) > 0.5) buys.push(p);
+  }
+  const lines = ['📦 Flex Lawn — R' + roundNum + ' Order List'];
+  if (!buys.length) {
+    lines.push('✅ Stocked — nothing to buy');
+  } else {
+    lines.push('🛒 Buy:');
+    for (let i = 0; i < buys.length; i++) {
+      const p = buys[i];
+      const qty = buyListQty(p);
+      const label = buyListLabel(p);
+      lines.push(qty ? '• ' + label + ' — ' + qty : '• ' + label);
     }
   }
-  addBlock('🔥 WARM', plan.warm);
-  addBlock('❄️ COOL', plan.cool);
-  addBlock('🛒 COMBINED', plan.combined);
+  const unknown = [];
+  for (let i = 0; i < buys.length; i++) {
+    if (buys[i].currentStock === null) unknown.push(buys[i].name);
+  }
+  if (unknown.length) lines.push('⚠️ Check stock: ' + unknown.join(', '));
   return lines.join('\n');
 }
 
@@ -4682,7 +4715,6 @@ function renderOrderPlanner() {
 
   const rn = state.opRound;
   const warmRd = ROUNDS.warm[rn];
-  const coolRd = ROUNDS.cool[rn];
   const plan = calcOrderPlan(rn, state.opSqftWarm, state.opSqftCool);
   const hasSqft = state.opSqftWarm > 0 || state.opSqftCool > 0;
 
@@ -4706,22 +4738,14 @@ function renderOrderPlanner() {
     <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:8px">Either turf can be 0. Sq ft drives the chemical totals. Property count is recorded with the order. Edit any box after the pull.</div>
   </div>`;
 
-  const section = (id, title, sub, sqft, count, list) => `
-    <div id="${id}" class="mix-card" style="margin-bottom:12px">
-      <div class="mix-card-header">
-        <span class="mix-card-title">${title}</span>
-        <span style="font-size:10px;font-family:var(--font-mono);color:#a064ff">${Number(sqft || 0).toLocaleString()} SQ FT · ${Number(count || 0)} PROP</span>
-      </div>
-      <div class="mix-card-body">
-        <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px">${sub}</div>
-        ${sqft > 0 ? renderOrderRows(list) : `<div style="font-size:13px;color:var(--text3);padding:8px 0">0 sq ft — no products for this turf.</div>`}
-      </div>
-    </div>`;
+  const shareText = buildPlanShareText(rn, state.opSqftWarm, state.opSqftCool, state.opCountWarm, state.opCountCool, plan);
 
   const orderHTML = hasSqft ? `
-    ${section('op-warm', '🔥 Warm', warmRd.name, state.opSqftWarm, state.opCountWarm, plan.warm)}
-    ${section('op-cool', '❄️ Cool', coolRd.name, state.opSqftCool, state.opCountCool, plan.cool)}
-    ${section('op-combined', '🛒 Combined shopping list', 'Shared products are added together. Warehouse stock is converted into the product unit and subtracted once.', state.opSqftWarm + state.opSqftCool, state.opCountWarm + state.opCountCool, plan.combined)}
+    <div id="op-order-list" class="mix-card" style="margin-bottom:12px">
+      <div class="mix-card-body">
+        <pre id="op-order-list-text" style="margin:0;white-space:pre-wrap;font-family:var(--font-mono);font-size:13px;line-height:1.5;color:var(--text)">${escapeHtml(shareText)}</pre>
+      </div>
+    </div>
     <button onclick="opShareOrder()" class="btn btn-primary" style="margin-top:4px;background:rgba(160,100,255,0.9);border:none">📤 Share Order List</button>
     <div id="op-share-fallback" style="display:none;margin-top:12px">
       <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-bottom:6px">Copy the text below:</div>
