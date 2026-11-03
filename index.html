@@ -242,6 +242,23 @@ header h1 {
   background: var(--bg2); border: 1px solid rgba(255,255,255,0.07);
   border-radius: var(--radius); padding: 12px 14px; max-width: 100%;
 }
+.property-row.needs-review {
+  background: rgba(255, 200, 0, 0.12);
+  border-color: rgba(255, 200, 0, 0.55);
+}
+.prop-review {
+  flex: 1 1 100%;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: #ffc800;
+}
+.pull-route-box {
+  background: var(--bg2);
+  border: 1px solid rgba(160,100,255,0.35);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 4px;
+}
 .prop-name { flex: 1 1 120px; min-width: 0; font-size: 15px; font-weight: 600; overflow-wrap: break-word; }
 .prop-sqft {
   font-family: var(--font-mono); font-size: 14px; color: var(--text2);
@@ -1170,6 +1187,14 @@ const state = {
   screen:'step1',
   routeType:null,
   properties:[],
+  routeSource:null,       // 'pull' | 'screenshot' | 'manual' | null
+  routeConfirmed:false,   // pull only — Calculate stays off until Confirm route
+  routeMixed:false,
+  routeReviewReasons:[],
+  pullDate:'',
+  pullEmployeeID:'',
+  pullError:null,
+  pullLoading:false,
   round:null,
   images:[],          // {name, dataUrl, base64, mime}
   isLoading:false,
@@ -2395,6 +2420,133 @@ async function parseImages(images) {
   return allResults;
 }
 
+// Same mix rule as api/lib/lawn-route.js decideRouteType.
+// Rock yards are not a grass tank. Clear cool-only → cool. Warm otherwise.
+// Cool together with warm or mixed-turf stops refuses a single tank.
+function pulledRouteDecision(properties) {
+  let hasCool = false;
+  let hasWarm = false;
+  let hasMixed = false;
+  for (const property of properties || []) {
+    const turf = property && property.turf;
+    const rockOnly = property && property.isRockYard && turf !== 'cool' && turf !== 'mixed';
+    if (rockOnly) continue;
+    if (turf === 'cool') hasCool = true;
+    else if (turf === 'mixed') hasMixed = true;
+    else if (turf === 'warm') hasWarm = true;
+  }
+  if (hasCool && (hasWarm || hasMixed)) {
+    return {
+      routeType: null,
+      mixedRoute: true,
+      needsReview: ['Mixed cool and warm on this route — split before calculating'],
+    };
+  }
+  if (hasCool) return { routeType: 'cool', mixedRoute: false, needsReview: [] };
+  return { routeType: 'warm', mixedRoute: false, needsReview: [] };
+}
+
+function recomputePulledMix() {
+  if (state.routeSource !== 'pull') return;
+  const decision = pulledRouteDecision(state.properties);
+  state.routeMixed = decision.mixedRoute;
+  state.routeReviewReasons = decision.needsReview;
+  if (!decision.mixedRoute && (decision.routeType === 'cool' || decision.routeType === 'warm')) {
+    state.routeType = decision.routeType;
+  }
+}
+
+function markPullEdited() {
+  if (state.routeSource !== 'pull') return;
+  state.routeConfirmed = false;
+  recomputePulledMix();
+}
+
+function confirmPulledRoute() {
+  if (state.routeSource !== 'pull' || state.routeMixed) return;
+  state.routeConfirmed = true;
+  render();
+}
+
+function keepPulledTurf(which) {
+  if (state.routeSource !== 'pull') return;
+  state.properties = state.properties.filter(p => {
+    const turf = p && p.turf;
+    const rockOnly = p && p.isRockYard && turf !== 'cool' && turf !== 'mixed';
+    if (rockOnly || turf == null || turf === '') return true;
+    if (which === 'cool') return turf === 'cool';
+    return turf !== 'cool';
+  });
+  state.routeConfirmed = false;
+  recomputePulledMix();
+  render();
+}
+
+function applyPulledRoute(data) {
+  state.properties = (data.properties || []).map(p => ({
+    name: p.name || 'Unknown',
+    sqft: Math.round(Number(p.sqft) || 0),
+    round: p.round ? String(p.round).toUpperCase() : null,
+    isRockYard: !!p.isRockYard,
+    hasRockBeds: !!p.hasRockBeds,
+    isHoseDrag: !!p.isHoseDrag,
+    equipmentOverride: null,
+    customerID: p.customerID == null ? null : p.customerID,
+    confidence: p.confidence || (Array.isArray(p.needsReview) && p.needsReview.length ? 'low' : 'high'),
+    needsReview: Array.isArray(p.needsReview) ? p.needsReview.map(reason => String(reason)) : [],
+    turf: p.turf === 'cool' || p.turf === 'mixed' || p.turf === 'warm' ? p.turf : 'warm',
+  }));
+  state.routeSource = 'pull';
+  state.routeConfirmed = false;
+  state.routeMixed = !!data.mixedRoute;
+  state.routeReviewReasons = Array.isArray(data.needsReview) ? data.needsReview.map(reason => String(reason)) : [];
+  if (!state.routeMixed && (data.routeType === 'cool' || data.routeType === 'warm')) {
+    state.routeType = data.routeType;
+  }
+  recomputePulledMix();
+  state.round = detectRound();
+  state.feedMode = {};
+  resetLeftoverState();
+  state.screen = 'step3';
+  state.pullError = null;
+}
+
+async function pullTodayRoute() {
+  const date = document.getElementById('pull-route-date')?.value || state.pullDate || localIsoDate(new Date());
+  const employeeID = (document.getElementById('pull-route-employee')?.value || state.pullEmployeeID || '').trim();
+  state.pullDate = date;
+  state.pullEmployeeID = employeeID;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d+$/.test(employeeID)) {
+    state.pullError = 'Enter a date and FieldRoutes employee ID.';
+    render();
+    return;
+  }
+  try { localStorage.setItem('flex_mix_employee_id', employeeID); } catch (e) {}
+  state.pullLoading = true;
+  state.isLoading = true;
+  state.pullError = null;
+  render();
+  try {
+    const res = await fetch('/api/fieldroutes-lawn-route?date=' + encodeURIComponent(date) + '&employeeID=' + encodeURIComponent(employeeID), { cache: 'no-store' });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data || !Array.isArray(data.properties)) {
+      state.pullError = (data && data.error) || 'FieldRoutes request failed';
+      return;
+    }
+    if (!data.properties.length) {
+      state.pullError = 'No pending stops on that route. Upload screenshots or add properties manually.';
+      return;
+    }
+    applyPulledRoute(data);
+  } catch (e) {
+    state.pullError = 'FieldRoutes request failed';
+  } finally {
+    state.pullLoading = false;
+    state.isLoading = false;
+    render();
+  }
+}
+
 // ═══════════════════════════════════════════════════════════
 //  RENDER HELPERS
 // ═══════════════════════════════════════════════════════════
@@ -3203,8 +3355,23 @@ function renderFly() {
   ${resultHTML}`;
 }
 
+function localIsoDate(d) {
+  const dt = d || new Date();
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+function savedEmployeeId() {
+  try { return localStorage.getItem('flex_mix_employee_id') || ''; }
+  catch (e) { return ''; }
+}
+
 function renderStep2() {
   const hasImages = state.images.length > 0;
+  const pullDate = state.pullDate || localIsoDate(new Date());
+  const pullEmployee = state.pullEmployeeID || savedEmployeeId();
   const previewsHTML = hasImages ? `
     <div class="upload-previews">
       ${state.images.map((img,i) => `
@@ -3218,9 +3385,22 @@ function renderStep2() {
   <button class="back-nav" id="back-to-1">← Back</button>
   <div class="route-chip">${state.routeType==='warm'?'🔥 Warm Season':'❄️ Cool Season'}</div>
   <div class="step-label">STEP 2 OF 3</div>
-  <div class="step-title">Upload your FieldRoutes screenshots</div>
+  <div class="step-title">Load today's route</div>
 
-  ${state.parseError ? `<div class="error-box">❌ ${state.parseError}<div class="info-row" style="margin-top:6px">Try again or add properties manually below.</div></div>` : ''}
+  <div class="pull-route-box">
+    <div class="section-header" style="margin-top:0">Pull today's route</div>
+    <div class="info-row" style="margin-bottom:10px">Same property fields as a My Routes screenshot — square feet, round, rock yard, rock beds, hose drag, and tall fescue. Nothing is written back to FieldRoutes.</div>
+    ${state.pullError ? `<div id="pull-route-error" class="alert-box alert-warn" style="margin-bottom:10px">${escapeHtml(state.pullError)}</div>` : ''}
+    <div class="prop-row-inputs">
+      <input type="date" class="prop-input" id="pull-route-date" value="${escapeHtml(pullDate)}" />
+      <input type="text" inputmode="numeric" class="prop-input" id="pull-route-employee" placeholder="Employee ID" value="${escapeHtml(pullEmployee)}" />
+    </div>
+    <button class="btn btn-primary" id="pull-route-btn" type="button" style="width:100%">Pull today's route</button>
+  </div>
+
+  <div class="or-divider">OR SCREENSHOTS</div>
+
+  ${state.parseError ? `<div class="error-box">❌ ${escapeHtml(state.parseError)}<div class="info-row" style="margin-top:6px">Try again or add properties manually below.</div></div>` : ''}
 
   <div class="upload-zone" id="upload-zone">
     <input type="file" accept="image/*" multiple id="file-input" />
@@ -3272,17 +3452,36 @@ function renderStep3() {
         const rockBedsBadge = p.hasRockBeds
           ? `<span class="equip-badge" style="background:rgba(100,180,255,0.10);color:#64b4ff;border-color:rgba(100,180,255,0.25);font-size:10px">🪨 +BEDS</span>`
           : '';
+        const hoseBadge = p.isHoseDrag
+          ? `<span class="equip-badge" style="background:rgba(255,200,0,0.12);color:#ffc800;border-color:rgba(255,200,0,0.35);font-size:10px">HOSE DRAG</span>`
+          : '';
+        const turfBadge = p.turf === 'cool'
+          ? `<span class="equip-badge" style="background:rgba(100,180,255,0.10);color:#64b4ff;border-color:rgba(100,180,255,0.25);font-size:10px">COOL</span>`
+          : p.turf === 'mixed'
+          ? `<span class="equip-badge" style="background:rgba(255,200,0,0.12);color:#ffc800;border-color:rgba(255,200,0,0.35);font-size:10px">MIXED TURF</span>`
+          : '';
+        const reviewReasons = Array.isArray(p.needsReview) ? p.needsReview.filter(Boolean) : [];
+        const reviewHTML = reviewReasons.length
+          ? `<div class="prop-review">${reviewReasons.map(reason => escapeHtml(reason)).join(' · ')}</div>`
+          : '';
         const rockToggle = `<button class="rock-toggle-btn ${p.isRockYard?'rock-active':''}" data-rock-idx="${i}" title="${p.isRockYard?'Remove rock yard flag':'Mark as rock yard'}">🪨</button>`;
+        const bedsToggle = `<button class="rock-toggle-btn ${p.hasRockBeds?'rock-active':''}" data-beds-idx="${i}" title="${p.hasRockBeds?'Remove rock beds flag':'Mark rock beds included'}">+B</button>`;
+        const hoseToggle = `<button class="rock-toggle-btn ${p.isHoseDrag?'rock-active':''}" data-hose-idx="${i}" title="${p.isHoseDrag?'Remove hose drag flag':'Mark hose drag required'}">Hose</button>`;
         return `
-        <div class="property-row">
-          <div class="prop-name">${p.name}</div>
+        <div class="property-row${reviewReasons.length ? ' needs-review' : ''}">
+          <div class="prop-name">${escapeHtml(p.name)}</div>
           <div class="prop-sqft">${p.sqft > 0 ? p.sqft.toLocaleString()+' sqft' : '—'}</div>
           ${roundBadge}
           ${equipBadge}
           ${rockBedsBadge}
+          ${hoseBadge}
+          ${turfBadge}
           ${equipToggle}
           ${rockToggle}
+          ${bedsToggle}
+          ${hoseToggle}
           <button class="prop-delete" data-del="${i}">×</button>
+          ${reviewHTML}
         </div>`;
       }).join('')
     : `<div class="empty-state">
@@ -3290,8 +3489,9 @@ function renderStep3() {
         <div>No properties yet — add them below</div>
       </div>`;
 
+  const seasonType = ROUNDS[state.routeType] ? state.routeType : 'warm';
   const roundOptions = [1,2,3,4,5,6,7].map(n => {
-    const r = ROUNDS[state.routeType][n];
+    const r = ROUNDS[seasonType][n];
     return `<option value="${n}" ${n===currentRound?'selected':''}>${`R${n} — ${r.dates}`}</option>`;
   }).join('');
 
@@ -3329,12 +3529,31 @@ function renderStep3() {
   // Check if all properties have rounds assigned
   const missingRound = state.properties.filter(p => !p.round && !p.isRockYard).length;
 
+  const pullGate = state.routeSource === 'pull';
+  const routeChip = state.routeMixed
+    ? '⚠️ Mixed route'
+    : (seasonType === 'warm' ? '🔥 Warm Season' : '❄️ Cool Season');
+  const calcDisabled = !hasProps || state.routeMixed || (pullGate && !state.routeConfirmed);
+  const mixedBanner = state.routeMixed
+    ? `<div class="alert-box alert-warn" id="mixed-route-banner">Mixed cool and warm on this route. One tank cannot cover both — keep cool stops or keep warm stops, then confirm.</div>
+       <div class="btn-row" style="margin-bottom:12px">
+         <button class="btn btn-secondary" id="keep-cool-btn" type="button">Keep cool stops</button>
+         <button class="btn btn-secondary" id="keep-warm-btn" type="button">Keep warm stops</button>
+       </div>`
+    : '';
+  const confirmNote = pullGate && !state.routeConfirmed && !state.routeMixed
+    ? `<div class="alert-box alert-info">Review the flags, then tap Confirm route. Calculate stays off until you confirm.</div>`
+    : '';
+
   return `
   <button class="back-nav" id="back-to-2">← Back</button>
-  <div class="route-chip">${state.routeType==='warm'?'🔥 Warm Season':'❄️ Cool Season'}</div>
+  <div class="route-chip">${routeChip}</div>
   <div class="step-label">STEP 3 OF 3</div>
   <div class="step-title">Review Properties</div>
 
+  ${mixedBanner}
+  ${confirmNote}
+  ${!state.routeMixed && (state.routeReviewReasons || []).length ? `<div class="alert-box alert-warn">${state.routeReviewReasons.map(reason => escapeHtml(reason)).join('<br>')}</div>` : ''}
   ${missingRound > 0 ? `<div class="alert-box alert-warn">⚠️ ${missingRound} propert${missingRound>1?'ies':'y'} missing a round. Set the round using the dropdown on each row, or re-parse with clearer screenshots.</div>` : ''}
 
   <div class="section-header">Properties (${state.properties.length})</div>
@@ -3355,7 +3574,8 @@ function renderStep3() {
   ${hasProps ? renderLeftoverPanel(state.routeType, state.round || detectRound()) : ''}
 
   <div class="btn-row" style="margin-top:20px">
-    <button class="btn btn-primary" id="calc-btn" ${!hasProps?'disabled':''}>
+    ${pullGate ? `<button class="btn ${state.routeConfirmed && !state.routeMixed ? 'btn-secondary' : 'btn-primary'}" id="confirm-route-btn" type="button" ${state.routeConfirmed || state.routeMixed ? 'disabled' : ''}>${state.routeConfirmed ? 'Route confirmed' : 'Confirm route'}</button>` : ''}
+    <button class="btn btn-primary" id="calc-btn" ${calcDisabled ? 'disabled' : ''}>
       Calculate Mix →
     </button>
   </div>`;
@@ -3608,6 +3828,14 @@ function renderResults() {
 }
 
 function renderLoading() {
+  if (state.pullLoading) {
+    return `
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <div class="loading-text">Pulling today's route...</div>
+      <div class="loading-sub">Reading FieldRoutes stops, square feet, and red notes.</div>
+    </div>`;
+  }
   return `
   <div class="loading-wrap">
     <div class="spinner"></div>
@@ -3747,6 +3975,10 @@ function attachEvents() {
       const props = await parseImages(state.images);
       if (!props.length) throw new Error('No properties found. Make sure sqft data is visible in your screenshots.');
       state.properties = props;
+      state.routeSource = 'screenshot';
+      state.routeConfirmed = true;
+      state.routeMixed = false;
+      state.routeReviewReasons = [];
       state.round = detectRound();
       state.feedMode = {};
       resetLeftoverState();
@@ -3756,7 +3988,14 @@ function attachEvents() {
     } finally { state.isLoading = false; }
     render();
   });
+  document.getElementById('pull-route-btn')?.addEventListener('click', () => { pullTodayRoute(); });
   document.getElementById('skip-to-manual')?.addEventListener('click', () => {
+    if (state.routeSource !== 'pull') {
+      state.routeSource = 'manual';
+      state.routeConfirmed = true;
+      state.routeMixed = false;
+      state.routeReviewReasons = [];
+    }
     state.screen='step3'; state.round=detectRound(); state.feedMode={}; render();
   });
   // Step 3
@@ -3764,6 +4003,7 @@ function attachEvents() {
   document.querySelectorAll('[data-del]').forEach(btn => {
     btn.addEventListener('click', () => {
       state.properties.splice(Number(btn.dataset.del), 1);
+      markPullEdited();
       render();
     });
   });
@@ -3774,6 +4014,23 @@ function attachEvents() {
     btn.addEventListener('click', () => {
       const idx = Number(btn.dataset.rockIdx);
       state.properties[idx].isRockYard = !state.properties[idx].isRockYard;
+      markPullEdited();
+      render();
+    });
+  });
+  document.querySelectorAll('[data-beds-idx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.bedsIdx);
+      state.properties[idx].hasRockBeds = !state.properties[idx].hasRockBeds;
+      markPullEdited();
+      render();
+    });
+  });
+  document.querySelectorAll('[data-hose-idx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.hoseIdx);
+      state.properties[idx].isHoseDrag = !state.properties[idx].isHoseDrag;
+      markPullEdited();
       render();
     });
   });
@@ -3795,11 +4052,19 @@ function attachEvents() {
     sel.addEventListener('change', (e) => {
       const idx = Number(e.target.dataset.roundIdx);
       state.properties[idx].round = e.target.value || null;
+      markPullEdited();
       render();
     });
   });
+  document.getElementById('confirm-route-btn')?.addEventListener('click', () => { confirmPulledRoute(); });
+  document.getElementById('keep-cool-btn')?.addEventListener('click', () => { keepPulledTurf('cool'); });
+  document.getElementById('keep-warm-btn')?.addEventListener('click', () => { keepPulledTurf('warm'); });
   document.getElementById('calc-btn')?.addEventListener('click', () => {
-    if (state.properties.length) { state.screen='results'; render(); }
+    if (!state.properties.length) return;
+    if (state.routeMixed) return;
+    if (state.routeSource === 'pull' && !state.routeConfirmed) return;
+    state.screen='results';
+    render();
   });
 
   // Results
@@ -3807,6 +4072,8 @@ function attachEvents() {
   document.getElementById('restart-btn')?.addEventListener('click', () => {
     state.screen='step1'; state.routeType=null; state.properties=[];
     state.images=[]; state.round=null; state.parseError=null; state.feedMode={};
+    state.routeSource=null; state.routeConfirmed=false; state.routeMixed=false;
+    state.routeReviewReasons=[]; state.pullError=null; state.pullLoading=false;
     resetLeftoverState();
     render();
   });
@@ -3830,7 +4097,8 @@ function addProp() {
   const sqft  = parseInt(sqftEl?.value) || 0;
   const round = roundEl?.value || null;
   if (name) {
-    state.properties.push({name, sqft, round, isRockYard:false, hasRockBeds:false, isHoseDrag:false, equipmentOverride:null});
+    state.properties.push({name, sqft, round, isRockYard:false, hasRockBeds:false, isHoseDrag:false, equipmentOverride:null, needsReview:[]});
+    markPullEdited();
     state.newPropName=''; state.newPropSqft='';
     if (nameEl) nameEl.value='';
     if (sqftEl) sqftEl.value='';
@@ -3879,6 +4147,8 @@ function readFileAsDataURL(file) {
 document.getElementById('restart-header-btn')?.addEventListener('click', () => {
   state.screen='step1'; state.routeType=null; state.properties=[];
   state.images=[]; state.round=null; state.parseError=null; state.parseProgress=0;
+  state.routeSource=null; state.routeConfirmed=false; state.routeMixed=false;
+  state.routeReviewReasons=[]; state.pullError=null; state.pullLoading=false;
   state.flyType=null; state.flyRound=null; state.flySqft=0;
   state.flyMode='round'; state.rsTurfType=null; state.rsSelectedWeeds=[]; state.rsWeedSearch='';
   state.feedMode={};
