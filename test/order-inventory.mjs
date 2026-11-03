@@ -514,9 +514,9 @@ function orderText(p) {
 
 {
   const version = JSON.parse(fs.readFileSync(new URL('../version.json', import.meta.url), 'utf8'));
-  check('version.json is 79', version.v === 79, version.v);
+  check('version.json is 80', version.v === 80, version.v);
   const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
-  check('service worker cache is v79', sw.includes('flex-mix-v79') && !sw.includes('flex-mix-v78'), sw.slice(0, 30));
+  check('service worker cache is v80', sw.includes('flex-mix-v80') && !sw.includes('flex-mix-v79'), sw.slice(0, 30));
 }
 
 const failed = results.filter(r => !r.ok);
