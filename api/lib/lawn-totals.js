@@ -403,4 +403,9 @@ module.exports = {
   loadLawnTotals,
   endpointUrl,
   chunks,
+  toId,
+  recordId,
+  createPoster,
+  searchAll,
+  fetchAllDiagrams,
 };
